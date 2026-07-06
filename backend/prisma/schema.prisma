@@ -1,0 +1,126 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum KYCStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RequestStatus {
+  SUBMITTED
+  QUOTED
+  APPROVED
+  REJECTED
+}
+
+model Company {
+  id                    String           @id @default(uuid())
+  denomination_sociale  String
+  rccm_number           String
+  ifu_number            String
+  phone                 String
+  email                 String           @unique
+  city                  String
+  district              String
+  house                 String
+  square                String
+  
+  // Gérant
+  manager_name          String
+  manager_rccm          String?
+  manager_ifu           String
+  manager_phone         String
+  manager_email         String
+  manager_city          String
+  manager_district      String
+  manager_house         String
+  manager_square        String
+  manager_cip_pdf       String           // Path to CIP PDF
+  manager_selfie        String           // Path to Selfie image
+  
+  // Avaliseur / Garant
+  guarantor_name        String
+  guarantor_rccm        String?
+  guarantor_ifu         String
+  guarantor_phone       String
+  guarantor_email       String
+  guarantor_city        String
+  guarantor_district    String
+  guarantor_house       String
+  guarantor_square      String
+  guarantor_cip_pdf     String           // Path to CIP PDF
+  guarantor_selfie      String           // Path to Selfie image
+  
+  kyc_status            KYCStatus        @default(PENDING)
+  created_at            DateTime         @default(now())
+  wallet                Wallet?
+  orders                Order[]
+  special_requests      SpecialRequest[]
+}
+
+model Wallet {
+  id               String    @id @default(uuid())
+  company_id       String    @unique
+  company          Company   @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  acompte_initial  Decimal   @default(0) @db.Decimal(15, 2)
+  acompte_restant  Decimal   @default(0) @db.Decimal(15, 2)
+  credit_initial   Decimal   @default(0) @db.Decimal(15, 2)
+  credit_utilise   Decimal   @default(0) @db.Decimal(15, 2)
+  activated_at     DateTime?
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String      @db.Text
+  price       Decimal     @db.Decimal(15, 2)
+  image_url   String
+  created_at  DateTime    @default(now())
+  order_items OrderItem[]
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  company_id       String
+  company          Company     @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  order_number     String      @unique
+  total_amount     Decimal     @db.Decimal(15, 2)
+  payment_schedule Json        // JSON list of installments
+  status           OrderStatus @default(PENDING)
+  created_at       DateTime    @default(now())
+  order_items      OrderItem[]
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  order_id   String
+  order      Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product_id String
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  quantity   Int
+  price      Decimal  @db.Decimal(15, 2)
+}
+
+model SpecialRequest {
+  id              String        @id @default(uuid())
+  company_id      String
+  company         Company       @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  description     String        @db.Text
+  quantity        Int
+  estimated_price Decimal?      @db.Decimal(15, 2)
+  status          RequestStatus @default(SUBMITTED)
+  created_at      DateTime      @default(now())
+}

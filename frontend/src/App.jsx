@@ -1,0 +1,219 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
+import Boutique from './pages/Boutique';
+import Panier from './pages/Panier';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import DashboardClient from './pages/DashboardClient';
+import DashboardAdmin from './pages/DashboardAdmin';
+import { LogOut, ShoppingCart, LogIn } from 'lucide-react';
+
+function GmdLogo() {
+  return (
+    <div className="flex flex-col items-start select-none">
+      <div className="flex items-center gap-0.5">
+        <span className="font-extrabold text-2xl tracking-tighter" style={{ color: '#ff6600' }}>G</span>
+        <span className="font-black text-2xl tracking-tight text-white">MD</span>
+      </div>
+      <span className="text-[7px] text-zinc-500 uppercase tracking-widest -mt-1 font-semibold leading-tight">Galassy Meuble Décor</span>
+    </div>
+  );
+}
+
+function AppLayout({ user, setUser, cart, setCart }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const path = location.pathname;
+  const [forceShowProducts, setForceShowProducts] = useState(false);
+  const [wallet, setWallet] = useState(null);
+
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  /* Fetch wallet when user logs in */
+  useEffect(() => {
+    if (user?.role === 'CLIENT' && user?.company?.id) {
+      fetch(`http://localhost:5000/api/wallets/${user.company.id}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setWallet(d); })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('gmd_user');
+    setUser(null);
+    navigate('/');
+  };
+
+  /* Nav tab helper */
+  const tabClass = (active) =>
+    `nav-tab px-4 py-1.5 rounded border text-xs font-semibold cursor-pointer transition-colors ${
+      active
+        ? 'active bg-red-950/30 border-red-800/70 text-red-400'
+        : 'border-zinc-900/50 bg-zinc-950/30 text-zinc-400 hover:text-white hover:border-zinc-700'
+    }`;
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: '#09090b' }}>
+
+      {/* ── HEADER ─────────────────────────────────────────── */}
+      <header className="w-full bg-black/50 border-b border-zinc-900/60 px-8 py-4 sticky top-0 z-50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto flex flex-col gap-3">
+
+          {/* Row 1: Logo + Actions */}
+          <div className="flex items-center justify-between">
+            <Link to="/" onClick={() => setForceShowProducts(false)}>
+              <GmdLogo />
+            </Link>
+
+            <div className="flex items-center gap-3">
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="btn-ghost px-4 py-2 rounded-lg border border-red-900/50 bg-red-950/20 text-red-400 text-xs font-semibold flex items-center gap-2 cursor-pointer"
+                >
+                  <LogOut size={14} /> Déconnexion
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="btn-connect px-5 py-2 rounded-lg bg-[#004d26] border border-[#00692f] text-[#4af296] text-xs font-bold flex items-center gap-2"
+                >
+                  <LogIn size={14} /> Se connecter
+                </Link>
+              )}
+
+              {/* Cart icon — links to /panier */}
+              <Link
+                to="/panier"
+                className="icon-btn relative w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800/70 flex items-center justify-center cursor-pointer"
+              >
+                <ShoppingCart size={15} className="text-red-500" />
+                {cartCount > 0 && (
+                  <span className="badge-pulse absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#cc0000] text-white text-[9px] font-black flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+          </div>
+
+          {/* Row 2: Nav Tabs */}
+          <div className="flex items-center gap-2 flex-wrap">
+
+            {/* Accueil */}
+            <Link
+              to="/"
+              onClick={() => setForceShowProducts(false)}
+              className={tabClass(path === '/' && !forceShowProducts)}
+            >
+              Accueil
+            </Link>
+
+            {/* Produits */}
+            <Link
+              to="/"
+              onClick={() => { setForceShowProducts(true); }}
+              className={tabClass(path === '/' && forceShowProducts)}
+            >
+              Produits
+            </Link>
+
+            {/* Panier */}
+            <Link
+              to="/panier"
+              className={tabClass(path === '/panier')}
+            >
+              Panier {cartCount > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-red-900/50 text-red-400 text-[9px] font-black">{cartCount}</span>}
+            </Link>
+
+            {/* Profil */}
+            {user ? (
+              <Link
+                to={user.role === 'ADMIN' ? '/admin' : '/dashboard'}
+                className={tabClass(path === '/admin' || path === '/dashboard')}
+              >
+                Profil
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className={tabClass(path === '/login' || path === '/register')}
+              >
+                Profil
+              </Link>
+            )}
+
+            {/* Tabs Client connecté */}
+            {user?.role === 'CLIENT' && (
+              <>
+                {['Créances', 'Paiements', 'Livraisons'].map(tab => (
+                  <Link
+                    key={tab}
+                    to="/dashboard"
+                    className={tabClass(false)}
+                  >
+                    {tab}
+                  </Link>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ── MAIN CONTENT ─────────────────────────────────── */}
+      <main className="flex-1 flex flex-col">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Boutique
+                user={user}
+                cart={cart}
+                setCart={setCart}
+                wallet={wallet}
+                forceShowProducts={forceShowProducts}
+                setForceShowProducts={setForceShowProducts}
+              />
+            }
+          />
+          <Route
+            path="/panier"
+            element={
+              <Panier
+                user={user}
+                cart={cart}
+                setCart={setCart}
+                wallet={wallet}
+                onGoShop={() => navigate('/')}
+              />
+            }
+          />
+          <Route path="/login"    element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} /> : <Login setUser={setUser} />} />
+          <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
+          <Route path="/dashboard" element={user?.role === 'CLIENT' ? <DashboardClient user={user} /> : <Navigate to="/login" />} />
+          <Route path="/admin"    element={user?.role === 'ADMIN'  ? <DashboardAdmin />            : <Navigate to="/login" />} />
+          <Route path="*"         element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+export default function App() {
+  const [user, setUser]   = useState(null);
+  /* ── Cart state lifted here so Boutique & Panier share it ── */
+  const [cart, setCart]   = useState([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('gmd_user');
+    if (saved) setUser(JSON.parse(saved));
+  }, []);
+
+  return (
+    <Router>
+      <AppLayout user={user} setUser={setUser} cart={cart} setCart={setCart} />
+    </Router>
+  );
+}
