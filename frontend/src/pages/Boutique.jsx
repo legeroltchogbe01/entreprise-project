@@ -4,6 +4,7 @@ import {
   ArrowLeft, Filter, Maximize2, ShoppingBag, X
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 // ─── TOUTES LES CATÉGORIES ────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -121,7 +122,7 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/products');
+      const res = await fetch(`${API_URL}/api/products`);
       const data = await res.json();
       setProducts(data);
       setFilteredProducts(data);
@@ -564,7 +565,7 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                     ? `custom_model_${Date.now()}_${proposerFile.name}` 
                     : 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80';
 
-                  const res = await fetch('http://localhost:5000/api/special', {
+                  const res = await fetch(`${API_URL}/api/special`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

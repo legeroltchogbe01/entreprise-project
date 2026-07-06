@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import DashboardClient from './pages/DashboardClient';
 import DashboardAdmin from './pages/DashboardAdmin';
 import { LogOut, ShoppingCart, LogIn } from 'lucide-react';
+import { API_URL } from './config';
 
 function GmdLogo() {
   return (
@@ -32,7 +33,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
   /* Fetch wallet when user logs in */
   useEffect(() => {
     if (user?.role === 'CLIENT' && user?.company?.id) {
-      fetch(`http://localhost:5000/api/wallets/${user.company.id}`)
+      fetch(`${API_URL}/api/wallets/${user.company.id}`)
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d) setWallet(d); })
         .catch(() => {});

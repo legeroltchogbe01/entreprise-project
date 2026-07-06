@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ShieldCheck, Upload, CheckCircle, AlertTriangle, Video, Camera, X, FileText } from 'lucide-react';
+import { API_URL } from '../config';
 
 function Register() {
   const navigate = useNavigate();
@@ -224,7 +225,7 @@ function Register() {
     });
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         body: postData
       });

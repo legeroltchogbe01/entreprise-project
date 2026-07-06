@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { API_URL } from '../config';
 
 function DashboardClient({ user }) {
   const [wallet, setWallet] = useState(null);
@@ -28,19 +29,19 @@ function DashboardClient({ user }) {
       setError('');
 
       // Fetch Wallet
-      const wRes = await fetch(`http://localhost:5000/api/wallets/${user.company.id}`);
+      const wRes = await fetch(`${API_URL}/api/wallets/${user.company.id}`);
       const wData = await wRes.json();
       if (!wRes.ok) throw new Error(wData.error);
       setWallet(wData);
 
       // Fetch Orders
-      const oRes = await fetch(`http://localhost:5000/api/orders/company/${user.company.id}`);
+      const oRes = await fetch(`${API_URL}/api/orders/company/${user.company.id}`);
       const oData = await oRes.json();
       if (!oRes.ok) throw new Error(oData.error);
       setOrders(oData);
 
       // Fetch Special Requests
-      const sRes = await fetch(`http://localhost:5000/api/special-requests/company/${user.company.id}`);
+      const sRes = await fetch(`${API_URL}/api/special-requests/company/${user.company.id}`);
       const sData = await sRes.json();
       if (!sRes.ok) throw new Error(sData.error);
       setSpecialRequests(sData);
@@ -59,7 +60,7 @@ function DashboardClient({ user }) {
     setPaymentLoading(true);
     
     try {
-      const res = await fetch(`http://localhost:5000/api/orders/${orderId}/pay-installment`, {
+      const res = await fetch(`${API_URL}/api/orders/${orderId}/pay-installment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -89,7 +90,7 @@ function DashboardClient({ user }) {
 
     setFormLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/special-requests', {
+      const res = await fetch(`${API_URL}/api/special-requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -121,7 +122,7 @@ function DashboardClient({ user }) {
     setPaymentLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/special-requests/${requestId}/approve`, {
+      const res = await fetch(`${API_URL}/api/special-requests/${requestId}/approve`, {
         method: 'POST'
       });
       const data = await res.json();

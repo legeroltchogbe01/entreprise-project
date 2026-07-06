@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent } from 'lucide-react';
+import { API_URL } from '../config';
 
 function DashboardAdmin() {
   const [companies, setCompanies] = useState([]);
@@ -26,25 +27,25 @@ function DashboardAdmin() {
       setError('');
 
       // Fetch Stats
-      const statsRes = await fetch('http://localhost:5000/api/admin/stats');
+      const statsRes = await fetch(`${API_URL}/api/admin/stats`);
       const statsData = await statsRes.json();
       if (!statsRes.ok) throw new Error(statsData.error);
       setStats(statsData);
 
       // Fetch Companies
-      const compRes = await fetch('http://localhost:5000/api/admin/companies');
+      const compRes = await fetch(`${API_URL}/api/admin/companies`);
       const compData = await compRes.json();
       if (!compRes.ok) throw new Error(compData.error);
       setCompanies(compData);
 
       // Fetch Special Requests
-      const specRes = await fetch('http://localhost:5000/api/special-requests');
+      const specRes = await fetch(`${API_URL}/api/special-requests`);
       const specData = await specRes.json();
       if (!specRes.ok) throw new Error(specData.error);
       setSpecialRequests(specData);
 
       // Fetch schedules
-      const schedRes = await fetch('http://localhost:5000/api/admin/schedules');
+      const schedRes = await fetch(`${API_URL}/api/admin/schedules`);
       const schedData = await schedRes.json();
       if (!schedRes.ok) throw new Error(schedData.error);
       setSchedules(schedData);
@@ -63,7 +64,7 @@ function DashboardAdmin() {
     setActionLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/companies/${id}/kyc`, {
+      const res = await fetch(`${API_URL}/api/admin/companies/${id}/kyc`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -93,7 +94,7 @@ function DashboardAdmin() {
 
     setQuoteLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/special-requests/${requestId}/quote`, {
+      const res = await fetch(`${API_URL}/api/special-requests/${requestId}/quote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -121,7 +122,7 @@ function DashboardAdmin() {
   // Trigger simulated WhatsApp relance message
   const handleTriggerWhatsApp = async (item, type) => {
     try {
-      const res = await fetch('http://localhost:5000/api/admin/whatsapp-reminder', {
+      const res = await fetch(`${API_URL}/api/admin/whatsapp-reminder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -273,16 +274,16 @@ function DashboardAdmin() {
                   <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/40 space-y-2 text-xs">
                     <p className="font-semibold text-zinc-300">Pièces d'identité & Selfies :</p>
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <a href={`http://localhost:5000/uploads/${company.manager_cip_pdf}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
+                      <a href={`${API_URL}/uploads/${company.manager_cip_pdf}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
                         📄 CIP Gérant (PDF)
                       </a>
-                      <a href={`http://localhost:5000/uploads/${company.manager_selfie}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
+                      <a href={`${API_URL}/uploads/${company.manager_selfie}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
                         🖼️ Selfie Gérant (Photo)
                       </a>
-                      <a href={`http://localhost:5000/uploads/${company.guarantor_cip_pdf}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
+                      <a href={`${API_URL}/uploads/${company.guarantor_cip_pdf}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
                         📄 CIP Garant (PDF)
                       </a>
-                      <a href={`http://localhost:5000/uploads/${company.guarantor_selfie}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
+                      <a href={`${API_URL}/uploads/${company.guarantor_selfie}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
                         🖼️ Selfie Garant (Photo)
                       </a>
                     </div>

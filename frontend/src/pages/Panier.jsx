@@ -5,6 +5,7 @@ import {
   Image, Info, Package, X, Maximize2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { API_URL } from '../config';
 
 /* ─── helpers ──────────────────────────────────────────── */
 function fmt(n) {
@@ -229,7 +230,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
     if (!paymentMode || !accepted) return;
     setOrderLoading(true); setOrderError('');
     try {
-      const res  = await fetch('http://localhost:5000/api/orders', {
+      const res  = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyId: user?.company?.id, items: cart.map(i => ({ productId: i.id, quantity: i.quantity })), paymentMode })
