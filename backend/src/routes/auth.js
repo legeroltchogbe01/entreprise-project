@@ -9,14 +9,18 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 // Configure Cloudinary
-const cloudinaryConfig = process.env.CLOUDINARY_URL
-  ? { cloudinary_url: process.env.CLOUDINARY_URL, secure: true }
-  : {
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-      secure: true
-    };
+if (!process.env.CLOUDINARY_URL) {
+  // Only explicitly configure if CLOUDINARY_URL is missing
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+} else {
+  // Cloudinary SDK automatically picks up process.env.CLOUDINARY_URL
+  cloudinary.config({ secure: true });
+}
 
 const missingCloudinaryEnv = process.env.CLOUDINARY_URL
   ? []
@@ -25,8 +29,6 @@ const missingCloudinaryEnv = process.env.CLOUDINARY_URL
 if (missingCloudinaryEnv.length > 0) {
   throw new Error(`Cloudinary credentials missing: ${missingCloudinaryEnv.join(', ')}`);
 }
-
-cloudinary.config(cloudinaryConfig);
 
 // Multer configuration for Cloudinary uploads
 const storage = new CloudinaryStorage({
