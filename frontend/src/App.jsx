@@ -152,8 +152,12 @@ function AppLayout({ user, setUser, cart, setCart }) {
             {/* Tabs Client connecté */}
             {user?.role === 'CLIENT' && (
               <>
-                {['Créances', 'Paiements', 'Livraisons'].map(tab => {
-                  const tabId = tab.toLowerCase().replace('é', 'e');
+                {['Créances', 'Paiements', 'Livraisons', 'Devis'].map(tab => {
+                  const tabId = tab.toLowerCase()
+                    .replace('é', 'e')
+                    .replace('è', 'e')
+                    .replace('î', 'i')
+                    .replace('ê', 'e');
                   return (
                     <Link
                       key={tab}
@@ -161,6 +165,10 @@ function AppLayout({ user, setUser, cart, setCart }) {
                       className={tabClass(path === '/dashboard' && activeTab === tabId) + ' shrink-0'}
                     >
                       {tab}
+                      {/* Badge if pending quotes */}
+                      {tab === 'Devis' && wallet && (
+                        <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-900/50 text-amber-400 text-[9px] font-black">!</span>
+                      )}
                     </Link>
                   );
                 })}

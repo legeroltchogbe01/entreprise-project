@@ -88,6 +88,7 @@ model Product {
   description String
   price       Decimal     @db.Decimal(15, 2)
   image_url   String
+  category    String?
   custom_data Json?
   created_at  DateTime    @default(now())
   order_items OrderItem[]
@@ -131,7 +132,11 @@ model SpecialRequest {
   company         Company       @relation(fields: [company_id], references: [id], onDelete: Cascade)
   description     String
   quantity        Int
+  image_url       String?
   estimated_price Decimal?      @db.Decimal(15, 2)
   status          RequestStatus @default(SUBMITTED)
+  quote_items     Json?
+  quote_notes     String?
+  contract_content String?
   created_at      DateTime      @default(now())
 }

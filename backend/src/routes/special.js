@@ -2,6 +2,41 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const multer = require('multer');
+const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Configure Cloudinary
+if (!process.env.CLOUDINARY_URL) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+} else {
+  cloudinary.config(true);
+  cloudinary.config({ secure: true });
+}
+
+// Multer/Cloudinary for model image uploads
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: 'gmd_special_requests',
+    resource_type: 'image',
+    public_id: 'model-' + Date.now() + '-' + Math.round(Math.random() * 1e9)
+  })
+});
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    allowed.includes(ext) ? cb(null, true) : cb(new Error('Format non autorisé (JPG, PNG, WEBP).'));
+  }
+});
 
 // Get all requests (Admin)
 router.get('/', async (req, res) => {
@@ -33,7 +68,7 @@ router.get('/company/:companyId', async (req, res) => {
 });
 
 // Submit custom/sur-mesure request (Checks 30 items/week limit)
-router.post('/', async (req, res) => {
+router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { companyId, description, quantity } = req.body;
 
@@ -54,7 +89,7 @@ router.post('/', async (req, res) => {
       where: {
         company_id: companyId,
         created_at: { gte: oneWeekAgo },
-        status: { not: 'REJECTED' } // Do not count rejected requests
+        status: { not: 'REJECTED' }
       }
     });
 
@@ -66,12 +101,16 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // 2. Create request
+    // 2. Image URL (from Cloudinary if uploaded)
+    const image_url = req.file ? req.file.path : null;
+
+    // 3. Create request
     const request = await prisma.specialRequest.create({
       data: {
         company_id: companyId,
         description,
         quantity: qty,
+        image_url,
         status: 'SUBMITTED'
       }
     });
@@ -91,10 +130,10 @@ router.post('/', async (req, res) => {
 router.post('/:id/quote', async (req, res) => {
   try {
     const { id } = req.params;
-    const { estimatedPrice } = req.body;
+    const { quoteItems, quoteNotes } = req.body; // quoteItems: Array of { article, price, quantity, total }
 
-    if (!estimatedPrice) {
-      return res.status(400).json({ error: 'Veuillez saisir un prix pour le devis.' });
+    if (!quoteItems || !Array.isArray(quoteItems) || quoteItems.length === 0) {
+      return res.status(400).json({ error: 'Veuillez saisir au moins une ligne d\'article pour le devis.' });
     }
 
     const request = await prisma.specialRequest.findUnique({
@@ -109,22 +148,74 @@ router.post('/:id/quote', async (req, res) => {
       return res.status(400).json({ error: 'Ce devis a déjà été traité.' });
     }
 
+    // Calculate total price: Sum of (quantity * price) for each item
+    const computedTotal = quoteItems.reduce((sum, item) => {
+      const p = parseFloat(item.price) || 0;
+      const q = parseInt(item.quantity) || 0;
+      return sum + (p * q);
+    }, 0);
+
+    const defaultContract = `CONTRAT DE VENTE ET FINANCEMENT SUR-MESURE\n\n` +
+      `Entre la société GMD Créance d'une part, et l'entreprise ${request.id.slice(0, 8)} d'autre part.\n\n` +
+      `Objet : Vente de mobilier sur-mesure d'un montant total de ${computedTotal.toLocaleString('fr-FR')} FCFA.\n` +
+      `Paiement : 1/3 d'acompte (${(computedTotal / 3).toLocaleString('fr-FR')} FCFA) et 2/3 à crédit échelonné.\n\n` +
+      `Fait à Cotonou, le ${new Date().toLocaleDateString('fr-FR')}`;
+
     const updated = await prisma.specialRequest.update({
       where: { id },
       data: {
-        estimated_price: parseFloat(estimatedPrice),
+        estimated_price: computedTotal,
+        quote_items: quoteItems,
+        quote_notes: quoteNotes || '',
+        contract_content: defaultContract,
         status: 'QUOTED'
       }
     });
 
     res.json({
-      message: 'Devis envoyé avec succès au client.',
+      message: 'Devis et contrat initial émis avec succès au client.',
       request: updated
     });
 
   } catch (error) {
     console.error('Submit quote error:', error);
     res.status(500).json({ error: 'Erreur lors de l\'envoi du devis.' });
+  }
+});
+
+// Admin update/customize contract
+router.post('/:id/contract', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { contractContent } = req.body;
+
+    if (!contractContent) {
+      return res.status(400).json({ error: 'Le contenu du contrat ne peut pas être vide.' });
+    }
+
+    const request = await prisma.specialRequest.findUnique({
+      where: { id }
+    });
+
+    if (!request) {
+      return res.status(404).json({ error: 'Demande spéciale introuvable.' });
+    }
+
+    const updated = await prisma.specialRequest.update({
+      where: { id },
+      data: {
+        contract_content: contractContent
+      }
+    });
+
+    res.json({
+      message: 'Contrat personnalisé avec succès.',
+      request: updated
+    });
+
+  } catch (error) {
+    console.error('Update contract error:', error);
+    res.status(500).json({ error: 'Erreur lors de la personnalisation du contrat.' });
   }
 });
 

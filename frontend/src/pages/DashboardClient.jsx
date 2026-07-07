@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package } from 'lucide-react';
+import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardClient({ user }) {
@@ -17,6 +17,7 @@ function DashboardClient({ user }) {
   // Special Request Form State
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState('1');
+  const [requestImage, setRequestImage] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -84,20 +85,25 @@ function DashboardClient({ user }) {
     if (!description || !quantity) return;
     setFormLoading(true);
     try {
+      const formData = new FormData();
+      formData.append('companyId', user.company.id);
+      formData.append('description', description);
+      formData.append('quantity', quantity);
+      if (requestImage) formData.append('image', requestImage);
+
       const res = await fetch(`${API_URL}/api/special-requests`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId: user.company.id,
-          description,
-          quantity: parseInt(quantity)
-        })
+        body: formData
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setFormSuccess(data.message);
       setDescription('');
       setQuantity('1');
+      setRequestImage(null);
+      // reset file input
+      const fi = document.getElementById('devisImageInput');
+      if (fi) fi.value = '';
       await fetchDashboardData();
     } catch (err) {
       console.error(err);
@@ -181,7 +187,9 @@ function DashboardClient({ user }) {
 
         {/* ── TITLE ──────────────────── */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Espace Entreprise</h2>
+          <h2 className="text-xl font-bold text-white">
+            {activeTab === 'profil' ? 'Mon profil' : 'Espace Entreprise'}
+          </h2>
           <button
             onClick={fetchDashboardData}
             className="p-2 rounded-lg bg-surface-custom border border-border-custom hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-all"
@@ -202,53 +210,103 @@ function DashboardClient({ user }) {
         {activeTab === 'profil' && (
           <div className="space-y-5">
             {/* ── PAYMENT CARD ──────────── */}
-            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-950/50 border border-emerald-900/40 flex items-center justify-center shrink-0">
-                    <CreditCard size={18} className="text-emerald-400" />
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Left Side: Blue circular button with eye icon */}
+                <button
+                  type="button"
+                  className="w-10 h-10 rounded-full bg-[#0082f4] hover:bg-blue-600 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-md transition-colors"
+                >
+                  <Eye size={20} />
+                </button>
+
+                {/* Middle: White card */}
+                <div className="flex flex-col items-center">
+                  <div className="bg-white rounded-xl px-6 py-2.5 shadow-md text-center min-w-[185px]">
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">PROCHAIN VERSEMENT</p>
+                    <p className="text-lg font-black text-black mt-0.5 text-center">
+                      {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')} FCFA` : '0 FCFA'}
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Prochain versement</p>
-                    <h3 className="text-xl font-bold text-white font-mono">
-                      {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')}` : '0'} <span className="text-xs text-zinc-400">FCFA</span>
-                    </h3>
+                  {/* Calendar Pill below the white card */}
+                  <div className="mt-3 flex items-center justify-center">
+                    <span className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5 shadow-inner">
+                      <Calendar size={12} className="text-[#0082f4]" />
+                      {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
+                    </span>
                   </div>
                 </div>
-                {nextPayment && (
-                  <button
-                    onClick={() => handlePayInstallment(nextPayment.order_id, nextPayment.installment_number)}
-                    disabled={paymentLoading}
-                    className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow shadow-emerald-950/40 disabled:opacity-60 shrink-0"
-                  >
-                    <CreditCard size={13} /> Payer
-                  </button>
-                )}
-              </div>
-              <div className="mt-3 flex items-center justify-center">
-                <span className="px-3 py-1 rounded-full bg-surface-custom border border-border-custom text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5">
-                  <Calendar size={11} />
-                  {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
-                </span>
+
+                {/* Right Side: Green button "Payer" */}
+                <button
+                  onClick={() => {
+                    if (nextPayment) {
+                      handlePayInstallment(nextPayment.order_id, nextPayment.installment_number);
+                    }
+                  }}
+                  disabled={paymentLoading || !nextPayment}
+                  className="px-5 py-2.5 rounded-full bg-[#00b450] hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-emerald-950/20 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  <CreditCard size={14} /> Payer
+                </button>
               </div>
             </div>
 
-            {/* ── COMPANY AVATAR + TOTAL REMAINING ── */}
-            <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom text-center space-y-4">
-              <div className="w-20 h-20 mx-auto rounded-full bg-surface-custom border-2 border-border-custom flex items-center justify-center">
-                <Building2 size={36} className="text-zinc-500" />
-              </div>
-              <h3 className="text-sm font-bold text-white">{c.denomination_sociale}</h3>
-              <div className="space-y-1.5">
-                <div className="w-full h-2 bg-surface-custom rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary-custom transition-all duration-500"
-                    style={{ width: wallet && Number(wallet.credit_initial) > 0 ? `${(Number(wallet.credit_utilise) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
-                  ></div>
+            {/* Wallet Cards */}
+            {wallet && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
+                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
+                  </p>
+                  <h3 className="font-bold text-white text-lg font-mono">
+                    {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                  </h3>
+                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary-custom"
+                      style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                    <span>Consommé</span>
+                    <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
                 </div>
-                <p className="text-xs text-zinc-400">
-                  Total restant dû: <span className="text-white font-bold font-mono">{totalRemaining.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA</span>
-                </p>
+
+                <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
+                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
+                  </p>
+                  <h3 className="font-bold text-white text-lg font-mono">
+                    {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                  </h3>
+                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-red-800"
+                      style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                    <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
+                    <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── COMPANY AVATAR + TOTAL REMAINING ── */}
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 text-center space-y-5 shadow-lg">
+              {/* Avatar circle */}
+              <div className="w-24 h-24 mx-auto rounded-full bg-zinc-900 border border-zinc-850 flex items-center justify-center shadow-inner">
+                <User size={44} className="text-zinc-550" />
+              </div>
+              
+              {/* Total remaining field */}
+              <div className="w-full text-center py-3 px-4 rounded-xl bg-black/60 border border-zinc-850 text-sm text-zinc-350 font-medium">
+                Total restant du: <span className="font-bold text-white font-mono">{totalRemaining.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA</span>
               </div>
             </div>
 
@@ -383,52 +441,7 @@ function DashboardClient({ user }) {
               </a>
             </div>
 
-            {/* ── FINANCIAL SECTION INCLUDED IN PROFIL (ORIGINAL BEHAVIOR) ── */}
             <div className="border-t border-border-custom pt-6 space-y-6">
-              {/* Wallet Cards */}
-              {wallet && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
-                    </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
-                      {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                    </h3>
-                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary-custom"
-                        style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                      <span>Consommé</span>
-                      <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
-                    </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
-                      {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                    </h3>
-                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-red-800"
-                        style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                      <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
-                      <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Échéancier */}
               <div className="space-y-3">
@@ -777,6 +790,271 @@ function DashboardClient({ user }) {
                     </div>
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── ONGLET DEVIS : DEMANDES SUR-MESURE + PROPOSITIONS ADMIN ── */}
+        {activeTab === 'devis' && (
+          <div className="space-y-6">
+
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-1">
+              <FileText size={16} className="text-amber-400" />
+              <h3 className="font-bold text-white text-sm">Mes Devis & Propositions</h3>
+            </div>
+
+            {/* Quota bar */}
+            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-2">
+              <div className="flex justify-between text-[10px] font-semibold text-zinc-400">
+                <span>Quota de soumission (7 jours)</span>
+                <span className={weeklyQuota >= 30 ? 'text-red-400' : 'text-zinc-200'}>{weeklyQuota} / 30 articles</span>
+              </div>
+              <div className="w-full h-1.5 bg-surface-custom rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all ${weeklyQuota >= 30 ? 'bg-red-500' : 'bg-amber-500'}`}
+                  style={{ width: `${Math.min((weeklyQuota / 30) * 100, 100)}%` }}
+                ></div>
+              </div>
+              <p className="text-[9px] text-zinc-500">Limite de 30 articles/semaine. Réponse sous 48h ouvrées.</p>
+            </div>
+
+            {/* Formulaire nouvelle demande */}
+            <div className="p-5 rounded-xl bg-zinc-950 border border-zinc-800/60 space-y-4 shadow-lg">
+              <div className="flex items-center gap-2 border-b border-zinc-800/50 pb-3">
+                <Send size={14} className="text-amber-400" />
+                <h4 className="font-bold text-white text-xs uppercase tracking-wider">Nouvelle Demande Sur-mesure</h4>
+              </div>
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] flex gap-2">
+                  <AlertCircle size={12} className="shrink-0 mt-0.5" /><p>{formError}</p>
+                </div>
+              )}
+              {formSuccess && (
+                <div className="p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] flex gap-2">
+                  <Check size={12} className="shrink-0 mt-0.5" /><p>{formSuccess}</p>
+                </div>
+              )}
+              <form onSubmit={handleSubmitSpecialRequest} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1.5">Description technique du modèle</label>
+                  <textarea
+                    required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Ex: Table de conférence ovale en noyer massif, 4m × 1.5m, avec passe-câbles intégrés..."
+                    rows="4"
+                    className="w-full px-3 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 placeholder-zinc-700 text-xs focus:outline-none focus:border-amber-600/60 resize-none"
+                  ></textarea>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1.5">Quantité souhaitée</label>
+                  <input
+                    type="number" min="1" required
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-amber-600/60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1.5">Photo / Modèle de référence <span className="text-zinc-700 font-normal normal-case">(optionnel)</span></label>
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="devisImageInput"
+                      className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-surface-custom/50 border border-dashed border-amber-800/40 hover:border-amber-600/60 text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer transition-all"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                      {requestImage ? requestImage.name : 'Sélectionner une image...'}
+                    </label>
+                    <input
+                      id="devisImageInput"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => setRequestImage(e.target.files[0] || null)}
+                    />
+                    {requestImage && (
+                      <button
+                        type="button"
+                        onClick={() => { setRequestImage(null); const fi = document.getElementById('devisImageInput'); if (fi) fi.value = ''; }}
+                        className="text-zinc-600 hover:text-red-400 transition-all cursor-pointer"
+                        title="Supprimer"
+                      >✕</button>
+                    )}
+                  </div>
+                  {requestImage && (
+                    <div className="mt-2">
+                      <img
+                        src={URL.createObjectURL(requestImage)}
+                        alt="Aperçu"
+                        className="w-24 h-24 object-cover rounded-lg border border-amber-800/30"
+                      />
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={formLoading || weeklyQuota >= 30}
+                  className="w-full py-2.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  <Send size={12} />
+                  {formLoading ? 'Envoi en cours...' : weeklyQuota >= 30 ? 'Quota hebdomadaire atteint' : 'Envoyer la demande'}
+                </button>
+              </form>
+            </div>
+
+            {/* Liste des devis */}
+            <div className="space-y-3">
+              <h4 className="font-bold text-zinc-400 text-[10px] uppercase tracking-wider flex items-center gap-2">
+                <Briefcase size={12} /> Suivi de mes demandes ({specialRequests.length})
+              </h4>
+              {specialRequests.length === 0 ? (
+                <div className="p-8 rounded-xl bg-bg-deepest border border-dashed border-border-custom text-center">
+                  <FileText size={28} className="text-zinc-700 mx-auto mb-3" />
+                  <p className="text-zinc-500 text-xs">Aucune demande de devis pour le moment.</p>
+                  <p className="text-zinc-600 text-[10px] mt-1">Utilisez le formulaire ci-dessus pour soumettre votre première demande.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {specialRequests.map((req) => {
+                    const isQuoted   = req.status === 'QUOTED';
+                    const isApproved = req.status === 'APPROVED';
+                    const isRejected = req.status === 'REJECTED';
+                    const isPending  = req.status === 'SUBMITTED';
+                    return (
+                      <div
+                        key={req.id}
+                        className={`rounded-xl border p-4 space-y-3 transition-all ${
+                          isQuoted   ? 'bg-amber-950/10 border-amber-800/40 shadow-md shadow-amber-950/20' :
+                          isApproved ? 'bg-emerald-950/10 border-emerald-800/40' :
+                          isRejected ? 'bg-red-950/10 border-red-900/30 opacity-70' :
+                                       'bg-bg-deepest border-border-custom'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-3">
+                          <p className="text-xs text-zinc-300 leading-relaxed flex-1">{req.description}</p>
+                          <span className={`px-2.5 py-1 rounded-full text-[9px] font-black shrink-0 uppercase ${
+                            isPending  ? 'bg-zinc-800 text-zinc-400' :
+                            isQuoted   ? 'bg-amber-950/60 text-amber-300 border border-amber-700/50' :
+                            isApproved ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-700/50' :
+                                         'bg-red-950/60 text-red-400 border border-red-800/50'
+                          }`}>
+                            {isPending  && '⏳ En attente'}
+                            {isQuoted   && '📋 Devis reçu'}
+                            {isApproved && '✅ Approuvé'}
+                            {isRejected && '❌ Rejeté'}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          {req.image_url && (
+                            <img
+                              src={req.image_url}
+                              alt="Modèle"
+                              className="w-16 h-16 object-cover rounded-lg border border-zinc-700/50 shrink-0"
+                            />
+                          )}
+                          <div className="flex flex-wrap gap-3 text-[10px] text-zinc-500 font-semibold uppercase items-center">
+                            <span>Quantité: {req.quantity}</span>
+                            <span>Soumis le {new Date(req.created_at).toLocaleDateString('fr-FR')}</span>
+                          </div>
+                        </div>
+                        {isQuoted && req.estimated_price && (
+                          <div className="rounded-lg bg-amber-950/20 border border-amber-800/40 p-4 space-y-4">
+                            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">📩 Proposition de Devis Détaillée GMD</p>
+                            
+                            {/* Devis Quantitatif Table */}
+                            {req.quote_items && Array.isArray(req.quote_items) && (
+                              <div className="overflow-x-auto border-t border-b border-amber-900/30 py-2 my-2">
+                                <table className="w-full text-left text-[11px]">
+                                  <thead>
+                                    <tr className="text-zinc-550 uppercase text-[9px] font-semibold">
+                                      <th className="py-1">Désignation</th>
+                                      <th className="py-1 text-center w-12">Qté</th>
+                                      <th className="py-1 text-right w-24">P.U (FCFA)</th>
+                                      <th className="py-1 text-right w-28">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-amber-900/10 text-zinc-300">
+                                    {req.quote_items.map((item, idx) => (
+                                      <tr key={idx}>
+                                        <td className="py-1 font-medium">{item.article}</td>
+                                        <td className="py-1 text-center">{item.quantity}</td>
+                                        <td className="py-1 text-right font-mono">{Number(item.price).toLocaleString('fr-FR')}</td>
+                                        <td className="py-1 text-right font-mono font-semibold text-white">{Number(item.total).toLocaleString('fr-FR')}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                            {req.quote_notes && (
+                              <div className="text-[11px] text-zinc-400 bg-black/30 p-2.5 rounded border border-amber-950/40">
+                                <span className="font-bold text-amber-500 uppercase text-[9px] block mb-1">Notes administratives :</span>
+                                <p className="leading-relaxed whitespace-pre-line">{req.quote_notes}</p>
+                              </div>
+                            )}
+
+                            {req.contract_content && (
+                              <div className="text-[10px] text-zinc-450 bg-black/40 p-3 rounded-lg border border-zinc-800/80 font-mono space-y-1">
+                                <span className="font-bold text-zinc-400 uppercase text-[9px] block border-b border-zinc-800 pb-1 mb-1">📜 Aperçu du Contrat de Vente</span>
+                                <p className="leading-relaxed whitespace-pre-line">{req.contract_content}</p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between border-t border-amber-900/30 pt-3">
+                              <div>
+                                <p className="text-[10px] text-zinc-500 font-semibold uppercase">Total Devis</p>
+                                <p className="text-xl font-black text-white font-mono">
+                                  {Number(req.estimated_price).toLocaleString('fr-FR')}
+                                  <span className="text-xs text-zinc-400 ml-1 font-normal">FCFA</span>
+                                </p>
+                              </div>
+                              <div className="text-right text-[9px] text-zinc-500">
+                                <p>Payable en échelonnement</p>
+                                <p className="font-bold text-zinc-400">1/3 d'acompte + 2/3 crédit</p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              <button
+                                onClick={() => handleApproveQuote(req.id)}
+                                disabled={paymentLoading}
+                                className="py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
+                              >
+                                <Check size={13} /> Signer et Accepter le devis
+                              </button>
+                              <button
+                                disabled
+                                className="py-2.5 rounded-lg bg-zinc-800/60 border border-zinc-700/40 text-zinc-400 font-bold text-xs flex items-center justify-center gap-1.5 opacity-60 cursor-not-allowed"
+                              >
+                                ✕ Refuser
+                              </button>
+                            </div>
+                            <p className="text-[9px] text-zinc-650 text-center">En acceptant, vous signez le contrat affiché ci-dessus.</p>
+                          </div>
+                        )}
+                        {isApproved && req.estimated_price && (
+                          <div className="rounded-lg bg-emerald-950/10 border border-emerald-800/30 p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">✅ COMMANDE APPROUVÉE & CONTRAT SIGNÉ</span>
+                              <span className="font-bold text-white font-mono text-sm">
+                                {Number(req.estimated_price).toLocaleString('fr-FR')} FCFA
+                              </span>
+                            </div>
+                            {req.contract_content && (
+                              <details className="mt-2 text-[10px] text-zinc-500 bg-black/10 p-2.5 rounded border border-zinc-900 font-mono">
+                                <summary className="cursor-pointer hover:text-zinc-300 font-bold uppercase tracking-wider text-[9px]">Afficher le contrat signé</summary>
+                                <p className="mt-2 leading-relaxed whitespace-pre-line text-zinc-400">{req.contract_content}</p>
+                              </details>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

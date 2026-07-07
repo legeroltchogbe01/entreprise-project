@@ -8,21 +8,15 @@ import { API_URL } from '../config';
 import jsQR from 'jsqr';
 // ─── TOUTES LES CATÉGORIES ────────────────────────────────────────────────────
 const CATEGORIES = [
-  { name: 'Armoir', image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Bureau', image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Canapé 6places', image: 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&w=600&q=80' },
-  { name: "Canapé d'angle", image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Coiffeuse', image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Coussin', image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Décor TV', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Ensemble TV', image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Lit Adulte', image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Lit enfant', image: 'https://images.unsplash.com/photo-1519974719765-e6559eac2575?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Meuble cuisine', image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Meuble TV', image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Porte chaussures', image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Table à manger', image: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Table basse', image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Mobilier de Bureau',            image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Sièges & Fauteuils',            image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Tables & Bureaux',              image: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Rangement & Armoires',          image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80' },
+  { name: "Mobilier d'Accueil",            image: 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Mobilier de Salle de Réunion',  image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Mobilier Extérieur',            image: 'https://images.unsplash.com/photo-1519974719765-e6559eac2575?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Décoration & Accessoires',      image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80' },
+  { name: 'Autre',                         image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80' },
 ];
 
 function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShowProducts }) {
@@ -180,16 +174,20 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
     let result = products;
 
     if (selectedCategory && selectedCategory !== 'Tous les produits' && selectedCategory !== 'search') {
-      const keywords = selectedCategory.toLowerCase().split(' ');
       result = result.filter(p =>
-        keywords.some(kw => p.name.toLowerCase().includes(kw) || p.description.toLowerCase().includes(kw))
+        p.category === selectedCategory ||
+        // fallback: keyword match for products without category set yet
+        (!p.category && selectedCategory.toLowerCase().split(' ').some(kw =>
+          p.name.toLowerCase().includes(kw) || p.description.toLowerCase().includes(kw)
+        ))
       );
     }
 
     if (searchQuery.trim()) {
       result = result.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
+        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -618,20 +616,15 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                 setProposerSuccess('');
 
                 try {
-                  // Simulate file upload or use placeholder URL as API expects it
-                  const fileUrl = proposerFile 
-                    ? `custom_model_${Date.now()}_${proposerFile.name}` 
-                    : 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80';
+                  const formData = new FormData();
+                  formData.append('companyId', user?.company?.id || '');
+                  formData.append('description', `[Contact: ${proposerContact}] - ${proposerDesc}`);
+                  formData.append('quantity', '1');
+                  if (proposerFile) formData.append('image', proposerFile);
 
-                  const res = await fetch(`${API_URL}/api/special`, {
+                  const res = await fetch(`${API_URL}/api/special-requests`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      companyId: user?.company?.id,
-                      description: `[Contact: ${proposerContact}] - ${proposerDesc}`,
-                      quantity: 1, // default unit quantity for proposed custom model
-                      image_url: fileUrl
-                    })
+                    body: formData
                   });
 
                   const data = await res.json();

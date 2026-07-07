@@ -8,7 +8,7 @@ router.get('/:companyId', async (req, res) => {
   try {
     const { companyId } = req.params;
 
-    const wallet = await prisma.wallet.findUnique({
+    let wallet = await prisma.wallet.findUnique({
       where: { company_id: companyId },
       include: {
         company: {
@@ -21,7 +21,28 @@ router.get('/:companyId', async (req, res) => {
     });
 
     if (!wallet) {
-      return res.status(404).json({ error: 'Portefeuille introuvable.' });
+      const company = await prisma.company.findUnique({ where: { id: companyId } });
+      if (!company) {
+        return res.status(404).json({ error: 'Portefeuille introuvable (entreprise non trouvée).' });
+      }
+      // Dynamically create the missing wallet
+      wallet = await prisma.wallet.create({
+        data: {
+          company_id: companyId,
+          acompte_initial: 0,
+          acompte_restant: 0,
+          credit_initial: 0,
+          credit_utilise: 0
+        },
+        include: {
+          company: {
+            select: {
+              denomination_sociale: true,
+              kyc_status: true
+            }
+          }
+        }
+      });
     }
 
     res.json(wallet);
