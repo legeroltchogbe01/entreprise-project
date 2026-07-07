@@ -178,18 +178,10 @@ function Register() {
         setError('Veuillez remplir toutes les informations obligatoires du Gérant.');
         return;
       }
-      if (!files.manager_cip_pdf || !files.manager_selfie) {
-        setError('Veuillez fournir la carte CIP (PDF) et réaliser la vérification vidéo KYC du gérant.');
-        return;
-      }
     } else if (step === 3) {
       // Validation Avaliseur
       if (!formData.guarantor_name || !formData.guarantor_ifu || !formData.guarantor_phone || !formData.guarantor_email || !formData.guarantor_city || !formData.guarantor_district || !formData.guarantor_house || !formData.guarantor_square) {
         setError('Veuillez remplir toutes les informations obligatoires de l\'Avaliseur (Garant).');
-        return;
-      }
-      if (!files.guarantor_cip_pdf || !files.guarantor_selfie) {
-        setError('Veuillez fournir la carte CIP (PDF) et réaliser la vérification vidéo KYC de l\'avaliseur.');
         return;
       }
     }
@@ -558,38 +550,6 @@ function Register() {
                   type="text" name="guarantor_square" required value={formData.guarantor_square} onChange={handleInputChange} placeholder="Ex: 12"
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
                 />
-              </div>
-            </div>
-
-            <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-6">Pièces Justificatives (Gérant)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
-                <div className="flex items-center gap-3">
-                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer">
-                    <input type="file" required name="manager_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                    <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.manager_cip_pdf ? files.manager_cip_pdf.name : 'Sélectionner PDF'}</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
-                <div className="flex items-center gap-3">
-                  {files.manager_selfie ? (
-                    <div className="flex-1 flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
-                      <CheckCircle size={14} /> Vidéo KYC Validée
-                    </div>
-                  ) : (
-                    <button 
-                      type="button" 
-                      onClick={() => startKYC('manager')}
-                      className="flex-1 flex items-center justify-center gap-2 border border-primary-custom bg-primary-custom/10 hover:bg-primary-custom/20 text-red-400 rounded px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      <Video size={14} /> Enregistrer Selfie Vidéo
-                    </button>
-                  )}
-                </div>
               </div>
             </div>
 
