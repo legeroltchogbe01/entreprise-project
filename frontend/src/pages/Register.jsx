@@ -178,10 +178,8 @@ function Register() {
         setError('Veuillez remplir toutes les informations obligatoires du Gérant.');
         return;
       }
-    } else if (step === 3) {
-      // Validation Avaliseur
-      if (!formData.guarantor_name || !formData.guarantor_ifu || !formData.guarantor_phone || !formData.guarantor_email || !formData.guarantor_city || !formData.guarantor_district || !formData.guarantor_house || !formData.guarantor_square) {
-        setError('Veuillez remplir toutes les informations obligatoires de l\'Avaliseur (Garant).');
+      if (!files.manager_cip_pdf || !files.manager_selfie) {
+        setError('Veuillez fournir la copie de la CIP et effectuer la vérification vidéo KYC pour le Gérant.');
         return;
       }
     }
@@ -240,7 +238,7 @@ function Register() {
       }
 
       setSuccess('Votre dossier a été soumis avec succès ! L\'équipe administrative de GMD va l\'auditer.');
-      setStep(5); // Success step
+      setStep(4); // Success step
 
     } catch (err) {
       console.error(err);
@@ -257,21 +255,21 @@ function Register() {
       <div className="w-full max-w-3xl glass-panel p-4 sm:p-8 rounded-lg border border-border-custom relative z-10">
         
         {/* Step Indicator */}
-        {step < 5 && (
+        {step < 4 && (
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Étape {step} sur 4</span>
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Étape {step} sur 3</span>
               <span className="text-sm font-semibold text-white">
                 {step === 1 && 'Informations Entreprise'}
                 {step === 2 && 'Informations du Gérant'}
                 {step === 3 && 'Informations de l\'Avaliseur (Garant)'}
-                {step === 4 && 'Pièces Justificatives (KYC)'}
+                
               </span>
             </div>
             <div className="h-1.5 w-full bg-bg-deepest rounded-full overflow-hidden">
               <div 
                 className="h-full bg-primary-custom transition-all duration-300"
-                style={{ width: `${(step / 4) * 100}%` }}
+                style={{ width: `${(step / 3) * 100}%` }}
               ></div>
             </div>
           </div>
@@ -295,7 +293,7 @@ function Register() {
                 <input 
                   type="text" required name="denomination_sociale" value={formData.denomination_sociale} onChange={handleInputChange}
                   placeholder="Ex: BENIN LOGISTICS SARL"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -304,7 +302,7 @@ function Register() {
                 <input 
                   type="email" required name="email" value={formData.email} onChange={handleInputChange}
                   placeholder="contact@entreprise.bj"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -313,7 +311,7 @@ function Register() {
                 <input 
                   type="text" required name="phone" value={formData.phone} onChange={handleInputChange}
                   placeholder="+229 97 00 00 00"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -322,7 +320,7 @@ function Register() {
                 <input 
                   type="text" required name="rccm_number" value={formData.rccm_number} onChange={handleInputChange}
                   placeholder="Ex: RB-COT-26-B-1234"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -331,7 +329,7 @@ function Register() {
                 <input 
                   type="text" required name="ifu_number" value={formData.ifu_number} onChange={handleInputChange}
                   placeholder="Ex: 3202612345678"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
             </div>
@@ -342,41 +340,41 @@ function Register() {
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
                   type="text" name="city" required value={formData.city} onChange={handleInputChange} placeholder="Ex: Cotonou"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Quartier *</label>
                 <input 
                   type="text" name="district" required value={formData.district} onChange={handleInputChange} placeholder="Ex: Cadjehoun"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison *</label>
                 <input 
                   type="text" name="house" required value={formData.house} onChange={handleInputChange} placeholder="Ex: Villa 12B"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro de Carré *</label>
                 <input 
                   type="text" name="square" required value={formData.square} onChange={handleInputChange} placeholder="Ex: 564"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
             </div>
 
             <div className="flex justify-end pt-4">
               <button 
-                type="button" onClick={handleNext}
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
+                type="submit" disabled={loading}
+                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20 disabled:opacity-60"
               >
-                Continuer <ArrowRight size={16} />
+                {loading ? 'Soumission en cours...' : 'Soumettre le dossier'} <ShieldCheck size={16} />
               </button>
             </div>
-          </div>
+          </form>
         )}
 
         {/* Step 2: Manager Info */}
@@ -390,7 +388,7 @@ function Register() {
                 <input 
                   type="text" required name="manager_name" value={formData.manager_name} onChange={handleInputChange}
                   placeholder="Ex: Richard SOGLO"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -399,7 +397,7 @@ function Register() {
                 <input 
                   type="text" name="manager_rccm" value={formData.manager_rccm} onChange={handleInputChange}
                   placeholder="Optionnel"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -408,7 +406,7 @@ function Register() {
                 <input 
                   type="text" required name="manager_ifu" value={formData.manager_ifu} onChange={handleInputChange}
                   placeholder="Ex: 3202612345678"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -417,7 +415,7 @@ function Register() {
                 <input 
                   type="text" required name="manager_phone" value={formData.manager_phone} onChange={handleInputChange}
                   placeholder="+229 97 12 34 56"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -426,7 +424,7 @@ function Register() {
                 <input 
                   type="email" required name="manager_email" value={formData.manager_email} onChange={handleInputChange}
                   placeholder="richard.soglo@gmail.com"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
             </div>
@@ -437,32 +435,86 @@ function Register() {
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
                   type="text" name="manager_city" required value={formData.manager_city} onChange={handleInputChange} placeholder="Ex: Cotonou"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Quartier *</label>
                 <input 
                   type="text" name="manager_district" required value={formData.manager_district} onChange={handleInputChange} placeholder="Ex: Gbégamey"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison *</label>
                 <input 
                   type="text" name="manager_house" required value={formData.manager_house} onChange={handleInputChange} placeholder="Ex: Carré 120"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro de Carré *</label>
                 <input 
                   type="text" name="manager_square" required value={formData.manager_square} onChange={handleInputChange} placeholder="Ex: 887"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
             </div>
 
+            
+            <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-6">Pièces Justificatives (Gérant)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
+                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
+                    <input type="file" required name="manager_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.manager_cip_pdf ? files.manager_cip_pdf.name : 'Sélectionner PDF'}</span>
+                  </label>
+              </div>
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
+                  {files.manager_selfie ? (
+                    <div className="w-full flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
+                      <CheckCircle size={14} /> KYC Validée
+                    </div>
+                  ) : (
+                    <button 
+                      type="button" 
+                      onClick={() => startKYC('manager')}
+                      className="w-full flex items-center justify-center gap-2 border border-primary-custom bg-primary-custom/10 hover:bg-primary-custom/20 text-red-400 rounded px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <Video size={14} /> Démarrer KYC
+                    </button>
+                  )}
+              </div>
+            </div>
+            
+            <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-6">Pièces Justificatives (Avaliseur)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
+                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
+                    <input type="file" required name="guarantor_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.guarantor_cip_pdf ? files.guarantor_cip_pdf.name : 'Sélectionner PDF'}</span>
+                  </label>
+              </div>
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
+                  {files.guarantor_selfie ? (
+                    <div className="w-full flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
+                      <CheckCircle size={14} /> KYC Validée
+                    </div>
+                  ) : (
+                    <button 
+                      type="button" 
+                      onClick={() => startKYC('guarantor')}
+                      className="w-full flex items-center justify-center gap-2 border border-primary-custom bg-primary-custom/10 hover:bg-primary-custom/20 text-red-400 rounded px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <Video size={14} /> Démarrer KYC
+                    </button>
+                  )}
+              </div>
+            </div>
             <div className="flex justify-between pt-6">
               <button 
                 type="button" onClick={handlePrev}
@@ -482,7 +534,7 @@ function Register() {
 
         {/* Step 3: Guarantor Info */}
         {step === 3 && (
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">03. Informations de l'Avaliseur (Garant)</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -491,7 +543,7 @@ function Register() {
                 <input 
                   type="text" required name="guarantor_name" value={formData.guarantor_name} onChange={handleInputChange}
                   placeholder="Ex: Cédric HOUNDÉ"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -500,7 +552,7 @@ function Register() {
                 <input 
                   type="text" name="guarantor_rccm" value={formData.guarantor_rccm} onChange={handleInputChange}
                   placeholder="Optionnel"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -509,7 +561,7 @@ function Register() {
                 <input 
                   type="text" required name="guarantor_ifu" value={formData.guarantor_ifu} onChange={handleInputChange}
                   placeholder="Ex: 3202612345678"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -518,7 +570,7 @@ function Register() {
                 <input 
                   type="text" required name="guarantor_phone" value={formData.guarantor_phone} onChange={handleInputChange}
                   placeholder="+229 97 99 99 99"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
@@ -527,7 +579,7 @@ function Register() {
                 <input 
                   type="email" required name="guarantor_email" value={formData.guarantor_email} onChange={handleInputChange}
                   placeholder="cedric.hounde@gmail.com"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
             </div>
@@ -538,28 +590,28 @@ function Register() {
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
                   type="text" name="guarantor_city" required value={formData.guarantor_city} onChange={handleInputChange} placeholder="Ex: Porto-Novo"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Quartier *</label>
                 <input 
                   type="text" name="guarantor_district" required value={formData.guarantor_district} onChange={handleInputChange} placeholder="Ex: Avakpa"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison *</label>
                 <input 
                   type="text" name="guarantor_house" required value={formData.guarantor_house} onChange={handleInputChange} placeholder="Ex: Lot 45"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro de Carré *</label>
                 <input 
                   type="text" name="guarantor_square" required value={formData.guarantor_square} onChange={handleInputChange} placeholder="Ex: 12"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-sm"
+                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
             </div>
@@ -581,100 +633,8 @@ function Register() {
           </div>
         )}
 
-        {/* Step 4: Documents upload */}
+        {/* Step 4: Success Message */}
         {step === 4 && (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">04. Chargement des Pièces Justificatives</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Manager Documents */}
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-4">
-                <h4 className="font-semibold text-sm text-red-500 uppercase tracking-wider border-b border-zinc-800 pb-2">Documents Gérant</h4>
-                
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
-                  <div className="flex items-center gap-3">
-                    <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer">
-                      <input type="file" required name="manager_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                      <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.manager_cip_pdf ? files.manager_cip_pdf.name : 'Sélectionner PDF'}</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
-                  <div className="flex items-center gap-3">
-                    {files.manager_selfie ? (
-                      <div className="flex-1 flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
-                        <CheckCircle size={14} /> Vidéo KYC Validée
-                      </div>
-                    ) : (
-                      <button 
-                        type="button" 
-                        onClick={() => startKYC('manager')}
-                        className="flex-1 flex items-center justify-center gap-2 border border-primary-custom bg-primary-custom/10 hover:bg-primary-custom/20 text-red-400 rounded px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        <Video size={14} /> Démarrer l'enregistrement vidéo KYC
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Guarantor Documents */}
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-4">
-                <h4 className="font-semibold text-sm text-red-500 uppercase tracking-wider border-b border-zinc-800 pb-2">Documents Garant</h4>
-                
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
-                  <div className="flex items-center gap-3">
-                    <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer">
-                      <input type="file" required name="guarantor_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                      <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.guarantor_cip_pdf ? files.guarantor_cip_pdf.name : 'Sélectionner PDF'}</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
-                  <div className="flex items-center gap-3">
-                    {files.guarantor_selfie ? (
-                      <div className="flex-1 flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
-                        <CheckCircle size={14} /> Vidéo KYC Validée
-                      </div>
-                    ) : (
-                      <button 
-                        type="button" 
-                        onClick={() => startKYC('guarantor')}
-                        className="flex-1 flex items-center justify-center gap-2 border border-primary-custom bg-primary-custom/10 hover:bg-primary-custom/20 text-red-400 rounded px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        <Video size={14} /> Démarrer l'enregistrement vidéo KYC
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between pt-6">
-              <button 
-                type="button" onClick={handlePrev}
-                className="px-6 py-2.5 rounded border border-border-custom text-zinc-300 hover:bg-surface-custom text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all"
-              >
-                <ArrowLeft size={16} /> Retour
-              </button>
-              <button 
-                type="submit" disabled={loading}
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20 disabled:opacity-60"
-              >
-                {loading ? 'Soumission du dossier...' : 'Soumettre le dossier'} <ShieldCheck size={16} />
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Step 5: Success Message */}
-        {step === 5 && (
           <div className="text-center py-8 space-y-6">
             <CheckCircle className="text-red-500 mx-auto" size={64} />
             <div className="space-y-2">
