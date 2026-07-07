@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X } from 'lucide-react';
+import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardAdmin() {
@@ -21,7 +21,13 @@ function DashboardAdmin() {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companySearch, setCompanySearch] = useState('');
 
-
+  // Products States
+  const [products, setProducts] = useState([]);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductDesc, setNewProductDesc] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductImage, setNewProductImage] = useState(null);
+  const [productLoading, setProductLoading] = useState(false);
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -54,6 +60,12 @@ function DashboardAdmin() {
       const schedData = await schedRes.json();
       if (!schedRes.ok) throw new Error(schedData.error);
       setSchedules(schedData);
+
+      // Fetch Products
+      const prodRes = await fetch(`${API_URL}/api/products`);
+      const prodData = await prodRes.json();
+      if (!prodRes.ok) throw new Error(prodData.error);
+      setProducts(prodData);
 
     } catch (err) {
       console.error(err);
@@ -147,6 +159,70 @@ function DashboardAdmin() {
     } catch (err) {
       console.error(err);
       alert(err.message);
+    }
+  };
+
+  // Create Product
+  const handleCreateProduct = async (e) => {
+    e.preventDefault();
+    if (!newProductName || !newProductPrice) {
+      alert('Le nom et le prix sont obligatoires');
+      return;
+    }
+    setProductLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', newProductName);
+      formData.append('description', newProductDesc);
+      formData.append('price', newProductPrice);
+      if (newProductImage) {
+        formData.append('image', newProductImage);
+      }
+
+      const res = await fetch(`${API_URL}/api/products`, {
+        method: 'POST',
+        body: formData // No Content-Type header so browser sets multipart/form-data
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de la création');
+
+      alert(data.message);
+      setNewProductName('');
+      setNewProductDesc('');
+      setNewProductPrice('');
+      setNewProductImage(null);
+      // Reset file input
+      const fileInput = document.getElementById('productImageInput');
+      if (fileInput) fileInput.value = '';
+      
+      await fetchAdminData();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setProductLoading(false);
+    }
+  };
+
+  // Delete Product
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce produit ? Cela supprimera également les lignes de facturation associées s'il y en a.")) return;
+    
+    setProductLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/products/${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      alert(data.message);
+      await fetchAdminData();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setProductLoading(false);
     }
   };
 
@@ -527,6 +603,132 @@ function DashboardAdmin() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      {/* CATALOGUE PRODUITS PANEL */}
+      <div className="space-y-4 pt-4">
+        <div className="flex items-center gap-2">
+          <PackageOpen size={18} className="text-zinc-400" />
+          <h3 className="font-bold text-white text-lg">Gestion du Catalogue Produits</h3>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Formulaire d'ajout */}
+          <div className="lg:col-span-1 p-5 rounded-lg bg-bg-deepest border border-border-custom h-fit">
+            <h4 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
+              <Plus size={16} className="text-primary-custom" /> Ajouter un produit
+            </h4>
+            <form onSubmit={handleCreateProduct} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Nom du produit *</label>
+                <input
+                  type="text"
+                  required
+                  value={newProductName}
+                  onChange={(e) => setNewProductName(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Prix (FCFA) *</label>
+                <input
+                  type="number"
+                  required
+                  value={newProductPrice}
+                  onChange={(e) => setNewProductPrice(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Description</label>
+                <textarea
+                  value={newProductDesc}
+                  onChange={(e) => setNewProductDesc(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Image du produit</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="productImageInput"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setNewProductImage(e.target.files[0])}
+                    className="w-full text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-surface-custom file:text-zinc-300 hover:file:bg-zinc-800"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={productLoading}
+                className="w-full py-2.5 rounded bg-primary-custom hover:bg-primary-hover text-white text-xs font-bold transition-all disabled:opacity-50 mt-2"
+              >
+                {productLoading ? 'Enregistrement...' : 'Enregistrer le produit'}
+              </button>
+            </form>
+          </div>
+
+          {/* Liste des produits */}
+          <div className="lg:col-span-2">
+            <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
+                      <th className="p-4">Produit</th>
+                      <th className="p-4">Prix</th>
+                      <th className="p-4">Date d'ajout</th>
+                      <th className="p-4 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                    {products.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="p-8 text-center text-zinc-500">
+                          Aucun produit dans le catalogue.
+                        </td>
+                      </tr>
+                    ) : (
+                      products.map((product) => (
+                        <tr key={product.id} className="hover:bg-surface-custom/20 transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded bg-surface-custom flex-shrink-0 overflow-hidden border border-border-custom/50">
+                                {product.image_url ? (
+                                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-zinc-600"><ImageIcon size={16} /></div>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white">{product.name}</p>
+                                <p className="text-[10px] text-zinc-500 max-w-[200px] truncate">{product.description}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 font-bold font-mono text-white">{Number(product.price).toLocaleString('fr-FR')} FCFA</td>
+                          <td className="p-4 text-zinc-400">{new Date(product.created_at).toLocaleDateString('fr-FR')}</td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              disabled={productLoading}
+                              className="p-2 rounded bg-red-950/20 text-red-500 hover:bg-red-900/40 hover:text-red-400 transition-colors cursor-pointer"
+                              title="Supprimer ce produit"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
