@@ -28,6 +28,9 @@ function DashboardAdmin() {
   const [contractContent, setContractContent] = useState('');
   const [contractLoading, setContractLoading] = useState(false);
 
+  // Navigation Tab State
+  const [activeTab, setActiveTab] = useState('directory'); // 'directory', 'kyc', 'devis', 'contracts', 'risk', 'products'
+
   // Company Backup / Directory States
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companySearch, setCompanySearch] = useState('');
@@ -474,10 +477,122 @@ function DashboardAdmin() {
         </div>
       )}
 
-      {/* ADMIN CONTROLS SECTION */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      {/* ADMIN SESSION NAVIGATION TABS */}
+      <div className="flex flex-wrap gap-2 border-b border-border-custom pb-4 overflow-x-auto">
+        {[
+          { id: 'directory', label: '🗂️ Annuaire Client B2B' },
+          { id: 'kyc', label: '🛡️ Dossiers KYC' },
+          { id: 'devis', label: '⚡ Chiffrage Devis' },
+          { id: 'contracts', label: '📜 Édition Contrats' },
+          { id: 'risk', label: '📊 Risque & Créances' },
+          { id: 'products', label: '📦 Catalogue Produits' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors border ${
+              activeTab === tab.id
+                ? 'bg-red-950/30 border-red-800/70 text-red-400'
+                : 'border-zinc-900/50 bg-zinc-950/30 text-zinc-400 hover:text-white hover:border-zinc-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* SESSION CHANNELS & RENDER PANELS */}
+      <div className="space-y-8">
         
+        {/* DIRECTORY PANEL */}
+        {activeTab === 'directory' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-zinc-400" />
+                <h3 className="font-bold text-white text-lg">Annuaire & Sauvegarde des Dossiers Entreprises</h3>
+              </div>
+              <input
+                type="text"
+                placeholder="Rechercher une entreprise..."
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+                className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-105 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+              />
+            </div>
+
+            <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
+                      <th className="p-4">Dénomination</th>
+                      <th className="p-4">Email</th>
+                      <th className="p-4">Téléphone</th>
+                      <th className="p-4">Statut KYC</th>
+                      <th className="p-4">Date d'inscription</th>
+                      <th className="p-4 text-center">Infos</th>
+                      <th className="p-4 text-center">Supprimer</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                    {companies.filter(c => 
+                      c.denomination_sociale.toLowerCase().includes(companySearch.toLowerCase()) ||
+                      c.email.toLowerCase().includes(companySearch.toLowerCase())
+                    ).length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="p-8 text-center text-zinc-500">
+                          Aucune entreprise trouvée.
+                        </td>
+                      </tr>
+                    ) : (
+                      companies.filter(c => 
+                        c.denomination_sociale.toLowerCase().includes(companySearch.toLowerCase()) ||
+                        c.email.toLowerCase().includes(companySearch.toLowerCase())
+                      ).map((c) => (
+                        <tr key={c.id} className="hover:bg-surface-custom/20 transition-colors">
+                          <td className="p-4 font-semibold text-white">{c.denomination_sociale}</td>
+                          <td className="p-4 font-mono text-zinc-400">{c.email}</td>
+                          <td className="p-4">{c.phone}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              c.kyc_status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' :
+                              c.kyc_status === 'REJECTED' ? 'bg-red-950/40 text-red-400 border border-red-900/40' :
+                              'bg-amber-950/40 text-amber-400 border border-amber-900/40'
+                            }`}>
+                              {c.kyc_status === 'APPROVED' ? 'APPROUVÉ' : c.kyc_status === 'REJECTED' ? 'REJETÉ' : 'EN ATTENTE'}
+                            </span>
+                          </td>
+                          <td className="p-4">{new Date(c.created_at).toLocaleDateString('fr-FR')}</td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => setSelectedCompany(c)}
+                              className="px-2.5 py-1 rounded bg-surface-custom border border-border-custom hover:bg-zinc-800 text-[10px] text-zinc-300 font-semibold cursor-pointer"
+                            >
+                              📄 Consulter
+                            </button>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => handleDeleteCompany(c.id)}
+                              className="p-1.5 rounded bg-red-950/30 border border-red-900/40 hover:bg-red-900/40 text-red-400 cursor-pointer transition-all"
+                              title="Supprimer cette entreprise"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* KYC AUDIT PANEL */}
+        {activeTab === 'kyc' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} className="text-zinc-400" />
@@ -557,8 +672,10 @@ function DashboardAdmin() {
             )}
           </div>
         </div>
+        )}
 
         {/* CUSTOM ESTIMATES QUOTER PANEL */}
+        {activeTab === 'devis' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <FileCheck2 size={18} className="text-zinc-400" />
@@ -717,8 +834,10 @@ function DashboardAdmin() {
             )}
           </div>
         </div>
+        )}
 
         {/* CONTRACT CUSTOMIZER PANEL */}
+        {activeTab === 'contracts' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Award size={18} className="text-zinc-400" />
@@ -782,11 +901,11 @@ function DashboardAdmin() {
             )}
           </div>
         </div>
+        )}
 
-      </div>
-
-      {/* MATRICIAL VIEW OF PAYMENTS & WHATSAPP RELANCES */}
-      <div className="space-y-4 pt-4">
+        {/* MATRICIAL VIEW OF PAYMENTS & WHATSAPP RELANCES */}
+        {activeTab === 'risk' && (
+        <div className="space-y-4 pt-4">
         <div className="flex items-center gap-2">
           <AlertTriangle size={18} className="text-zinc-400" />
           <h3 className="font-bold text-white text-lg">Pivot des Créances & Gestion du Risque de Recouvrement</h3>
@@ -865,93 +984,10 @@ function DashboardAdmin() {
           </div>
         </div>
       </div>
-
-      {/* DIRECTORY & BACKUP PANEL */}
-      <div className="space-y-4 pt-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Users size={18} className="text-zinc-400" />
-            <h3 className="font-bold text-white text-lg">Annuaire & Sauvegarde des Dossiers Entreprises</h3>
-          </div>
-          <input
-            type="text"
-            placeholder="Rechercher une entreprise..."
-            value={companySearch}
-            onChange={(e) => setCompanySearch(e.target.value)}
-            className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-105 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
-          />
-        </div>
-
-        <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead>
-                <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
-                  <th className="p-4">Dénomination</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4">Téléphone</th>
-                  <th className="p-4">Statut KYC</th>
-                  <th className="p-4">Date d'inscription</th>
-                  <th className="p-4 text-center">Infos</th>
-                  <th className="p-4 text-center">Supprimer</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                {companies.filter(c => 
-                  c.denomination_sociale.toLowerCase().includes(companySearch.toLowerCase()) ||
-                  c.email.toLowerCase().includes(companySearch.toLowerCase())
-                ).length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="p-8 text-center text-zinc-500">
-                      Aucune entreprise trouvée.
-                    </td>
-                  </tr>
-                ) : (
-                  companies.filter(c => 
-                    c.denomination_sociale.toLowerCase().includes(companySearch.toLowerCase()) ||
-                    c.email.toLowerCase().includes(companySearch.toLowerCase())
-                  ).map((c) => (
-                    <tr key={c.id} className="hover:bg-surface-custom/20 transition-colors">
-                      <td className="p-4 font-semibold text-white">{c.denomination_sociale}</td>
-                      <td className="p-4 font-mono text-zinc-400">{c.email}</td>
-                      <td className="p-4">{c.phone}</td>
-                      <td className="p-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          c.kyc_status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' :
-                          c.kyc_status === 'REJECTED' ? 'bg-red-950/40 text-red-400 border border-red-900/40' :
-                          'bg-amber-950/40 text-amber-400 border border-amber-900/40'
-                        }`}>
-                          {c.kyc_status === 'APPROVED' ? 'APPROUVÉ' : c.kyc_status === 'REJECTED' ? 'REJETÉ' : 'EN ATTENTE'}
-                        </span>
-                      </td>
-                      <td className="p-4">{new Date(c.created_at).toLocaleDateString('fr-FR')}</td>
-                      <td className="p-4 text-center">
-                        <button
-                          onClick={() => setSelectedCompany(c)}
-                          className="px-2.5 py-1 rounded bg-surface-custom border border-border-custom hover:bg-zinc-800 text-[10px] text-zinc-300 font-semibold cursor-pointer"
-                        >
-                          📄 Consulter
-                        </button>
-                      </td>
-                      <td className="p-4 text-center">
-                        <button
-                          onClick={() => handleDeleteCompany(c.id)}
-                          className="p-1.5 rounded bg-red-950/30 border border-red-900/40 hover:bg-red-900/40 text-red-400 cursor-pointer transition-all"
-                          title="Supprimer cette entreprise"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* CATALOGUE PRODUITS PANEL */}
+      {activeTab === 'products' && (
       <div className="space-y-4 pt-4">
         <div className="flex items-center gap-2">
           <PackageOpen size={18} className="text-zinc-400" />
@@ -1182,6 +1218,7 @@ function DashboardAdmin() {
           </div>
         </div>
       </div>
+      )}
 
       {/* COMPANY DETAIL & BACKUP MODAL */}
       {selectedCompany && (
@@ -1385,6 +1422,7 @@ function DashboardAdmin() {
         </div>
       )}
 
+      </div>
     </div>
   );
 }
