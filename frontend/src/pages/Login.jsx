@@ -48,12 +48,12 @@ function Login({ setUser }) {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-6 py-12 bg-bg-main relative">
+    <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12 bg-bg-main relative">
       {/* Decorative Glow Background */}
-      <div className="absolute w-[400px] h-[400px] rounded-full bg-primary-custom/5 blur-[120px] top-1/4 left-1/4"></div>
-      <div className="absolute w-[300px] h-[300px] rounded-full bg-accent-glow/5 blur-[100px] bottom-1/4 right-1/4"></div>
+      <div className="absolute max-w-[400px] w-[60vw] h-[60vw] max-h-[400px] rounded-full bg-primary-custom/5 blur-[120px] top-1/4 left-1/4"></div>
+      <div className="absolute max-w-[300px] w-[50vw] h-[50vw] max-h-[300px] rounded-full bg-accent-glow/5 blur-[100px] bottom-1/4 right-1/4"></div>
 
-      <div className="w-full max-w-md glass-panel p-8 rounded-lg border border-border-custom relative z-10">
+      <div className="w-full max-w-md glass-panel p-6 sm:p-8 rounded-lg border border-border-custom relative z-10">
         <div className="text-center mb-8">
           <h1 className="text-lg font-black text-white tracking-widest uppercase mb-4 opacity-90">
             GALASSY MEUBLE DECOR

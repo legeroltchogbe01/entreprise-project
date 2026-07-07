@@ -58,8 +58,8 @@ function AppLayout({ user, setUser, cart, setCart }) {
     <div className="min-h-screen flex flex-col" style={{ background: '#09090b' }}>
 
       {/* ── HEADER ─────────────────────────────────────────── */}
-      <header className="w-full bg-black/50 border-b border-zinc-900/60 px-8 py-4 sticky top-0 z-50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto flex flex-col gap-3">
+      <header className="w-full bg-black/50 border-b border-zinc-900/60 px-4 sm:px-8 py-3 sticky top-0 z-50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto flex flex-col gap-2">
 
           {/* Row 1: Logo + Actions */}
           <div className="flex items-center justify-between">
@@ -67,20 +67,20 @@ function AppLayout({ user, setUser, cart, setCart }) {
               <GmdLogo />
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {user ? (
                 <button
                   onClick={handleLogout}
-                  className="btn-ghost px-4 py-2 rounded-lg border border-red-900/50 bg-red-950/20 text-red-400 text-xs font-semibold flex items-center gap-2 cursor-pointer"
+                  className="btn-ghost px-3 py-1.5 rounded-lg border border-red-900/50 bg-red-950/20 text-red-400 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                 >
-                  <LogOut size={14} /> Déconnexion
+                  <LogOut size={14} /> <span className="hidden sm:inline">Déconnexion</span>
                 </button>
               ) : (
                 <Link
                   to="/login"
-                  className="btn-connect px-5 py-2 rounded-lg bg-[#004d26] border border-[#00692f] text-[#4af296] text-xs font-bold flex items-center gap-2"
+                  className="btn-connect px-4 py-1.5 rounded-lg bg-[#004d26] border border-[#00692f] text-[#4af296] text-xs font-bold flex items-center gap-1.5"
                 >
-                  <LogIn size={14} /> Se connecter
+                  <LogIn size={14} /> <span className="hidden sm:inline">Se connecter</span>
                 </Link>
               )}
 
@@ -99,14 +99,14 @@ function AppLayout({ user, setUser, cart, setCart }) {
             </div>
           </div>
 
-          {/* Row 2: Nav Tabs */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Row 2: Nav Tabs — scrollable horizontally on mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
 
             {/* Accueil */}
             <Link
               to="/"
               onClick={() => setForceShowProducts(false)}
-              className={tabClass(path === '/' && !forceShowProducts)}
+              className={tabClass(path === '/' && !forceShowProducts) + ' shrink-0'}
             >
               Accueil
             </Link>
@@ -115,7 +115,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
             <Link
               to="/"
               onClick={() => { setForceShowProducts(true); }}
-              className={tabClass(path === '/' && forceShowProducts)}
+              className={tabClass(path === '/' && forceShowProducts) + ' shrink-0'}
             >
               Produits
             </Link>
@@ -123,7 +123,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
             {/* Panier */}
             <Link
               to="/panier"
-              className={tabClass(path === '/panier')}
+              className={tabClass(path === '/panier') + ' shrink-0'}
             >
               Panier {cartCount > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-red-900/50 text-red-400 text-[9px] font-black">{cartCount}</span>}
             </Link>
@@ -132,14 +132,14 @@ function AppLayout({ user, setUser, cart, setCart }) {
             {user ? (
               <Link
                 to={user.role === 'ADMIN' ? '/admin' : '/dashboard'}
-                className={tabClass(path === '/admin' || path === '/dashboard')}
+                className={tabClass(path === '/admin' || path === '/dashboard') + ' shrink-0'}
               >
                 Profil
               </Link>
             ) : (
               <Link
                 to="/login"
-                className={tabClass(path === '/login' || path === '/register')}
+                className={tabClass(path === '/login' || path === '/register') + ' shrink-0'}
               >
                 Profil
               </Link>
@@ -152,7 +152,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
                   <Link
                     key={tab}
                     to="/dashboard"
-                    className={tabClass(false)}
+                    className={tabClass(false) + ' shrink-0'}
                   >
                     {tab}
                   </Link>

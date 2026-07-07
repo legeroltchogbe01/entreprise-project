@@ -28,6 +28,11 @@ body {
   padding: 0;
   -webkit-font-smoothing: antialiased;
   color-scheme: dark;
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+}
+
+html {
+  overflow-x: hidden;
 }
 
 /* ── SCROLLBAR ────────────────────────── */

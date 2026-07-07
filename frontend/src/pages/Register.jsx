@@ -256,7 +256,7 @@ function Register() {
 
   return (
     <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-12 bg-bg-main relative">
-      <div className="absolute w-[400px] h-[400px] rounded-full bg-primary-custom/5 blur-[120px] top-1/4 left-1/4"></div>
+      <div className="absolute max-w-[400px] w-[60vw] h-[60vw] max-h-[400px] rounded-full bg-primary-custom/5 blur-[120px] top-1/4 left-1/4"></div>
 
       <div className="w-full max-w-3xl glass-panel p-4 sm:p-8 rounded-lg border border-border-custom relative z-10">
         
