@@ -43,6 +43,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'GMD Créance API is running' });
 });
 
+// Version diagnostic route
+app.get('/version', (req, res) => {
+  res.json({ version: 'f8bc624', routes: ['admin/companies', 'admin/product-fields', 'admin/product-fields/:id'] });
+});
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Global error:', err);
