@@ -22,7 +22,7 @@ function Login({ setUser }) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email: email.toLowerCase().trim() })
       });
 
       const data = await response.json();
@@ -85,9 +85,9 @@ function Login({ setUser }) {
                 className="w-full pl-10 pr-4 py-3 rounded-md bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-primary-custom transition-all"
               />
             </div>
-            <p className="text-[10px] text-zinc-500 mt-1.5 font-mono">
+            {/* <p className="text-[10px] text-zinc-500 mt-1.5 font-mono">
               Pour le rôle Administrateur, utilisez : <span className="text-primary-hover">admin@gmd.bj</span>
-            </p>
+            </p> */}
           </div>
 
           <button

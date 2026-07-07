@@ -21,7 +21,7 @@ function Register() {
     city: '',
     district: '',
     house: '',
-    square: '',
+    square: '-',
     
     // Gérant
     manager_name: '',
@@ -31,7 +31,7 @@ function Register() {
     manager_city: '',
     manager_district: '',
     manager_house: '',
-    manager_square: '',
+    manager_square: '-',
 
     // Avaliseur
     guarantor_name: '',
@@ -41,15 +41,19 @@ function Register() {
     guarantor_city: '',
     guarantor_district: '',
     guarantor_house: '',
-    guarantor_square: '',
+    guarantor_square: '-',
   });
 
   // Files State
   const [files, setFiles] = useState({
+    company_ifu_pdf: null,
+    company_rccm_pdf: null,
     manager_cip_pdf: null,
     manager_selfie: null,
+    manager_ifu_pdf: null,
     guarantor_cip_pdf: null,
     guarantor_selfie: null,
+    guarantor_ifu_pdf: null,
   });
 
   const handleInputChange = (e) => {
@@ -164,20 +168,94 @@ function Register() {
     }
   }, [showKYCModal, kycStream, kycPhase]);
 
+  const isLettersOnly = (val) => /^[A-Za-zÀ-ÿ\s'-]+$/.test(val.trim());
+  const isDigitsOnly = (val) => /^\d+$/.test(val.trim());
+  const isValidPhone = (val) => /^\+?\d[\d\s]*$/.test(val.trim());
+  const isValidEmail = (val) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val.trim().toLowerCase());
+  const isValidRCCM = (val) => /^[A-Za-z0-9-]+$/.test(val.trim());
+  const isAlphanumeric = (val) => /^[A-Za-z0-9À-ÿ\s'-]+$/.test(val.trim());
+
+  const isStep1Valid = () => {
+    return (
+      isAlphanumeric(formData.denomination_sociale) &&
+      isValidRCCM(formData.rccm_number) &&
+      formData.rccm_number.trim().length >= 12 &&
+      formData.rccm_number.trim().length <= 15 &&
+      isDigitsOnly(formData.ifu_number) &&
+      formData.ifu_number.trim().length === 13 &&
+      isValidPhone(formData.phone) &&
+      isValidEmail(formData.email) &&
+      isLettersOnly(formData.city) &&
+      isLettersOnly(formData.district) &&
+      formData.house.trim() !== '' &&
+      files.company_ifu_pdf !== null &&
+      files.company_rccm_pdf !== null
+    );
+  };
+
+  const isStep2Valid = () => {
+    return (
+      isLettersOnly(formData.manager_name) &&
+      isDigitsOnly(formData.manager_ifu) &&
+      formData.manager_ifu.trim().length === 13 &&
+      isValidPhone(formData.manager_phone) &&
+      isValidEmail(formData.manager_email) &&
+      isLettersOnly(formData.manager_city) &&
+      isLettersOnly(formData.manager_district) &&
+      formData.manager_house.trim() !== '' &&
+      files.manager_cip_pdf !== null &&
+      files.manager_ifu_pdf !== null &&
+      files.manager_selfie !== null
+    );
+  };
+
+  const isStep3Valid = () => {
+    return (
+      isLettersOnly(formData.guarantor_name) &&
+      isDigitsOnly(formData.guarantor_ifu) &&
+      formData.guarantor_ifu.trim().length === 13 &&
+      isValidPhone(formData.guarantor_phone) &&
+      isValidEmail(formData.guarantor_email) &&
+      isLettersOnly(formData.guarantor_city) &&
+      isLettersOnly(formData.guarantor_district) &&
+      formData.guarantor_house.trim() !== '' &&
+      files.guarantor_cip_pdf !== null &&
+      files.guarantor_ifu_pdf !== null &&
+      files.guarantor_selfie !== null
+    );
+  };
+
   const handleNext = () => {
     if (step === 1) {
-      if (!formData.denomination_sociale || !formData.rccm_number || !formData.ifu_number || !formData.phone || !formData.email || !formData.city || !formData.district || !formData.house || !formData.square) {
+      if (!formData.denomination_sociale || !formData.rccm_number || !formData.ifu_number || !formData.phone || !formData.email || !formData.city || !formData.district || !formData.house) {
         setError('Veuillez remplir toutes les informations d\'entreprise (y compris l\'adresse complète).');
+        return;
+      }
+      if (formData.ifu_number.trim().length !== 13) {
+        setError("Le numéro IFU de l'entreprise doit contenir exactement 13 caractères.");
+        return;
+      }
+      const rccmLength = formData.rccm_number.trim().length;
+      if (rccmLength < 12 || rccmLength > 15) {
+        setError("Le numéro RCCM de l'entreprise doit contenir entre 12 et 15 caractères.");
+        return;
+      }
+      if (!files.company_ifu_pdf || !files.company_rccm_pdf) {
+        setError('Veuillez importer le document IFU et le document RCCM de l\'entreprise.');
         return;
       }
     } else if (step === 2) {
       // Validation Gérant
-      if (!formData.manager_name || !formData.manager_ifu || !formData.manager_phone || !formData.manager_email || !formData.manager_city || !formData.manager_district || !formData.manager_house || !formData.manager_square) {
+      if (!formData.manager_name || !formData.manager_ifu || !formData.manager_phone || !formData.manager_email || !formData.manager_city || !formData.manager_district || !formData.manager_house) {
         setError('Veuillez remplir toutes les informations obligatoires du Gérant.');
         return;
       }
-      if (!files.manager_cip_pdf || !files.manager_selfie) {
-        setError('Veuillez fournir la copie de la CIP et effectuer la vérification vidéo KYC pour le Gérant.');
+      if (formData.manager_ifu.trim().length !== 13) {
+        setError("Le numéro IFU du gérant doit contenir exactement 13 caractères.");
+        return;
+      }
+      if (!files.manager_cip_pdf || !files.manager_selfie || !files.manager_ifu_pdf) {
+        setError('Veuillez fournir la copie de la CIP, le document IFU et effectuer la vérification vidéo KYC pour le Gérant.');
         return;
       }
     }
@@ -195,23 +273,44 @@ function Register() {
     setError('');
 
     // Final validation - guarantor fields
-    if (!formData.guarantor_name || !formData.guarantor_ifu || !formData.guarantor_phone || !formData.guarantor_email || !formData.guarantor_city || !formData.guarantor_district || !formData.guarantor_house || !formData.guarantor_square) {
+    if (!formData.guarantor_name || !formData.guarantor_ifu || !formData.guarantor_phone || !formData.guarantor_email || !formData.guarantor_city || !formData.guarantor_district || !formData.guarantor_house) {
       setError('Veuillez remplir toutes les informations obligatoires de l\'Avaliseur (Garant).');
+      return;
+    }
+    if (formData.guarantor_ifu.trim().length !== 13) {
+      setError("Le numéro IFU du garant doit contenir exactement 13 caractères.");
       return;
     }
 
     // Final validation - files
-    if (!files.manager_cip_pdf || !files.manager_selfie || !files.guarantor_cip_pdf || !files.guarantor_selfie) {
-      setError('Veuillez importer toutes les pièces justificatives requises (CIP et Selfie vidéo KYC pour le gérant et le garant).');
+    if (
+      !files.company_ifu_pdf ||
+      !files.company_rccm_pdf ||
+      !files.manager_cip_pdf ||
+      !files.manager_selfie ||
+      !files.manager_ifu_pdf ||
+      !files.guarantor_cip_pdf ||
+      !files.guarantor_selfie ||
+      !files.guarantor_ifu_pdf
+    ) {
+      setError('Veuillez importer toutes les pièces justificatives requises (RCCM, IFU, CIP et Selfie vidéo KYC pour le gérant et le garant).');
       return;
     }
 
     setLoading(true);
 
     const postData = new FormData();
-    // Append standard fields
+    // Append standard fields with trimming and lowercasing for emails
     Object.keys(formData).forEach(key => {
-      postData.append(key, formData[key]);
+      let val = formData[key];
+      if (typeof val === 'string') {
+        if (key === 'email' || key === 'manager_email' || key === 'guarantor_email') {
+          val = val.toLowerCase().trim();
+        } else {
+          val = val.trim();
+        }
+      }
+      postData.append(key, val);
     });
     // Append files
     Object.keys(files).forEach(key => {
@@ -320,19 +419,19 @@ function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro RCCM *</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro RCCM * (12 à 15 caractères)</label>
                 <input 
                   type="text" required name="rccm_number" value={formData.rccm_number} onChange={handleInputChange}
-                  placeholder="Ex: RB-COT-26-B-1234"
+                  placeholder="Ex: RB-COT-26-B-1234" maxLength={15}
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Identifiant Fiscal Unique (IFU) *</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Identifiant Fiscal Unique (IFU) * (13 chiffres)</label>
                 <input 
                   type="text" required name="ifu_number" value={formData.ifu_number} onChange={handleInputChange}
-                  placeholder="Ex: 3202612345678"
+                  placeholder="Ex: 3202612345678" maxLength={13}
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
@@ -354,26 +453,38 @@ function Register() {
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison *</label>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison/Carré *</label>
                 <input 
-                  type="text" name="house" required value={formData.house} onChange={handleInputChange} placeholder="Ex: Villa 12B"
+                  type="text" name="house" required value={formData.house} onChange={handleInputChange} placeholder="Ex: Villa 12B, Carré 564"
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro de Carré *</label>
-                <input 
-                  type="text" name="square" required value={formData.square} onChange={handleInputChange} placeholder="Ex: 564"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
-                />
+            </div>
+
+            <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-6">Pièces Justificatives (Entreprise)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Document IFU (PDF) *</label>
+                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
+                    <input type="file" name="company_ifu_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.company_ifu_pdf ? files.company_ifu_pdf.name : 'Sélectionner PDF'}</span>
+                  </label>
+              </div>
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Document RCCM (PDF) *</label>
+                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
+                    <input type="file" name="company_rccm_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.company_rccm_pdf ? files.company_rccm_pdf.name : 'Sélectionner PDF'}</span>
+                  </label>
               </div>
             </div>
 
             <div className="flex justify-end pt-4">
               <button 
                 type="button" onClick={handleNext}
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
+                disabled={!isStep1Valid()}
+                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
               >
                 Continuer <ArrowRight size={16} />
               </button>
@@ -397,19 +508,10 @@ function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro RCCM (si applicable)</label>
-                <input 
-                  type="text" name="manager_rccm" value={formData.manager_rccm} onChange={handleInputChange}
-                  placeholder="Optionnel"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Identifiant Fiscal Unique (IFU) *</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Identifiant Fiscal Unique (IFU) * (13 chiffres)</label>
                 <input 
                   type="text" required name="manager_ifu" value={formData.manager_ifu} onChange={handleInputChange}
-                  placeholder="Ex: 3202612345678"
+                  placeholder="Ex: 3202612345678" maxLength={13}
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
@@ -449,17 +551,10 @@ function Register() {
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison *</label>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison/Carré *</label>
                 <input 
-                  type="text" name="manager_house" required value={formData.manager_house} onChange={handleInputChange} placeholder="Ex: Carré 120"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro de Carré *</label>
-                <input 
-                  type="text" name="manager_square" required value={formData.manager_square} onChange={handleInputChange} placeholder="Ex: 887"
+                  type="text" name="manager_house" required value={formData.manager_house} onChange={handleInputChange} placeholder="Ex: Villa 12B, Carré 564"
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
@@ -467,15 +562,22 @@ function Register() {
 
             
             <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-6">Pièces Justificatives (Gérant)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between">
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
                   <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
                     <input type="file" name="manager_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
                     <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.manager_cip_pdf ? files.manager_cip_pdf.name : 'Sélectionner PDF'}</span>
                   </label>
               </div>
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Document IFU (PDF) *</label>
+                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
+                    <input type="file" name="manager_ifu_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.manager_ifu_pdf ? files.manager_ifu_pdf.name : 'Sélectionner PDF'}</span>
+                  </label>
+              </div>
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between">
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
                   {files.manager_selfie ? (
                     <div className="w-full flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
@@ -503,7 +605,8 @@ function Register() {
               </button>
               <button 
                 type="button" onClick={handleNext}
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
+                disabled={!isStep2Valid()}
+                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
               >
                 Continuer <ArrowRight size={16} />
               </button>
@@ -527,19 +630,10 @@ function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro RCCM (si applicable)</label>
-                <input 
-                  type="text" name="guarantor_rccm" value={formData.guarantor_rccm} onChange={handleInputChange}
-                  placeholder="Optionnel"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Identifiant Fiscal Unique (IFU) *</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Identifiant Fiscal Unique (IFU) * (13 chiffres)</label>
                 <input 
                   type="text" required name="guarantor_ifu" value={formData.guarantor_ifu} onChange={handleInputChange}
-                  placeholder="Ex: 3202612345678"
+                  placeholder="Ex: 3202612345678" maxLength={13}
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
@@ -579,32 +673,32 @@ function Register() {
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison *</label>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison/Carré *</label>
                 <input 
-                  type="text" name="guarantor_house" required value={formData.guarantor_house} onChange={handleInputChange} placeholder="Ex: Lot 45"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro de Carré *</label>
-                <input 
-                  type="text" name="guarantor_square" required value={formData.guarantor_square} onChange={handleInputChange} placeholder="Ex: 12"
+                  type="text" name="guarantor_house" required value={formData.guarantor_house} onChange={handleInputChange} placeholder="Ex: Villa 12B, Carré 564"
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
             </div>
 
             <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-6">Pièces Justificatives (Avaliseur)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between">
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
                   <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
                     <input type="file" name="guarantor_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
                     <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.guarantor_cip_pdf ? files.guarantor_cip_pdf.name : 'Sélectionner PDF'}</span>
                   </label>
               </div>
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between">
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Document IFU (PDF) *</label>
+                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
+                    <input type="file" name="guarantor_ifu_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.guarantor_ifu_pdf ? files.guarantor_ifu_pdf.name : 'Sélectionner PDF'}</span>
+                  </label>
+              </div>
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between">
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
                   {files.guarantor_selfie ? (
                     <div className="w-full flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
@@ -630,8 +724,8 @@ function Register() {
                 <ArrowLeft size={16} /> Retour
               </button>
               <button 
-                type="submit" disabled={loading}
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20 disabled:opacity-60"
+                type="submit" disabled={loading || !isStep3Valid()}
+                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
               >
                 {loading ? 'Soumission en cours...' : 'Soumettre le dossier'} <ShieldCheck size={16} />
               </button>
@@ -727,8 +821,17 @@ function Register() {
                   </div>
                 )}
                 {kycPhase === 'done' && (
-                  <div className="w-full py-3 rounded-md bg-green-950/20 border border-green-900/50 text-green-400 font-medium flex items-center justify-center gap-2">
-                    <CheckCircle size={16} /> Vidéo enregistrée avec succès
+                  <div className="space-y-3">
+                    <div className="w-full py-3 rounded-md bg-green-950/20 border border-green-900/50 text-green-400 font-medium flex items-center justify-center gap-2">
+                      <CheckCircle size={16} /> Vidéo enregistrée avec succès
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={closeKYCModal}
+                      className="w-full py-3 rounded-md bg-red-850 hover:bg-red-700 text-white font-medium flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-red-950/40"
+                    >
+                      Valider et continuer
+                    </button>
                   </div>
                 )}
               </div>

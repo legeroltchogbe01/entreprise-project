@@ -37,6 +37,8 @@ model Company {
   district              String
   house                 String
   square                String
+  company_ifu_pdf       String?
+  company_rccm_pdf      String?
 
   // Gérant
   manager_name          String
@@ -50,6 +52,7 @@ model Company {
   manager_square        String
   manager_cip_pdf       String
   manager_selfie        String
+  manager_ifu_pdf       String?
 
   // Avaliseur / Garant
   guarantor_name        String
@@ -63,6 +66,7 @@ model Company {
   guarantor_square      String
   guarantor_cip_pdf     String
   guarantor_selfie      String
+  guarantor_ifu_pdf     String?
 
   kyc_status            KYCStatus        @default(PENDING)
   created_at            DateTime         @default(now())

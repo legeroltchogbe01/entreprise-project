@@ -57,10 +57,14 @@ const upload = multer({
 });
 
 const uploadFields = upload.fields([
+  { name: 'company_ifu_pdf', maxCount: 1 },
+  { name: 'company_rccm_pdf', maxCount: 1 },
   { name: 'manager_cip_pdf', maxCount: 1 },
   { name: 'manager_selfie', maxCount: 1 },
+  { name: 'manager_ifu_pdf', maxCount: 1 },
   { name: 'guarantor_cip_pdf', maxCount: 1 },
-  { name: 'guarantor_selfie', maxCount: 1 }
+  { name: 'guarantor_selfie', maxCount: 1 },
+  { name: 'guarantor_ifu_pdf', maxCount: 1 }
 ]);
 
 // B2B registration
@@ -115,9 +119,31 @@ router.post('/register', uploadFields, async (req, res) => {
       return res.status(400).json({ error: 'Veuillez remplir toutes les informations obligatoires de l\'Avaliseur (Garant).' });
     }
 
+    // Normalize emails to lowercase and trim
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedManagerEmail = manager_email.toLowerCase().trim();
+    const normalizedGuarantorEmail = guarantor_email.toLowerCase().trim();
+
+    // IFU Validations (Benin IFU is exactly 13 characters)
+    if (ifu_number.trim().length !== 13) {
+      return res.status(400).json({ error: "Le numéro IFU de l'entreprise doit contenir exactement 13 caractères." });
+    }
+    if (manager_ifu.trim().length !== 13) {
+      return res.status(400).json({ error: "Le numéro IFU du gérant doit contenir exactement 13 caractères." });
+    }
+    if (guarantor_ifu.trim().length !== 13) {
+      return res.status(400).json({ error: "Le numéro IFU du garant doit contenir exactement 13 caractères." });
+    }
+
+    // RCCM Validation (Benin RCCM is between 12 and 15 characters)
+    const rccmLength = rccm_number.trim().length;
+    if (rccmLength < 12 || rccmLength > 15) {
+      return res.status(400).json({ error: "Le numéro RCCM de l'entreprise doit contenir entre 12 et 15 caractères." });
+    }
+
     // Check if email already exists
     const existing = await prisma.company.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     });
     if (existing) {
       return res.status(400).json({ error: 'Cette adresse email est déjà enregistrée.' });
@@ -125,51 +151,59 @@ router.post('/register', uploadFields, async (req, res) => {
 
     // Check files
     if (!req.files || 
+        !req.files.company_ifu_pdf ||
+        !req.files.company_rccm_pdf ||
         !req.files.manager_cip_pdf || 
         !req.files.manager_selfie || 
+        !req.files.manager_ifu_pdf ||
         !req.files.guarantor_cip_pdf || 
-        !req.files.guarantor_selfie) {
-      return res.status(400).json({ error: 'Veuillez fournir toutes les pièces d\'identité et clichés requis (CIP + Selfie pour le gérant et le garant).' });
+        !req.files.guarantor_selfie ||
+        !req.files.guarantor_ifu_pdf) {
+      return res.status(400).json({ error: 'Veuillez fournir toutes les pièces justificatives et documents requis (RCCM, IFU, CIP et Selfie KYC).' });
     }
 
     // Create Company
     const company = await prisma.company.create({
       data: {
         denomination_sociale,
-        rccm_number,
-        ifu_number,
+        rccm_number: rccm_number.trim(),
+        ifu_number: ifu_number.trim(),
         phone,
-        email,
+        email: normalizedEmail,
         city: city || '',
         district: district || '',
         house: house || '',
         square: square || '',
+        company_ifu_pdf: req.files.company_ifu_pdf[0].path,
+        company_rccm_pdf: req.files.company_rccm_pdf[0].path,
         
         // Gérant
         manager_name,
         manager_rccm: manager_rccm || '',
-        manager_ifu,
+        manager_ifu: manager_ifu.trim(),
         manager_phone,
-        manager_email,
+        manager_email: normalizedManagerEmail,
         manager_city,
         manager_district,
         manager_house,
         manager_square,
         manager_cip_pdf: req.files.manager_cip_pdf[0].path,
         manager_selfie: req.files.manager_selfie[0].path,
+        manager_ifu_pdf: req.files.manager_ifu_pdf[0].path,
         
         // Avaliseur / Garant
         guarantor_name,
         guarantor_rccm: guarantor_rccm || '',
-        guarantor_ifu,
+        guarantor_ifu: guarantor_ifu.trim(),
         guarantor_phone,
-        guarantor_email,
+        guarantor_email: normalizedGuarantorEmail,
         guarantor_city,
         guarantor_district,
         guarantor_house,
         guarantor_square,
         guarantor_cip_pdf: req.files.guarantor_cip_pdf[0].path,
         guarantor_selfie: req.files.guarantor_selfie[0].path,
+        guarantor_ifu_pdf: req.files.guarantor_ifu_pdf[0].path,
         
         kyc_status: 'PENDING'
       }
@@ -206,19 +240,21 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Veuillez fournir une adresse email.' });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Special admin email
-    if (email === 'admin@gmd.bj' || email === 'admin@gmd.com') {
+    if (normalizedEmail === 'admin@gmd.bj' || normalizedEmail === 'admin@gmd.com') {
       return res.json({
         role: 'ADMIN',
         user: {
-          email,
+          email: normalizedEmail,
           name: 'Administrateur GMD'
         }
       });
     }
 
     const company = await prisma.company.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       include: { wallet: true }
     });
 

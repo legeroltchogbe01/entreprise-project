@@ -1363,6 +1363,27 @@ function DashboardAdmin() {
                 Pièces Justificatives (Téléchargement et consultation)
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                {/* Entreprise */}
+                <a 
+                  href={selectedCompany.company_rccm_pdf?.startsWith('http') ? selectedCompany.company_rccm_pdf : `${API_URL}/uploads/${selectedCompany.company_rccm_pdf}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                >
+                  <span className="text-lg">📄</span>
+                  <span className="font-semibold mt-1">RCCM Entreprise (PDF)</span>
+                </a>
+                <a 
+                  href={selectedCompany.company_ifu_pdf?.startsWith('http') ? selectedCompany.company_ifu_pdf : `${API_URL}/uploads/${selectedCompany.company_ifu_pdf}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                >
+                  <span className="text-lg">📄</span>
+                  <span className="font-semibold mt-1">IFU Entreprise (PDF)</span>
+                </a>
+
+                {/* Gérant */}
                 <a 
                   href={selectedCompany.manager_cip_pdf?.startsWith('http') ? selectedCompany.manager_cip_pdf : `${API_URL}/uploads/${selectedCompany.manager_cip_pdf}`} 
                   target="_blank" 
@@ -1372,6 +1393,17 @@ function DashboardAdmin() {
                   <span className="text-lg">📄</span>
                   <span className="font-semibold mt-1">CIP Gérant (PDF)</span>
                 </a>
+                {selectedCompany.manager_ifu_pdf && (
+                  <a 
+                    href={selectedCompany.manager_ifu_pdf.startsWith('http') ? selectedCompany.manager_ifu_pdf : `${API_URL}/uploads/${selectedCompany.manager_ifu_pdf}`} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                  >
+                    <span className="text-lg">📄</span>
+                    <span className="font-semibold mt-1">IFU Gérant (PDF)</span>
+                  </a>
+                )}
                 <a 
                   href={selectedCompany.manager_selfie?.startsWith('http') ? selectedCompany.manager_selfie : `${API_URL}/uploads/${selectedCompany.manager_selfie}`} 
                   target="_blank" 
@@ -1381,6 +1413,8 @@ function DashboardAdmin() {
                   <span className="text-lg">📹</span>
                   <span className="font-semibold mt-1">Selfie Vidéo Gérant</span>
                 </a>
+
+                {/* Garant */}
                 <a 
                   href={selectedCompany.guarantor_cip_pdf?.startsWith('http') ? selectedCompany.guarantor_cip_pdf : `${API_URL}/uploads/${selectedCompany.guarantor_cip_pdf}`} 
                   target="_blank" 
@@ -1390,6 +1424,17 @@ function DashboardAdmin() {
                   <span className="text-lg">📄</span>
                   <span className="font-semibold mt-1">CIP Garant (PDF)</span>
                 </a>
+                {selectedCompany.guarantor_ifu_pdf && (
+                  <a 
+                    href={selectedCompany.guarantor_ifu_pdf.startsWith('http') ? selectedCompany.guarantor_ifu_pdf : `${API_URL}/uploads/${selectedCompany.guarantor_ifu_pdf}`} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                  >
+                    <span className="text-lg">📄</span>
+                    <span className="font-semibold mt-1">IFU Garant (PDF)</span>
+                  </a>
+                )}
                 <a 
                   href={selectedCompany.guarantor_selfie?.startsWith('http') ? selectedCompany.guarantor_selfie : `${API_URL}/uploads/${selectedCompany.guarantor_selfie}`} 
                   target="_blank" 
