@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
-
+import jsQR from 'jsqr';
 // ─── TOUTES LES CATÉGORIES ────────────────────────────────────────────────────
 const CATEGORIES = [
   { name: 'Armoir', image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80' },
@@ -95,11 +95,53 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
     setShowCameraModal(false);
   };
 
-  // Bind video stream to <video> when modal opens
+  // Bind video stream to <video> when modal opens and scan QR code
+  const canvasRef = React.useRef(document.createElement('canvas'));
+
   useEffect(() => {
+    let animationFrameId;
+
+    const tick = () => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        try {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+
+          if (code && code.data) {
+            console.log("Found QR code", code.data);
+            stopCamera();
+            setSearchQuery(code.data);
+            if (setForceShowProducts) setForceShowProducts(true);
+            return;
+          }
+        } catch (err) {
+          // Ignore canvas errors
+        }
+      }
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
     if (showCameraModal && cameraStream && videoRef.current) {
       videoRef.current.srcObject = cameraStream;
+      videoRef.current.setAttribute("playsinline", true); // Important for iOS
+      videoRef.current.play().then(() => {
+        animationFrameId = requestAnimationFrame(tick);
+      }).catch(e => console.error(e));
     }
+
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, [showCameraModal, cameraStream]);
 
   useEffect(() => {
