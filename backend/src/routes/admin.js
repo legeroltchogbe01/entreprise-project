@@ -2,6 +2,33 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const cloudinary = require('cloudinary').v2;
+
+// Helper to delete cloudinary resource if we can extract public_id
+async function tryDeleteCloudinaryResource(fileUrl) {
+  if (!fileUrl || !fileUrl.startsWith('http')) return;
+  try {
+    const url = new URL(fileUrl);
+    const parts = url.pathname.split('/');
+    const uploadIndex = parts.findIndex(p => p === 'upload');
+    if (uploadIndex === -1) return;
+    // public path is after 'upload' and possible version segment
+    let publicPath = parts.slice(uploadIndex + 1).join('/');
+    // remove version if present (v123456)
+    publicPath = publicPath.replace(/v\d+\//, '');
+    // strip extension
+    const publicId = publicPath.replace(/\.[^/.]+$/, '');
+    // infer resource type
+    const ext = (publicPath.match(/\.[^/.]+$/) || [])[0] || '';
+    let resource_type = 'image';
+    if (ext === '.pdf') resource_type = 'raw';
+    if (ext === '.webm' || ext === '.mp4') resource_type = 'video';
+
+    await cloudinary.uploader.destroy(publicId, { resource_type }).catch(() => {});
+  } catch (e) {
+    // ignore errors
+  }
+}
 
 // Get all companies (Admin KYC Review & Directory)
 router.get('/companies', async (req, res) => {
@@ -180,6 +207,71 @@ router.get('/stats', async (req, res) => {
   } catch (error) {
     console.error('Fetch stats error:', error);
     res.status(500).json({ error: 'Erreur lors du calcul des statistiques.' });
+  }
+});
+
+// Delete company (Admin)
+router.delete('/companies/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const company = await prisma.company.findUnique({ where: { id } });
+    if (!company) return res.status(404).json({ error: 'Entreprise introuvable.' });
+
+    // Attempt to delete cloudinary resources (non-blocking)
+    tryDeleteCloudinaryResource(company.manager_cip_pdf);
+    tryDeleteCloudinaryResource(company.manager_selfie);
+    tryDeleteCloudinaryResource(company.guarantor_cip_pdf);
+    tryDeleteCloudinaryResource(company.guarantor_selfie);
+
+    await prisma.company.delete({ where: { id } });
+
+    res.json({ message: 'Entreprise supprimée avec succès.' });
+  } catch (error) {
+    console.error('Delete company error:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression de l\'entreprise.' });
+  }
+});
+
+// Product fields management (dynamic fields shown in product create form)
+router.get('/product-fields', async (req, res) => {
+  try {
+    const fields = await prisma.productField.findMany({ orderBy: { ord: 'asc' } });
+    res.json(fields);
+  } catch (error) {
+    console.error('Fetch product fields error:', error);
+    res.status(500).json({ error: 'Erreur lors du chargement des champs produits.' });
+  }
+});
+
+router.post('/product-fields', async (req, res) => {
+  try {
+    const { key, label, type, options, ord } = req.body;
+    if (!key || !label || !type) return res.status(400).json({ error: 'key, label et type sont requis.' });
+
+    const field = await prisma.productField.create({
+      data: {
+        key,
+        label,
+        type,
+        options: options ? JSON.parse(options) : null,
+        ord: ord || 0
+      }
+    });
+    res.status(201).json({ message: 'Champ produit ajouté.', field });
+  } catch (error) {
+    console.error('Create product field error:', error);
+    res.status(500).json({ error: 'Erreur lors de la création du champ produit.' });
+  }
+});
+
+router.delete('/product-fields/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.productField.delete({ where: { id } });
+    res.json({ message: 'Champ produit supprimé.' });
+  } catch (error) {
+    console.error('Delete product field error:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression du champ produit.' });
   }
 });
 

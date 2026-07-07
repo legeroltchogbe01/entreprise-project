@@ -23,11 +23,13 @@ function DashboardAdmin() {
 
   // Products States
   const [products, setProducts] = useState([]);
+  const [productFields, setProductFields] = useState([]);
   const [newProductName, setNewProductName] = useState('');
   const [newProductDesc, setNewProductDesc] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductImage, setNewProductImage] = useState(null);
   const [productLoading, setProductLoading] = useState(false);
+  const [newProductCustomValues, setNewProductCustomValues] = useState({});
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -66,6 +68,11 @@ function DashboardAdmin() {
       const prodData = await prodRes.json();
       if (!prodRes.ok) throw new Error(prodData.error);
       setProducts(prodData);
+
+      // Fetch Product Fields
+      const fieldsRes = await fetch(`${API_URL}/api/admin/product-fields`);
+      const fieldsData = await fieldsRes.json();
+      if (fieldsRes.ok) setProductFields(fieldsData);
 
     } catch (err) {
       console.error(err);
@@ -175,6 +182,10 @@ function DashboardAdmin() {
       formData.append('name', newProductName);
       formData.append('description', newProductDesc);
       formData.append('price', newProductPrice);
+      // custom dynamic fields
+      if (Object.keys(newProductCustomValues).length > 0) {
+        formData.append('custom_data', JSON.stringify(newProductCustomValues));
+      }
       if (newProductImage) {
         formData.append('image', newProductImage);
       }
@@ -191,6 +202,7 @@ function DashboardAdmin() {
       setNewProductDesc('');
       setNewProductPrice('');
       setNewProductImage(null);
+      setNewProductCustomValues({});
       // Reset file input
       const fileInput = document.getElementById('productImageInput');
       if (fileInput) fileInput.value = '';
@@ -202,6 +214,25 @@ function DashboardAdmin() {
     } finally {
       setProductLoading(false);
     }
+  };
+
+  const handleDeleteCompany = async (id) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer cette entreprise ? Cette action est irréversible.')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/companies/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de la suppression');
+      alert(data.message);
+      await fetchAdminData();
+      setSelectedCompany(null);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
+  const handleCustomFieldChange = (key, value) => {
+    setNewProductCustomValues(prev => ({ ...prev, [key]: value }));
   };
 
   // Delete Product
@@ -650,6 +681,35 @@ function DashboardAdmin() {
                   className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom resize-none"
                 />
               </div>
+              {/* Dynamic custom fields provided by admin configuration */}
+              {productFields.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-2">Champs personnalisés</label>
+                  <div className="space-y-2">
+                    {productFields.map(f => (
+                      <div key={f.id}>
+                        <label className="block text-[11px] text-zinc-400 mb-1">{f.label}</label>
+                        {f.type === 'select' ? (
+                          <select
+                            value={newProductCustomValues[f.key] || ''}
+                            onChange={(e) => handleCustomFieldChange(f.key, e.target.value)}
+                            className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs"
+                          >
+                            <option value="">--</option>
+                            {(f.options || []).map((opt, i) => (
+                              <option key={i} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : f.type === 'number' ? (
+                          <input type="number" value={newProductCustomValues[f.key] || ''} onChange={(e) => handleCustomFieldChange(f.key, e.target.value)} className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs" />
+                        ) : (
+                          <input type="text" value={newProductCustomValues[f.key] || ''} onChange={(e) => handleCustomFieldChange(f.key, e.target.value)} className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1">Image du produit</label>
                 <div className="flex items-center gap-2">
@@ -917,6 +977,12 @@ function DashboardAdmin() {
 
             {/* Modal Footer */}
             <div className="flex justify-end mt-6 border-t border-zinc-900 pt-4">
+              <button 
+                onClick={() => handleDeleteCompany(selectedCompany.id)}
+                className="mr-3 px-5 py-2 rounded bg-red-800/30 hover:bg-red-900 text-red-400 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Supprimer l'entreprise
+              </button>
               <button 
                 onClick={() => setSelectedCompany(null)}
                 className="px-5 py-2 rounded bg-surface-custom hover:bg-zinc-800 text-white text-xs font-semibold cursor-pointer transition-colors"

@@ -61,7 +61,7 @@ router.get('/', async (req, res) => {
 // Create product (for Admin Back-office)
 router.post('/', upload.single('image'), async (req, res) => {
   try {
-    const { name, description, price } = req.body;
+    const { name, description, price, custom_data } = req.body;
     let image_url = 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=600&q=80';
 
     if (req.file) {
@@ -72,14 +72,22 @@ router.post('/', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Le nom et le prix du produit sont obligatoires.' });
     }
 
-    const product = await prisma.product.create({
-      data: {
-        name,
-        description: description || '',
-        price: parseFloat(price),
-        image_url
+    const productData = {
+      name,
+      description: description || '',
+      price: parseFloat(price),
+      image_url
+    };
+
+    if (custom_data) {
+      try {
+        productData.custom_data = JSON.parse(custom_data);
+      } catch (e) {
+        // ignore parse error and leave custom_data undefined
       }
-    });
+    }
+
+    const product = await prisma.product.create({ data: productData });
 
     res.status(201).json({ message: 'Produit ajouté avec succès.', product });
   } catch (error) {

@@ -317,9 +317,18 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                 <p className="text-xs text-zinc-400 leading-relaxed font-mono bg-zinc-900/60 border border-zinc-800/50 rounded-lg p-3">
                   Matière : Velours / Tissu Premium | Couleur : Disponible en plusieurs coloris | Dimensions standards GMD.
                 </p>
-                <p className="text-sm text-zinc-400 leading-relaxed pt-2">
-                  {selectedProduct.description}
-                </p>
+                <div className="pt-2">
+                  <p className="text-sm text-zinc-400 leading-relaxed">
+                    {selectedProduct.description}
+                  </p>
+                  {selectedProduct.custom_data && (
+                    <div className="mt-3 text-xs text-zinc-300 space-y-1">
+                      {Object.entries(selectedProduct.custom_data).map(([k, v]) => (
+                        <div key={k}><span className="text-zinc-500 mr-2 font-mono">{k}:</span> <span className="text-white">{String(v)}</span></div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Price */}
@@ -470,6 +479,13 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                       <div className="p-5 space-y-3">
                         <h3 className="font-semibold text-white text-sm line-clamp-1">{product.name}</h3>
                         <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed h-8">{product.description}</p>
+                        {product.custom_data && (
+                          <div className="text-[10px] text-zinc-500 mt-1 flex gap-2 flex-wrap">
+                            {Object.entries(product.custom_data).slice(0,3).map(([k,v]) => (
+                              <span key={k} className="px-2 py-0.5 rounded bg-zinc-900/60">{k}: {String(v)}</span>
+                            ))}
+                          </div>
+                        )}
                         <div className="flex items-center justify-between pt-3 border-t border-zinc-850">
                           <p className="font-bold text-white text-base">{Number(product.price).toLocaleString('fr-FR')} <span className="text-zinc-550 text-[10px]">FCFA</span></p>
                           <button
