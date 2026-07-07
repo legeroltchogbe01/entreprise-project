@@ -43,6 +43,14 @@ app.get('/', (req, res) => {
   res.json({ message: 'GMD Créance API is running' });
 });
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Une erreur interne est survenue sur le serveur.'
+  });
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

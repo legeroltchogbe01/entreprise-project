@@ -213,7 +213,11 @@ function Register() {
     });
     // Append files
     Object.keys(files).forEach(key => {
-      postData.append(key, files[key]);
+      if (files[key] instanceof Blob && !(files[key] instanceof File)) {
+        postData.append(key, files[key], `${key}.webm`);
+      } else {
+        postData.append(key, files[key]);
+      }
     });
 
     try {
@@ -221,6 +225,13 @@ function Register() {
         method: 'POST',
         body: postData
       });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error("Le serveur a renvoyé une réponse invalide (HTML). Si le backend vient d'être déployé ou est hébergé gratuitement sur Render, il est probablement en cours de démarrage. Veuillez patienter 30 secondes et réessayer.");
+      }
 
       const data = await response.json();
 

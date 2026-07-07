@@ -19,12 +19,12 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webm', '.mp4'];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedExtensions.includes(ext)) {
+    if (allowedExtensions.includes(ext) || ext === '') {
       cb(null, true);
     } else {
-      cb(new Error('Extension de fichier non autorisée (uniquement PDF, JPG, JPEG, PNG).'));
+      cb(new Error('Extension de fichier non autorisée (uniquement PDF, JPG, JPEG, PNG, WEBM, MP4).'));
     }
   }
 });
