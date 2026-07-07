@@ -57,7 +57,12 @@ function Register() {
   });
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let val = e.target.value;
+    if (['ifu_number', 'manager_ifu', 'guarantor_ifu'].includes(e.target.name)) {
+      // Strip any character that is not a digit
+      val = val.replace(/\D/g, '');
+    }
+    setFormData({ ...formData, [e.target.name]: val });
   };
 
   const handleFileChange = (e) => {
@@ -172,8 +177,8 @@ function Register() {
   const isDigitsOnly = (val) => /^\d+$/.test(val.trim());
   const isValidPhone = (val) => /^\d{10}$/.test(val.trim());
   const isValidEmail = (val) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val.trim().toLowerCase());
-  const isValidRCCM = (val) => /^[A-Za-z0-9-]+$/.test(val.trim());
-  const isAlphanumeric = (val) => /^[A-Za-z0-9À-ÿ\s'-]+$/.test(val.trim());
+  const isValidRCCM = (val) => val.trim() !== '';
+  const isAlphanumeric = (val) => /^[a-zA-Z0-9À-ÿ\s'-]+$/.test(val.trim());
 
   const isStep1Valid = () => {
     return (
