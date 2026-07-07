@@ -198,9 +198,41 @@ function DashboardClient({ user }) {
           </div>
         )}
 
-        {/* ── ONGLET PROFIL ── */}
+        {/* ── ONGLET PROFIL : CONTIENT TOUT COMME AVANT ── */}
         {activeTab === 'profil' && (
           <div className="space-y-5">
+            {/* ── PAYMENT CARD ──────────── */}
+            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-950/50 border border-emerald-900/40 flex items-center justify-center shrink-0">
+                    <CreditCard size={18} className="text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Prochain versement</p>
+                    <h3 className="text-xl font-bold text-white font-mono">
+                      {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')}` : '0'} <span className="text-xs text-zinc-400">FCFA</span>
+                    </h3>
+                  </div>
+                </div>
+                {nextPayment && (
+                  <button
+                    onClick={() => handlePayInstallment(nextPayment.order_id, nextPayment.installment_number)}
+                    disabled={paymentLoading}
+                    className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow shadow-emerald-950/40 disabled:opacity-60 shrink-0"
+                  >
+                    <CreditCard size={13} /> Payer
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 flex items-center justify-center">
+                <span className="px-3 py-1 rounded-full bg-surface-custom border border-border-custom text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5">
+                  <Calendar size={11} />
+                  {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
+                </span>
+              </div>
+            </div>
+
             {/* ── COMPANY AVATAR + TOTAL REMAINING ── */}
             <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom text-center space-y-4">
               <div className="w-20 h-20 mx-auto rounded-full bg-surface-custom border-2 border-border-custom flex items-center justify-center">
@@ -350,295 +382,291 @@ function DashboardClient({ user }) {
                 Mot de passe oublié
               </a>
             </div>
+
+            {/* ── FINANCIAL SECTION INCLUDED IN PROFIL (ORIGINAL BEHAVIOR) ── */}
+            <div className="border-t border-border-custom pt-6 space-y-6">
+              {/* Wallet Cards */}
+              {wallet && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
+                    </p>
+                    <h3 className="font-bold text-white text-lg font-mono">
+                      {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                    </h3>
+                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary-custom"
+                        style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                      <span>Consommé</span>
+                      <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
+                    </p>
+                    <h3 className="font-bold text-white text-lg font-mono">
+                      {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                    </h3>
+                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-red-800"
+                        style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                      <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
+                      <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Échéancier */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-zinc-400" />
+                  <h3 className="font-bold text-white text-sm">Échéancier de Remboursement</h3>
+                </div>
+
+                <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-xs">
+                      <thead>
+                        <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
+                          <th className="p-3">N° Cmd</th>
+                          <th className="p-3">Échéance</th>
+                          <th className="p-3">Date</th>
+                          <th className="p-3">Montant</th>
+                          <th className="p-3">Statut</th>
+                          <th className="p-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                        {getClientMaturities().length === 0 ? (
+                          <tr>
+                            <td colSpan="6" className="p-6 text-center text-zinc-500 text-xs">
+                              Aucun échéancier de créance actif.
+                            </td>
+                          </tr>
+                        ) : (
+                          getClientMaturities().map((mat, i) => (
+                            <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
+                              <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
+                              <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
+                              <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
+                              <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')}</td>
+                              <td className="p-3">
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                  mat.paid ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400 border border-red-900/40'
+                                }`}>
+                                  {mat.paid ? 'PAYÉ' : 'IMPAYÉ'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                {!mat.paid && (
+                                  <button
+                                    onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
+                                    disabled={paymentLoading}
+                                    className="px-2.5 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
+                                  >
+                                    Régler
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Special Request */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <FileText size={16} className="text-zinc-400" />
+                  <h3 className="font-bold text-white text-sm">Demande Spéciale (Sur-mesure)</h3>
+                </div>
+
+                <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-2">
+                  <div className="flex justify-between text-[10px] font-semibold text-zinc-400">
+                    <span>Quota de Soumission (7j)</span>
+                    <span className="text-zinc-200">{weeklyQuota} / 30 articles</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-surface-custom rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${weeklyQuota >= 30 ? 'bg-red-500' : 'bg-primary-custom'}`}
+                      style={{ width: `${(weeklyQuota / 30) * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-[9px] text-zinc-500">Limite de 30 articles/semaine. Devis sous 48h.</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3">
+                  {formError && (
+                    <div className="p-2.5 rounded bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] flex gap-2">
+                      <AlertCircle size={12} className="shrink-0 mt-0.5" /> <p>{formError}</p>
+                    </div>
+                  )}
+                  {formSuccess && (
+                    <div className="p-2.5 rounded bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] flex gap-2">
+                      <Check size={12} className="shrink-0 mt-0.5" /> <p>{formSuccess}</p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmitSpecialRequest} className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Description Technique</label>
+                      <textarea
+                        required
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Ex: Table de conférence ovale en noyer 4m x 1.5m..."
+                        rows="3"
+                        className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 placeholder-zinc-700 text-xs focus:outline-none focus:border-primary-custom resize-none"
+                      ></textarea>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Quantité</label>
+                      <input
+                        type="number" min="1" required
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={formLoading || weeklyQuota >= 30}
+                      className="w-full py-2.5 rounded-lg bg-primary-custom hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
+                    >
+                      <Send size={11} /> Soumettre la demande
+                    </button>
+                  </form>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-bold text-zinc-400 text-[10px] uppercase tracking-wider">Suivi des demandes</h4>
+                  <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5">
+                    {specialRequests.length === 0 ? (
+                      <p className="text-zinc-500 text-xs text-center py-5 border border-dashed border-border-custom rounded-lg">Aucune demande spéciale.</p>
+                    ) : (
+                      specialRequests.map((req) => (
+                        <div key={req.id} className="p-3.5 rounded-lg bg-bg-deepest border border-border-custom text-xs space-y-3">
+                          <div className="flex justify-between items-start gap-2">
+                            <p className="font-medium text-zinc-300 line-clamp-2 leading-relaxed">{req.description}</p>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ${
+                              req.status === 'SUBMITTED' ? 'bg-zinc-800 text-zinc-400' :
+                              req.status === 'QUOTED' ? 'bg-amber-950/40 text-amber-400 border border-amber-900/40' :
+                              req.status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400'
+                            }`}>
+                              {req.status === 'SUBMITTED' && 'EN ATTENTE'}
+                              {req.status === 'QUOTED' && 'DEVIS ÉMIS'}
+                              {req.status === 'APPROVED' && 'APPROUVÉ'}
+                              {req.status === 'REJECTED' && 'REJETÉ'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px] text-zinc-500 font-semibold uppercase">
+                            <span>Qté: {req.quantity}</span>
+                            <span>{req.estimated_price ? `${Number(req.estimated_price).toLocaleString('fr-FR')} FCFA` : '—'}</span>
+                          </div>
+                          {req.status === 'QUOTED' && (
+                            <button
+                              onClick={() => handleApproveQuote(req.id)}
+                              disabled={paymentLoading}
+                              className="w-full py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-[11px] cursor-pointer transition-all"
+                            >
+                              Accepter le Devis
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ── ONGLET CREANCES ── */}
+        {/* ── ONGLET CREANCES : DESSIN DÉDIÉ ET ÉPURÉ ── */}
         {activeTab === 'creances' && (
           <div className="space-y-6">
-            {/* ── PAYMENT CARD ──────────── */}
-            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-950/50 border border-emerald-900/40 flex items-center justify-center shrink-0">
-                    <CreditCard size={18} className="text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Prochain versement</p>
-                    <h3 className="text-xl font-bold text-white font-mono">
-                      {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')}` : '0'} <span className="text-xs text-zinc-400">FCFA</span>
-                    </h3>
-                  </div>
-                </div>
-                {nextPayment && (
-                  <button
-                    onClick={() => handlePayInstallment(nextPayment.order_id, nextPayment.installment_number)}
-                    disabled={paymentLoading}
-                    className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow shadow-emerald-950/40 disabled:opacity-60 shrink-0"
-                  >
-                    <CreditCard size={13} /> Payer
-                  </button>
-                )}
-              </div>
-              <div className="mt-3 flex items-center justify-center">
-                <span className="px-3 py-1 rounded-full bg-surface-custom border border-border-custom text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5">
-                  <Calendar size={11} />
-                  {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
-                </span>
-              </div>
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet2 size={16} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-sm">Suivi des Créances et En-cours</h3>
             </div>
-
-            {/* ── WALLET CARDS ────────── */}
+            
             {wallet && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
-                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
-                  </p>
-                  <h3 className="font-bold text-white text-lg font-mono">
-                    {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                  </h3>
-                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary-custom"
-                      style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                    <span>Consommé</span>
-                    <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
-                  </div>
+              <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-900/5 blur-[40px] rounded-full"></div>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-semibold text-zinc-400">Encours de crédit utilisé</p>
+                  <span className="text-[10px] bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-0.5 rounded font-bold">CRÉDIT ACTIF</span>
                 </div>
-
-                <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
-                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
-                  </p>
-                  <h3 className="font-bold text-white text-lg font-mono">
-                    {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                  </h3>
-                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                <h3 className="text-2xl font-black text-white font-mono">
+                  {Number(wallet.credit_utilise).toLocaleString('fr-FR')} <span className="text-xs text-zinc-400">FCFA</span>
+                </h3>
+                <div className="space-y-1.5">
+                  <div className="w-full h-2 bg-surface-custom rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-red-800"
-                      style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
+                      className="h-full bg-red-700"
+                      style={{ width: wallet.activated_at ? `${(Number(wallet.credit_utilise) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
                     ></div>
                   </div>
-                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                    <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
-                    <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                  <div className="flex justify-between text-[10px] text-zinc-500 font-semibold uppercase">
+                    <span>Limite autorisée: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                    <span>Disponible: {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} FCFA</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ── MATURITIES TABLE ────── */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Calendar size={16} className="text-zinc-400" />
-                <h3 className="font-bold text-white text-sm">Échéancier de Remboursement</h3>
-              </div>
-
+              <h4 className="font-bold text-zinc-400 text-xs uppercase tracking-wider">Mensualités restant à régler</h4>
               <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-xs">
-                    <thead>
-                      <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
-                        <th className="p-3">N° Cmd</th>
-                        <th className="p-3">Échéance</th>
-                        <th className="p-3">Date</th>
-                        <th className="p-3">Montant</th>
-                        <th className="p-3">Statut</th>
-                        <th className="p-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                      {getClientMaturities().length === 0 ? (
-                        <tr>
-                          <td colSpan="6" className="p-6 text-center text-zinc-500 text-xs">
-                            Aucun échéancier de créance actif.
-                          </td>
-                        </tr>
-                      ) : (
-                        getClientMaturities().map((mat, i) => (
-                          <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
-                            <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
-                            <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
-                            <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
-                            <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')}</td>
-                            <td className="p-3">
-                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                mat.paid ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400 border border-red-900/40'
-                              }`}>
-                                {mat.paid ? 'PAYÉ' : 'IMPAYÉ'}
-                              </span>
-                            </td>
-                            <td className="p-3 text-right">
-                              {!mat.paid && (
-                                <button
-                                  onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
-                                  disabled={paymentLoading}
-                                  className="px-2.5 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
-                                >
-                                  Régler
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            {/* ── SPECIAL REQUEST FORM ── */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <FileText size={16} className="text-zinc-400" />
-                <h3 className="font-bold text-white text-sm">Demande Spéciale (Sur-mesure)</h3>
-              </div>
-
-              {/* Quota */}
-              <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-2">
-                <div className="flex justify-between text-[10px] font-semibold text-zinc-400">
-                  <span>Quota de Soumission (7j)</span>
-                  <span className="text-zinc-200">{weeklyQuota} / 30 articles</span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-custom rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${weeklyQuota >= 30 ? 'bg-red-500' : 'bg-primary-custom'}`}
-                    style={{ width: `${(weeklyQuota / 30) * 100}%` }}
-                  ></div>
-                </div>
-                <p className="text-[9px] text-zinc-500">Limite de 30 articles/semaine. Devis sous 48h.</p>
-              </div>
-
-              {/* Form */}
-              <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3">
-                {formError && (
-                  <div className="p-2.5 rounded bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] flex gap-2">
-                    <AlertCircle size={12} className="shrink-0 mt-0.5" /> <p>{formError}</p>
-                  </div>
-                )}
-                {formSuccess && (
-                  <div className="p-2.5 rounded bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] flex gap-2">
-                    <Check size={12} className="shrink-0 mt-0.5" /> <p>{formSuccess}</p>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitSpecialRequest} className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Description Technique</label>
-                    <textarea
-                      required
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Ex: Table de conférence ovale en noyer 4m x 1.5m..."
-                      rows="3"
-                      className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 placeholder-zinc-700 text-xs focus:outline-none focus:border-primary-custom resize-none"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Quantité</label>
-                    <input
-                      type="number" min="1" required
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={formLoading || weeklyQuota >= 30}
-                    className="w-full py-2.5 rounded-lg bg-primary-custom hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
-                  >
-                    <Send size={11} /> Soumettre la demande
-                  </button>
-                </form>
-              </div>
-
-              {/* Requests Log */}
-              <div className="space-y-3">
-                <h4 className="font-bold text-zinc-400 text-[10px] uppercase tracking-wider">Suivi des demandes</h4>
-                <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5">
-                  {specialRequests.length === 0 ? (
-                    <p className="text-zinc-500 text-xs text-center py-5 border border-dashed border-border-custom rounded-lg">Aucune demande spéciale.</p>
-                  ) : (
-                    specialRequests.map((req) => (
-                      <div key={req.id} className="p-3.5 rounded-lg bg-bg-deepest border border-border-custom text-xs space-y-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <p className="font-medium text-zinc-300 line-clamp-2 leading-relaxed">{req.description}</p>
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ${
-                            req.status === 'SUBMITTED' ? 'bg-zinc-800 text-zinc-400' :
-                            req.status === 'QUOTED' ? 'bg-amber-950/40 text-amber-400 border border-amber-900/40' :
-                            req.status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400'
-                          }`}>
-                            {req.status === 'SUBMITTED' && 'EN ATTENTE'}
-                            {req.status === 'QUOTED' && 'DEVIS ÉMIS'}
-                            {req.status === 'APPROVED' && 'APPROUVÉ'}
-                            {req.status === 'REJECTED' && 'REJETÉ'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-[10px] text-zinc-500 font-semibold uppercase">
-                          <span>Qté: {req.quantity}</span>
-                          <span>{req.estimated_price ? `${Number(req.estimated_price).toLocaleString('fr-FR')} FCFA` : '—'}</span>
-                        </div>
-                        {req.status === 'QUOTED' && (
-                          <button
-                            onClick={() => handleApproveQuote(req.id)}
-                            disabled={paymentLoading}
-                            className="w-full py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-[11px] cursor-pointer transition-all"
-                          >
-                            Accepter le Devis
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── ONGLET PAIEMENTS ── */}
-        {activeTab === 'paiements' && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-zinc-400" />
-              <h3 className="font-bold text-white text-sm">Historique des paiements</h3>
-            </div>
-            <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
-              <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
                       <th className="p-3">N° Cmd</th>
                       <th className="p-3">Échéance</th>
-                      <th className="p-3">Date de paiement</th>
+                      <th className="p-3">Date Limite</th>
                       <th className="p-3">Montant</th>
-                      <th className="p-3">Statut</th>
+                      <th className="p-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                    {getClientMaturities().filter(m => m.paid).length === 0 ? (
+                    {getClientMaturities().filter(m => !m.paid).length === 0 ? (
                       <tr>
                         <td colSpan="5" className="p-6 text-center text-zinc-500 text-xs">
-                          Aucun paiement effectué.
+                          Aucune échéance impayée. Votre compte est à jour !
                         </td>
                       </tr>
                     ) : (
-                      getClientMaturities().filter(m => m.paid).map((mat, i) => (
+                      getClientMaturities().filter(m => !m.paid).map((mat, i) => (
                         <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
                           <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
                           <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
-                          <td className="p-3 text-[10px]">{mat.paid_at ? new Date(mat.paid_at).toLocaleDateString('fr-FR') : '-'}</td>
+                          <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
                           <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')} FCFA</td>
-                          <td className="p-3">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40">PAYÉ</span>
+                          <td className="p-3 text-right">
+                            <button
+                              onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
+                              disabled={paymentLoading}
+                              className="px-3 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
+                            >
+                              Régler
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -650,28 +678,102 @@ function DashboardClient({ user }) {
           </div>
         )}
 
-        {/* ── ONGLET LIVRAISONS ── */}
+        {/* ── ONGLET PAIEMENTS : VUE HISTORIQUE DÉDIÉE ── */}
+        {activeTab === 'paiements' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar size={16} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-sm">Historique des Règlements Effectués</h3>
+            </div>
+
+            <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase">Cumul des paiements effectués</p>
+                <h3 className="text-2xl font-black text-emerald-400 font-mono">
+                  {getClientMaturities().filter(m => m.paid).reduce((sum, m) => sum + Number(m.amount), 0).toLocaleString('fr-FR')} <span className="text-xs text-zinc-400">FCFA</span>
+                </h3>
+              </div>
+              <span className="text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 px-2 py-0.5 rounded font-bold">À JOUR</span>
+            </div>
+
+            <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
+                    <th className="p-3">N° Cmd</th>
+                    <th className="p-3">Échéance</th>
+                    <th className="p-3">Date de Paiement</th>
+                    <th className="p-3">Montant</th>
+                    <th className="p-3 text-right">Statut</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                  {getClientMaturities().filter(m => m.paid).length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="p-6 text-center text-zinc-500 text-xs">
+                        Aucun paiement effectué pour le moment.
+                      </td>
+                    </tr>
+                  ) : (
+                    getClientMaturities().filter(m => m.paid).map((mat, i) => (
+                      <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
+                        <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
+                        <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
+                        <td className="p-3 text-[10px]">{mat.paid_at ? new Date(mat.paid_at).toLocaleDateString('fr-FR') : '-'}</td>
+                        <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')} FCFA</td>
+                        <td className="p-3 text-right">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40">PAYÉ</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── ONGLET LIVRAISONS : VUE DÉTAILLÉE DES COMMANDES ── */}
         {activeTab === 'livraisons' && (
           <div className="space-y-6">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               <Package size={16} className="text-zinc-400" />
-              <h3 className="font-bold text-white text-sm">Mes commandes</h3>
+              <h3 className="font-bold text-white text-sm">Suivi des Livraisons & Commandes</h3>
             </div>
+
             <div className="space-y-3">
               {orders.length === 0 ? (
                 <div className="p-6 rounded-xl bg-bg-deepest border border-border-custom text-center text-zinc-500 text-xs">
-                  Aucune commande.
+                  Aucune commande enregistrée.
                 </div>
               ) : (
                 orders.map(order => (
-                  <div key={order.id} className="p-4 rounded-xl bg-bg-deepest border border-border-custom flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-white text-sm font-mono">{order.order_number}</p>
-                      <p className="text-xs text-zinc-400">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
+                  <div key={order.id} className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
+                    <div className="flex justify-between items-center border-b border-border-custom/30 pb-3">
+                      <div>
+                        <p className="font-bold text-white text-sm font-mono">{order.order_number}</p>
+                        <p className="text-[10px] text-zinc-500">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40">
+                        LIVRAISON EN COURS
+                      </span>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-white text-sm font-mono">{Number(order.total_amount).toLocaleString('fr-FR')} FCFA</p>
-                      <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40">EN COURS</span>
+                    
+                    <div className="space-y-2">
+                      {order.order_items && order.order_items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-xs text-zinc-400 items-center">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded bg-surface-custom text-[10px] font-bold text-zinc-400 flex items-center justify-center">x{item.quantity}</span>
+                            <span>{item.product?.name || 'Article'}</span>
+                          </div>
+                          <span className="font-mono text-zinc-300">{Number(item.price * item.quantity).toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-3 border-t border-border-custom/30 text-xs">
+                      <span className="text-zinc-500 font-semibold">Montant Total Facturé</span>
+                      <span className="font-bold text-white font-mono text-sm">{Number(order.total_amount).toLocaleString('fr-FR')} FCFA</span>
                     </div>
                   </div>
                 ))
@@ -679,6 +781,7 @@ function DashboardClient({ user }) {
             </div>
           </div>
         )}
+
       </div>
 
       {/* ── WhatsApp FAB ──────────── */}
