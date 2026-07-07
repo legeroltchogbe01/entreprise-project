@@ -200,7 +200,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3 text-zinc-400">
                 <span className="mt-0.5 text-amber-500 text-base shrink-0">✦</span>
-                <span>Avoir une <strong className="text-zinc-200">ancienneté commerciale d'au moins 2 ans</strong> dans votre secteur d'activité.</span>
+                <span>Avoir une <strong className="text-zinc-200">ancienneté d'au moins 2 ans en tant que client de GMD</strong>.</span>
               </li>
               <li className="flex items-start gap-3 text-zinc-400">
                 <span className="mt-0.5 text-amber-500 text-base shrink-0">✦</span>
