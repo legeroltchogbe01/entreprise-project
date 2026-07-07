@@ -18,7 +18,8 @@ if (!process.env.CLOUDINARY_URL) {
     secure: true
   });
 } else {
-  // Cloudinary SDK automatically picks up process.env.CLOUDINARY_URL
+  // Parse CLOUDINARY_URL then force secure connection
+  cloudinary.config(true);
   cloudinary.config({ secure: true });
 }
 

@@ -11,12 +11,8 @@ import { API_URL } from './config';
 
 function GmdLogo() {
   return (
-    <div className="flex flex-col items-start select-none">
-      <div className="flex items-center gap-0.5">
-        <span className="font-extrabold text-2xl tracking-tighter" style={{ color: '#ff6600' }}>G</span>
-        <span className="font-black text-2xl tracking-tight text-white">MD</span>
-      </div>
-      <span className="text-[7px] text-zinc-500 uppercase tracking-widest -mt-1 font-semibold leading-tight">Galassy Meuble Décor</span>
+    <div className="flex items-center select-none">
+      <img src="/logo.jpeg" alt="GMD Logo" className="h-16 w-auto object-contain" />
     </div>
   );
 }
