@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, User, Phone, Mail, MapPin, CreditCard, LogOut, KeyRound } from 'lucide-react';
+import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardClient({ user }) {
@@ -146,15 +146,12 @@ function DashboardClient({ user }) {
   };
 
   const getNextPayment = () => {
-    const maturities = getClientMaturities();
-    const unpaid = maturities.filter(m => !m.paid);
-    if (unpaid.length === 0) return null;
-    return unpaid[0];
+    const unpaid = getClientMaturities().filter(m => !m.paid);
+    return unpaid.length > 0 ? unpaid[0] : null;
   };
 
   const getTotalRemaining = () => {
-    const maturities = getClientMaturities();
-    return maturities.filter(m => !m.paid).reduce((sum, m) => sum + Number(m.amount), 0);
+    return getClientMaturities().filter(m => !m.paid).reduce((sum, m) => sum + Number(m.amount), 0);
   };
 
   if (loading) {
@@ -162,7 +159,7 @@ function DashboardClient({ user }) {
       <div className="flex-1 flex items-center justify-center bg-bg-main">
         <div className="text-center space-y-3">
           <RefreshCw className="animate-spin text-primary-hover mx-auto" size={32} />
-          <p className="text-zinc-500 text-sm">Chargement du tableau de bord...</p>
+          <p className="text-zinc-500 text-sm">Chargement de l'espace entreprise...</p>
         </div>
       </div>
     );
@@ -171,7 +168,7 @@ function DashboardClient({ user }) {
   const nextPayment = getNextPayment();
   const totalRemaining = getTotalRemaining();
   const weeklyQuota = getWeeklyQuotaUsed();
-  const company = user.company;
+  const c = user.company;
 
   return (
     <div className="flex-1 bg-bg-main relative">
@@ -179,8 +176,8 @@ function DashboardClient({ user }) {
 
         {/* ── TITLE ──────────────────── */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Mon profil</h2>
-          <button 
+          <h2 className="text-xl font-bold text-white">Espace Entreprise</h2>
+          <button
             onClick={fetchDashboardData}
             className="p-2 rounded-lg bg-surface-custom border border-border-custom hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-all"
             title="Rafraîchir"
@@ -200,7 +197,7 @@ function DashboardClient({ user }) {
         <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-950/50 border border-emerald-900/40 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-emerald-950/50 border border-emerald-900/40 flex items-center justify-center shrink-0">
                 <CreditCard size={18} className="text-emerald-400" />
               </div>
               <div>
@@ -228,16 +225,17 @@ function DashboardClient({ user }) {
           </div>
         </div>
 
-        {/* ── AVATAR + TOTAL REMAINING ── */}
+        {/* ── COMPANY AVATAR + TOTAL REMAINING ── */}
         <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom text-center space-y-4">
           <div className="w-20 h-20 mx-auto rounded-full bg-surface-custom border-2 border-border-custom flex items-center justify-center">
-            <User size={36} className="text-zinc-500" />
+            <Building2 size={36} className="text-zinc-500" />
           </div>
+          <h3 className="text-sm font-bold text-white">{c.denomination_sociale}</h3>
           <div className="space-y-1.5">
             <div className="w-full h-2 bg-surface-custom rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-primary-custom transition-all duration-500"
-                style={{ width: wallet && wallet.credit_initial > 0 ? `${(Number(wallet.credit_utilise) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
+                style={{ width: wallet && Number(wallet.credit_initial) > 0 ? `${(Number(wallet.credit_utilise) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
               ></div>
             </div>
             <p className="text-xs text-zinc-400">
@@ -246,62 +244,115 @@ function DashboardClient({ user }) {
           </div>
         </div>
 
-        {/* ── IDENTITY SECTION ────────── */}
+        {/* ── IDENTITY SECTION : ENTREPRISE ── */}
         <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Identité Client</h3>
-          
+          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Briefcase size={13} /> Identité Entreprise
+          </h3>
+
           <div className="space-y-3">
             <div>
-              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Nom complet</label>
+              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Dénomination Sociale</label>
               <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                {company.manager_name || company.denomination_sociale}
+                {c.denomination_sociale}
               </div>
             </div>
-
             <div>
-              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email</label>
+              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email Entreprise</label>
               <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
-                {company.email}
+                {c.email}
               </div>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Téléphone</label>
               <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                {company.phone}
+                {c.phone}
               </div>
             </div>
-
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">N° RCCM</label>
+                <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 font-mono truncate">
+                  {c.rccm_number}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">N° IFU</label>
+                <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 font-mono truncate">
+                  {c.ifu_number}
+                </div>
+              </div>
+            </div>
             <div>
               <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Ville</label>
               <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                {company.city}
+                {c.city}
               </div>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Adresse</label>
               <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                {company.district}{company.house ? `, ${company.house}` : ''}
+                {c.district}, {c.house} — Carré {c.square}
               </div>
             </div>
           </div>
+        </div>
 
-          <button className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold cursor-pointer transition-all">
-            Modifier mes infos
-          </button>
+        {/* ── IDENTITY SECTION : GÉRANT ── */}
+        <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
+          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <User size={13} /> Gérant Responsable
+          </h3>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Nom et Prénom</label>
+              <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
+                {c.manager_name}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Téléphone</label>
+                <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
+                  {c.manager_phone}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email</label>
+                <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
+                  {c.manager_email}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Statut KYC</label>
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 ${
+                  c.kyc_status === 'APPROVED'
+                    ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/50'
+                    : c.kyc_status === 'REJECTED'
+                    ? 'bg-red-950/40 text-red-400 border border-red-900/50'
+                    : 'bg-amber-950/40 text-amber-400 border border-amber-900/50'
+                }`}>
+                  <ShieldCheck size={13} />
+                  {c.kyc_status === 'APPROVED' ? 'Conformité KYC Approuvée' : c.kyc_status === 'REJECTED' ? 'KYC Rejeté' : 'KYC en Attente d\'Audit'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── CONTACT & ACTION BUTTONS ── */}
         <div className="grid grid-cols-2 gap-3">
-          <a 
-            href={`tel:${company.phone || '+22997000000'}`}
+          <a
+            href={`tel:${c.phone || '+22997000000'}`}
             className="py-3 rounded-lg bg-emerald-950/30 border border-emerald-900/40 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-emerald-950/50 transition-all"
           >
             <Phone size={13} /> Nous appeler
           </a>
-          <a 
-            href={`mailto:contact@gmd-creance.com`}
+          <a
+            href="mailto:contact@gmd-creance.com"
             className="py-3 rounded-lg bg-surface-custom border border-border-custom text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-zinc-800 transition-all"
           >
             <Mail size={13} /> Nous contacter
@@ -318,228 +369,232 @@ function DashboardClient({ user }) {
           <LogOut size={14} /> Déconnexion
         </button>
 
-        <div className="text-center">
+        <div className="text-center pb-2">
           <a href="#" className="text-xs text-blue-400 underline hover:text-blue-300 transition-colors">
             Mot de passe oublié
           </a>
         </div>
 
-        {/* ── SEPARATOR ────────────────── */}
-        <div className="border-t border-border-custom pt-6">
+        {/* ═══════════════════════════════════════════ */}
+        {/* SECTION FINANCIÈRE (sous le profil)        */}
+        {/* ═══════════════════════════════════════════ */}
+        <div className="border-t border-border-custom pt-6 space-y-6">
 
-        {/* ── WALLET DETAILS (Acompte + Crédit) ── */}
-        {wallet && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
-              <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                <Wallet2 size={12} className="text-zinc-400" /> Acompte (1/3)
-              </p>
-              <h3 className="font-bold text-white text-lg font-mono">
-                {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-              </h3>
-              <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary-custom"
-                  style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
-                ></div>
+          {/* ── WALLET CARDS ────────── */}
+          {wallet && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
+                </p>
+                <h3 className="font-bold text-white text-lg font-mono">
+                  {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                </h3>
+                <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary-custom"
+                    style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                  <span>Consommé</span>
+                  <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
+                </p>
+                <h3 className="font-bold text-white text-lg font-mono">
+                  {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                </h3>
+                <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-red-800"
+                    style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                  <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
+                  <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
-              <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                <Wallet2 size={12} className="text-zinc-400" /> Crédit (2/3)
-              </p>
-              <h3 className="font-bold text-white text-lg font-mono">
-                {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-              </h3>
-              <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-red-800"
-                  style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
-                ></div>
-              </div>
+          {/* ── MATURITIES TABLE ────── */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-sm">Échéancier de Remboursement</h3>
             </div>
-          </div>
-        )}
 
-        {/* ── MATURITIES TABLE ────────── */}
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-2">
-            <Calendar size={16} className="text-zinc-400" />
-            <h3 className="font-bold text-white text-sm">Échéancier de Remboursement</h3>
-          </div>
-
-          <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
-                <thead>
-                  <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
-                    <th className="p-3">N° Cmd</th>
-                    <th className="p-3">Échéance</th>
-                    <th className="p-3">Date</th>
-                    <th className="p-3">Montant</th>
-                    <th className="p-3">Statut</th>
-                    <th className="p-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                  {getClientMaturities().length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="p-6 text-center text-zinc-500 text-xs">
-                        Aucun échéancier actif.
-                      </td>
+            <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
+                      <th className="p-3">N° Cmd</th>
+                      <th className="p-3">Échéance</th>
+                      <th className="p-3">Date</th>
+                      <th className="p-3">Montant</th>
+                      <th className="p-3">Statut</th>
+                      <th className="p-3 text-right">Action</th>
                     </tr>
-                  ) : (
-                    getClientMaturities().map((mat, i) => (
-                      <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
-                        <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
-                        <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
-                        <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
-                        <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')}</td>
-                        <td className="p-3">
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                            mat.paid ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400 border border-red-900/40'
-                          }`}>
-                            {mat.paid ? 'PAYÉ' : 'IMPAYÉ'}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right">
-                          {!mat.paid && (
-                            <button
-                              onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
-                              disabled={paymentLoading}
-                              className="px-2.5 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
-                            >
-                              Régler
-                            </button>
-                          )}
+                  </thead>
+                  <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                    {getClientMaturities().length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="p-6 text-center text-zinc-500 text-xs">
+                          Aucun échéancier de créance actif.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* ── SPECIAL REQUEST FORM ──── */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <FileText size={16} className="text-zinc-400" />
-            <h3 className="font-bold text-white text-sm">Demande Spéciale (Sur-mesure)</h3>
-          </div>
-
-          {/* Quota */}
-          <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-2">
-            <div className="flex justify-between text-[10px] font-semibold text-zinc-400">
-              <span>Quota (7j)</span>
-              <span className="text-zinc-200">{weeklyQuota} / 30</span>
-            </div>
-            <div className="w-full h-1.5 bg-surface-custom rounded-full overflow-hidden">
-              <div 
-                className={`h-full ${weeklyQuota >= 30 ? 'bg-red-500' : 'bg-primary-custom'}`}
-                style={{ width: `${(weeklyQuota / 30) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-
-          {/* Form */}
-          <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3">
-            {formError && (
-              <div className="p-2.5 rounded bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] flex gap-2">
-                <AlertCircle size={12} className="shrink-0 mt-0.5" /> <p>{formError}</p>
-              </div>
-            )}
-            {formSuccess && (
-              <div className="p-2.5 rounded bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] flex gap-2">
-                <Check size={12} className="shrink-0 mt-0.5" /> <p>{formSuccess}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitSpecialRequest} className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Description</label>
-                <textarea
-                  required
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Table de conférence ovale en noyer..."
-                  rows="3"
-                  className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 placeholder-zinc-700 text-xs focus:outline-none focus:border-primary-custom resize-none"
-                ></textarea>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Quantité</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={formLoading || weeklyQuota >= 30}
-                className="w-full py-2.5 rounded-lg bg-primary-custom hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
-              >
-                <Send size={11} /> Soumettre la demande
-              </button>
-            </form>
-          </div>
-
-          {/* Requests Log */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-zinc-400 text-[10px] uppercase tracking-wider">Suivi des demandes</h4>
-            <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5">
-              {specialRequests.length === 0 ? (
-                <p className="text-zinc-500 text-xs text-center py-5 border border-dashed border-border-custom rounded-lg">Aucune demande spéciale.</p>
-              ) : (
-                specialRequests.map((req) => (
-                  <div key={req.id} className="p-3.5 rounded-lg bg-bg-deepest border border-border-custom text-xs space-y-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <p className="font-medium text-zinc-300 line-clamp-2 leading-relaxed">{req.description}</p>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ${
-                        req.status === 'SUBMITTED' ? 'bg-zinc-800 text-zinc-400' :
-                        req.status === 'QUOTED' ? 'bg-amber-950/40 text-amber-400 border border-amber-900/40' :
-                        req.status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400'
-                      }`}>
-                        {req.status === 'SUBMITTED' && 'EN ATTENTE'}
-                        {req.status === 'QUOTED' && 'DEVIS ÉMIS'}
-                        {req.status === 'APPROVED' && 'APPROUVÉ'}
-                        {req.status === 'REJECTED' && 'REJETÉ'}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-[10px] text-zinc-500 font-semibold uppercase">
-                      <span>Qté: {req.quantity}</span>
-                      <span>{req.estimated_price ? `${Number(req.estimated_price).toLocaleString('fr-FR')} FCFA` : '—'}</span>
-                    </div>
-
-                    {req.status === 'QUOTED' && (
-                      <button
-                        onClick={() => handleApproveQuote(req.id)}
-                        disabled={paymentLoading}
-                        className="w-full py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-[11px] cursor-pointer transition-all"
-                      >
-                        Accepter le Devis
-                      </button>
+                    ) : (
+                      getClientMaturities().map((mat, i) => (
+                        <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
+                          <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
+                          <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
+                          <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
+                          <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')}</td>
+                          <td className="p-3">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              mat.paid ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400 border border-red-900/40'
+                            }`}>
+                              {mat.paid ? 'PAYÉ' : 'IMPAYÉ'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            {!mat.paid && (
+                              <button
+                                onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
+                                disabled={paymentLoading}
+                                className="px-2.5 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
+                              >
+                                Régler
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
                     )}
-                  </div>
-                ))
-              )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* ── SPECIAL REQUEST FORM ── */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <FileText size={16} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-sm">Demande Spéciale (Sur-mesure)</h3>
+            </div>
+
+            {/* Quota */}
+            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-2">
+              <div className="flex justify-between text-[10px] font-semibold text-zinc-400">
+                <span>Quota de Soumission (7j)</span>
+                <span className="text-zinc-200">{weeklyQuota} / 30 articles</span>
+              </div>
+              <div className="w-full h-1.5 bg-surface-custom rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${weeklyQuota >= 30 ? 'bg-red-500' : 'bg-primary-custom'}`}
+                  style={{ width: `${(weeklyQuota / 30) * 100}%` }}
+                ></div>
+              </div>
+              <p className="text-[9px] text-zinc-500">Limite de 30 articles/semaine. Devis sous 48h.</p>
+            </div>
+
+            {/* Form */}
+            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3">
+              {formError && (
+                <div className="p-2.5 rounded bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] flex gap-2">
+                  <AlertCircle size={12} className="shrink-0 mt-0.5" /> <p>{formError}</p>
+                </div>
+              )}
+              {formSuccess && (
+                <div className="p-2.5 rounded bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] flex gap-2">
+                  <Check size={12} className="shrink-0 mt-0.5" /> <p>{formSuccess}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitSpecialRequest} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Description Technique</label>
+                  <textarea
+                    required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Ex: Table de conférence ovale en noyer 4m x 1.5m..."
+                    rows="3"
+                    className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 placeholder-zinc-700 text-xs focus:outline-none focus:border-primary-custom resize-none"
+                  ></textarea>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Quantité</label>
+                  <input
+                    type="number" min="1" required
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={formLoading || weeklyQuota >= 30}
+                  className="w-full py-2.5 rounded-lg bg-primary-custom hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
+                >
+                  <Send size={11} /> Soumettre la demande
+                </button>
+              </form>
+            </div>
+
+            {/* Requests Log */}
+            <div className="space-y-3">
+              <h4 className="font-bold text-zinc-400 text-[10px] uppercase tracking-wider">Suivi des demandes</h4>
+              <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5">
+                {specialRequests.length === 0 ? (
+                  <p className="text-zinc-500 text-xs text-center py-5 border border-dashed border-border-custom rounded-lg">Aucune demande spéciale.</p>
+                ) : (
+                  specialRequests.map((req) => (
+                    <div key={req.id} className="p-3.5 rounded-lg bg-bg-deepest border border-border-custom text-xs space-y-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="font-medium text-zinc-300 line-clamp-2 leading-relaxed">{req.description}</p>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ${
+                          req.status === 'SUBMITTED' ? 'bg-zinc-800 text-zinc-400' :
+                          req.status === 'QUOTED' ? 'bg-amber-950/40 text-amber-400 border border-amber-900/40' :
+                          req.status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400'
+                        }`}>
+                          {req.status === 'SUBMITTED' && 'EN ATTENTE'}
+                          {req.status === 'QUOTED' && 'DEVIS ÉMIS'}
+                          {req.status === 'APPROVED' && 'APPROUVÉ'}
+                          {req.status === 'REJECTED' && 'REJETÉ'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] text-zinc-500 font-semibold uppercase">
+                        <span>Qté: {req.quantity}</span>
+                        <span>{req.estimated_price ? `${Number(req.estimated_price).toLocaleString('fr-FR')} FCFA` : '—'}</span>
+                      </div>
+                      {req.status === 'QUOTED' && (
+                        <button
+                          onClick={() => handleApproveQuote(req.id)}
+                          disabled={paymentLoading}
+                          className="w-full py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-[11px] cursor-pointer transition-all"
+                        >
+                          Accepter le Devis
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
 
         </div>
-
       </div>
 
       {/* ── WhatsApp FAB ──────────── */}
