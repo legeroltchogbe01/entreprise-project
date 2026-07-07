@@ -25,7 +25,6 @@ function Register() {
     
     // Gérant
     manager_name: '',
-    manager_rccm: '',
     manager_ifu: '',
     manager_phone: '',
     manager_email: '',
@@ -36,7 +35,6 @@ function Register() {
 
     // Avaliseur
     guarantor_name: '',
-    guarantor_rccm: '',
     guarantor_ifu: '',
     guarantor_phone: '',
     guarantor_email: '',
