@@ -329,7 +329,7 @@ function DashboardAdmin() {
 
       {/* STATS OVERVIEW CARDS */}
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Card: Total Companies */}
           <div className="p-5 rounded-lg bg-bg-deepest border border-border-custom flex items-center justify-between">
             <div className="space-y-1">

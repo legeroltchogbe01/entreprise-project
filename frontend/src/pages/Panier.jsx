@@ -212,6 +212,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   const [orderError,   setOrderError]   = useState('');
   const [zoomedImage,  setZoomedImage]  = useState(null);
   const [expandedDesc, setExpandedDesc] = useState({});
+  const [showConditions, setShowConditions] = useState(false);
 
   const activatedAt  = wallet?.activated_at || null;
   const remaining    = calcRemainingMonths(activatedAt);
@@ -298,7 +299,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
           <div className="space-y-5">
 
             {/* ── Payment Mode Tabs ── */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {TABS.map(tab => {
                 const active = paymentMode === tab.id;
                 return (
@@ -386,9 +387,9 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
                       </div>
 
                       {/* Image + payment breakdown */}
-                      <div className="flex gap-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
                         {/* Thumbnail */}
-                        <div className="relative shrink-0 w-[130px] h-[110px] rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 img-zoom">
+                        <div className="relative shrink-0 w-full sm:w-[130px] h-40 sm:h-[110px] rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 img-zoom">
                           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                           <button onClick={() => setZoomedImage(item.image_url)} className="icon-btn absolute top-1 right-1 w-6 h-6 rounded bg-black/60 text-white flex items-center justify-center cursor-pointer">
                             <Maximize2 size={11} />
@@ -451,7 +452,10 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
               <SidebarSummary paymentMode={paymentMode} total={rawTotal} activatedAt={activatedAt} />
 
               {/* Conditions button */}
-              <button className="btn-ghost w-full py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer">
+              <button 
+                onClick={() => setShowConditions(true)}
+                className="btn-ghost w-full py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+              >
                 <span className="w-2 h-2 rounded-full bg-zinc-400" /> Conditions
               </button>
 
@@ -530,6 +534,93 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
           <div className="modal-scale relative max-w-3xl w-full rounded-2xl overflow-hidden">
             <img src={zoomedImage} alt="zoom" className="w-full h-auto rounded-2xl" />
             <button onClick={() => setZoomedImage(null)} className="icon-btn absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center cursor-pointer"><X size={18} /></button>
+          </div>
+        </div>
+      )}
+
+      {/* Conditions modal */}
+      {showConditions && (
+        <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm" onClick={() => setShowConditions(false)}>
+          <div 
+            className="modal-scale relative max-w-2xl w-full rounded-2xl border border-zinc-800 bg-[#111111] p-6 text-zinc-300 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <h2 className="text-lg font-black text-white flex items-center gap-2">
+                <Info className="text-red-500" size={20} /> Conditions de Versement
+              </h2>
+              <button 
+                onClick={() => setShowConditions(false)} 
+                className="icon-btn w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-4 text-xs leading-relaxed">
+              <p className="font-semibold text-zinc-200">
+                La validation de votre commande sur la plateforme GMD Créance est régie par les clauses contractuelles suivantes de Galassy Meuble Décor :
+              </p>
+
+              <div className="space-y-3">
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">1. Règle de Financement Hybride (1/3 - 2/3)</h4>
+                  <p>
+                    Toute commande validée sur le catalogue est obligatoirement ventilée selon un ratio fixe :
+                  </p>
+                  <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-zinc-400">
+                    <li><strong>1/3 du montant</strong> est automatiquement imputé et débité de votre <strong>Acompte de Démarrage</strong>.</li>
+                    <li><strong>2/3 du montant</strong> sont imputés sur votre <strong>Ligne de Crédit</strong> et font l'objet d'un échéancier de remboursement mensuel.</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">2. Échéances de Remboursement et Cycle de Crédit</h4>
+                  <p>
+                    Les fonds prélevés sur la ligne de crédit sont amortis de façon linéaire sur la <strong>durée résiduelle</strong> du cycle contractuel de <strong>12 mois</strong> (calculé à partir de la date d'activation initiale du portefeuille).
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">3. Le Garde-fou des 8 mois</h4>
+                  <p>
+                    Dès le début du 5ème mois suivant l'activation du portefeuille (soit lorsqu'il reste <strong>moins de 8 mois</strong> avant l'expiration du cycle annuel de 12 mois), le tunnel d'achat est <strong>systématiquement bloqué</strong> pour toute nouvelle commande. L'entreprise doit régulariser et solder ses échéances en cours.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">4. Pénalités de Retard et Réquisition</h4>
+                  <p>
+                    Tout retard de paiement de vos mensualités entraîne des frais de pénalité de <strong>5 % journaliers</strong>. En cas de non-respect de l'accord initial persistant au-delà du 5e jour de retard, la rupture officielle du contrat sans recours est prononcée, entraînant la réquisition immédiate des meubles livrés.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 text-zinc-400 text-[10px]">
+                En cliquant sur "J'accepte et je ferme" ou en cochant la case d'acceptation, vous reconnaissez avoir pris connaissance de ces dispositions et vous engagez à les respecter conformément à l'accord initial de conformité B2B.
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
+              <button 
+                onClick={() => setShowConditions(false)} 
+                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Fermer
+              </button>
+              <button 
+                onClick={() => {
+                  setAccepted(true);
+                  setShowConditions(false);
+                }} 
+                className="px-5 py-2 rounded-xl bg-[#cc0000] hover:bg-[#e60000] text-white text-xs font-bold shadow-lg shadow-red-950/40 cursor-pointer transition-colors"
+              >
+                J'accepte et je ferme
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -474,7 +474,7 @@ function Register() {
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
                   <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
                     <input type="file" name="manager_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                    <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.manager_cip_pdf ? files.manager_cip_pdf.name : 'Sélectionner PDF'}</span>
+                    <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.manager_cip_pdf ? files.manager_cip_pdf.name : 'Sélectionner PDF'}</span>
                   </label>
               </div>
               <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
@@ -603,7 +603,7 @@ function Register() {
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
                   <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
                     <input type="file" name="guarantor_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                    <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.guarantor_cip_pdf ? files.guarantor_cip_pdf.name : 'Sélectionner PDF'}</span>
+                    <span className="flex items-center justify-center gap-1.5 break-all"><Upload size={14} /> {files.guarantor_cip_pdf ? files.guarantor_cip_pdf.name : 'Sélectionner PDF'}</span>
                   </label>
               </div>
               <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
@@ -665,7 +665,7 @@ function Register() {
         {/* KYC Video Modal */}
         {showKYCModal && (
           <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-[110] backdrop-blur-md">
-            <div className="modal-scale w-full max-w-md bg-[#0f0f11] border border-zinc-900 rounded-2xl p-6 shadow-2xl relative text-center space-y-4">
+            <div className="modal-scale w-full max-w-md bg-[#0f0f11] border border-zinc-900 rounded-2xl p-4 sm:p-6 shadow-2xl relative text-center space-y-4">
               
               {/* Header */}
               <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
@@ -690,7 +690,7 @@ function Register() {
               </div>
 
               {/* Camera Preview */}
-              <div className="relative w-full aspect-square rounded-full overflow-hidden bg-black border-4 border-zinc-800 mx-auto max-w-[250px] shadow-inner flex items-center justify-center">
+              <div className="relative w-full aspect-square rounded-full overflow-hidden bg-black border-4 border-zinc-800 mx-auto max-w-[200px] sm:max-w-[250px] shadow-inner flex items-center justify-center">
                 <video 
                   ref={kycVideoRef}
                   autoPlay 
