@@ -489,32 +489,7 @@ function Register() {
               </div>
             </div>
             
-            <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-6">Pièces Justificatives (Avaliseur)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
-                  <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
-                    <input type="file" required name="guarantor_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
-                    <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.guarantor_cip_pdf ? files.guarantor_cip_pdf.name : 'Sélectionner PDF'}</span>
-                  </label>
-              </div>
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
-                  <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Vérification Vidéo (KYC) *</label>
-                  {files.guarantor_selfie ? (
-                    <div className="w-full flex items-center justify-center gap-2 border border-green-900 bg-green-950/20 text-green-400 rounded px-3 py-2 text-xs font-semibold">
-                      <CheckCircle size={14} /> KYC Validée
-                    </div>
-                  ) : (
-                    <button 
-                      type="button" 
-                      onClick={() => startKYC('guarantor')}
-                      className="w-full flex items-center justify-center gap-2 border border-primary-custom bg-primary-custom/10 hover:bg-primary-custom/20 text-red-400 rounded px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      <Video size={14} /> Démarrer KYC
-                    </button>
-                  )}
-              </div>
-            </div>
+
             <div className="flex justify-between pt-6">
               <button 
                 type="button" onClick={handlePrev}
