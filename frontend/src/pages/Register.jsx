@@ -251,10 +251,10 @@ function Register() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-6 py-12 bg-bg-main relative">
+    <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-12 bg-bg-main relative">
       <div className="absolute w-[400px] h-[400px] rounded-full bg-primary-custom/5 blur-[120px] top-1/4 left-1/4"></div>
 
-      <div className="w-full max-w-3xl glass-panel p-8 rounded-lg border border-border-custom relative z-10">
+      <div className="w-full max-w-3xl glass-panel p-4 sm:p-8 rounded-lg border border-border-custom relative z-10">
         
         {/* Step Indicator */}
         {step < 5 && (
@@ -337,7 +337,7 @@ function Register() {
             </div>
 
             <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-2">Adresse Géographique Entreprise</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
@@ -432,7 +432,7 @@ function Register() {
             </div>
 
             <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-2">Adresse Géographique Gérant</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
@@ -533,7 +533,7 @@ function Register() {
             </div>
 
             <h4 className="text-sm font-bold text-zinc-300 tracking-wide border-b border-zinc-800 pb-2 pt-2">Adresse Géographique Avaliseur</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 

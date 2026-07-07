@@ -231,3 +231,17 @@ input[type="range"] {
   0%, 100% { top: 0%; }
   50% { top: 100%; }
 }
+
+/* --- MOBILE & MOBILE-ZOOM OPTIMIZATIONS --- */
+@media (max-width: 640px) {
+  /* Prevent iOS automatic input zoom-in that shifts the page layout */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Optimize glass-panel padding for mobile screens */
+  .glass-panel {
+    padding: 1.25rem !important; /* equivalent to p-5 */
+    border-radius: 0.75rem !important;
+  }
+}
