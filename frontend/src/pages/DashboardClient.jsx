@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardClient({ user }) {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const activeTab = searchParams.get('tab') || 'profil';
+
   const [wallet, setWallet] = useState(null);
   const [orders, setOrders] = useState([]);
   const [specialRequests, setSpecialRequests] = useState([]);
@@ -186,6 +191,7 @@ function DashboardClient({ user }) {
           </button>
         </div>
 
+        
         {error && (
           <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 text-red-300 text-xs flex gap-2">
             <AlertCircle className="shrink-0" size={16} />
@@ -193,7 +199,86 @@ function DashboardClient({ user }) {
           </div>
         )}
 
-        {/* ── PAYMENT CARD ──────────── */}
+        {/* ── ONGLET PROFIL ── */}
+        {activeTab === 'profil' && (
+          <div className="space-y-6">
+            {/* ── COMPANY AVATAR + TOTAL REMAINING ── */}
+        <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom text-center space-y-4">
+          <div className="w-20 h-20 mx-auto rounded-full bg-surface-custom border-2 border-border-custom flex items-center justify-center">
+            <Building2 size={36} className="text-zinc-500" />
+          </div>
+          <h3 className="text-sm font-bold text-white">{c.denomination_sociale}</h3>
+          <div className="space-y-1.5">
+            <div className="w-full h-2 bg-surface-custom rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary-custom transition-all duration-500"
+                style={{ width: wallet && Number(wallet.credit_initial) > 0 ? `${(Number(wallet.credit_utilise) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
+              ></div>
+            </div>
+            {/* ── IDENTITY SECTION : ENTREPRISE ── */}
+        <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
+          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Briefcase size={13} /> Identité Entreprise
+          </h3>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Dénomination Sociale</label>
+              <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
+                {c.denomination_sociale}
+              </div>
+            </div>
+            {/* ── IDENTITY SECTION : GÉRANT ── */}
+        <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
+          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <User size={13} /> Gérant Responsable
+          </h3>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Nom et Prénom</label>
+              <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
+                {c.manager_name}
+              </div>
+            </div>
+            {/* ── CONTACT & ACTION BUTTONS ── */}
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href={`tel:${c.phone || '+22997000000'}`}
+            className="py-3 rounded-lg bg-emerald-950/30 border border-emerald-900/40 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-emerald-950/50 transition-all"
+          >
+            <Phone size={13} /> Nous appeler
+          </a>
+          <a
+            href="mailto:contact@gmd-creance.com"
+            className="py-3 rounded-lg bg-surface-custom border border-border-custom text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-zinc-800 transition-all"
+          >
+            <Mail size={13} /> Nous contacter
+          </a>
+        </div>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem('gmd_user');
+            window.location.href = '/login';
+          }}
+          className="w-full py-3 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-red-950/50 transition-all"
+        >
+          <LogOut size={14} /> Déconnexion
+        </button>
+
+        <div className="text-center pb-2">
+          <a href="#" className="text-xs text-blue-400 underline hover:text-blue-300 transition-colors">
+            Mot de passe oublié
+          </a>
+        </div>
+          </div>
+        )}
+
+        {/* ── ONGLET CREANCES ── */}
+        {activeTab === 'creances' && (
+          <div className="space-y-6">
+            {/* ── PAYMENT CARD ──────────── */}
         <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -283,102 +368,7 @@ function DashboardClient({ user }) {
                 </div>
               </div>
             </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Ville</label>
-              <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                {c.city}
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Adresse</label>
-              <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                {c.district}, {c.house} — Carré {c.square}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── IDENTITY SECTION : GÉRANT ── */}
-        <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-            <User size={13} /> Gérant Responsable
-          </h3>
-
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Nom et Prénom</label>
-              <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                {c.manager_name}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Téléphone</label>
-                <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
-                  {c.manager_phone}
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email</label>
-                <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
-                  {c.manager_email}
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Statut KYC</label>
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 ${
-                  c.kyc_status === 'APPROVED'
-                    ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/50'
-                    : c.kyc_status === 'REJECTED'
-                    ? 'bg-red-950/40 text-red-400 border border-red-900/50'
-                    : 'bg-amber-950/40 text-amber-400 border border-amber-900/50'
-                }`}>
-                  <ShieldCheck size={13} />
-                  {c.kyc_status === 'APPROVED' ? 'Conformité KYC Approuvée' : c.kyc_status === 'REJECTED' ? 'KYC Rejeté' : 'KYC en Attente d\'Audit'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── CONTACT & ACTION BUTTONS ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href={`tel:${c.phone || '+22997000000'}`}
-            className="py-3 rounded-lg bg-emerald-950/30 border border-emerald-900/40 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-emerald-950/50 transition-all"
-          >
-            <Phone size={13} /> Nous appeler
-          </a>
-          <a
-            href="mailto:contact@gmd-creance.com"
-            className="py-3 rounded-lg bg-surface-custom border border-border-custom text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-zinc-800 transition-all"
-          >
-            <Mail size={13} /> Nous contacter
-          </a>
-        </div>
-
-        <button
-          onClick={() => {
-            localStorage.removeItem('gmd_user');
-            window.location.href = '/login';
-          }}
-          className="w-full py-3 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-red-950/50 transition-all"
-        >
-          <LogOut size={14} /> Déconnexion
-        </button>
-
-        <div className="text-center pb-2">
-          <a href="#" className="text-xs text-blue-400 underline hover:text-blue-300 transition-colors">
-            Mot de passe oublié
-          </a>
-        </div>
-
-        {/* ═══════════════════════════════════════════ */}
-        {/* SECTION FINANCIÈRE (sous le profil)        */}
-        {/* ═══════════════════════════════════════════ */}
-        <div className="border-t border-border-custom pt-6 space-y-6">
+            
 
           {/* ── WALLET CARDS ────────── */}
           {wallet && (
@@ -592,12 +582,89 @@ function DashboardClient({ user }) {
                 )}
               </div>
             </div>
+          
           </div>
+        )}
 
-        </div>
+        {/* ── ONGLET PAIEMENTS ── */}
+        {activeTab === 'paiements' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-sm">Historique des paiements</h3>
+            </div>
+            <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
+                      <th className="p-3">N° Cmd</th>
+                      <th className="p-3">Échéance</th>
+                      <th className="p-3">Date de paiement</th>
+                      <th className="p-3">Montant</th>
+                      <th className="p-3">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                    {getClientMaturities().filter(m => m.paid).length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="p-6 text-center text-zinc-500 text-xs">
+                          Aucun paiement effectué.
+                        </td>
+                      </tr>
+                    ) : (
+                      getClientMaturities().filter(m => m.paid).map((mat, i) => (
+                        <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
+                          <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
+                          <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
+                          <td className="p-3 text-[10px]">{mat.paid_at ? new Date(mat.paid_at).toLocaleDateString('fr-FR') : '-'}</td>
+                          <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')} FCFA</td>
+                          <td className="p-3">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40">PAYÉ</span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── ONGLET LIVRAISONS ── */}
+        {activeTab === 'livraisons' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <Package size={16} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-sm">Mes commandes</h3>
+            </div>
+            <div className="space-y-3">
+              {orders.length === 0 ? (
+                <div className="p-6 rounded-xl bg-bg-deepest border border-border-custom text-center text-zinc-500 text-xs">
+                  Aucune commande.
+                </div>
+              ) : (
+                orders.map(order => (
+                  <div key={order.id} className="p-4 rounded-xl bg-bg-deepest border border-border-custom flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-white text-sm font-mono">{order.order_number}</p>
+                      <p className="text-xs text-zinc-400">{new Date(order.created_at).toLocaleDateString('fr-FR')}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-white text-sm font-mono">{Number(order.total_amount).toLocaleString('fr-FR')} FCFA</p>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40">EN COURS</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── WhatsApp FAB ──────────── */}
+
       <a
         href="https://wa.me/22997000000"
         target="_blank"

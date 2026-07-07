@@ -21,6 +21,9 @@ function AppLayout({ user, setUser, cart, setCart }) {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
+  const searchParams = new URLSearchParams(location.search);
+  const activeTab = searchParams.get('tab') || 'profil';
+  
   const [forceShowProducts, setForceShowProducts] = useState(false);
   const [wallet, setWallet] = useState(null);
 
@@ -127,8 +130,8 @@ function AppLayout({ user, setUser, cart, setCart }) {
             {/* Profil */}
             {user ? (
               <Link
-                to={user.role === 'ADMIN' ? '/admin' : '/dashboard'}
-                className={tabClass(path === '/admin' || path === '/dashboard') + ' shrink-0'}
+                to={user.role === 'ADMIN' ? '/admin' : '/dashboard?tab=profil'}
+                className={tabClass(path === '/admin' || (path === '/dashboard' && activeTab === 'profil')) + ' shrink-0'}
               >
                 Profil
               </Link>
@@ -144,15 +147,18 @@ function AppLayout({ user, setUser, cart, setCart }) {
             {/* Tabs Client connecté */}
             {user?.role === 'CLIENT' && (
               <>
-                {['Créances', 'Paiements', 'Livraisons'].map(tab => (
-                  <Link
-                    key={tab}
-                    to="/dashboard"
-                    className={tabClass(false) + ' shrink-0'}
-                  >
-                    {tab}
-                  </Link>
-                ))}
+                {['Créances', 'Paiements', 'Livraisons'].map(tab => {
+                  const tabId = tab.toLowerCase().replace('é', 'e');
+                  return (
+                    <Link
+                      key={tab}
+                      to={`/dashboard?tab=${tabId}`}
+                      className={tabClass(path === '/dashboard' && activeTab === tabId) + ' shrink-0'}
+                    >
+                      {tab}
+                    </Link>
+                  );
+                })}
               </>
             )}
           </div>
