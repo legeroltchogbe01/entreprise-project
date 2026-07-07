@@ -1,5 +1,5 @@
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -37,7 +37,7 @@ model Company {
   district              String
   house                 String
   square                String
-  
+
   // Gérant
   manager_name          String
   manager_rccm          String?
@@ -48,9 +48,9 @@ model Company {
   manager_district      String
   manager_house         String
   manager_square        String
-  manager_cip_pdf       String           // Path to CIP PDF
-  manager_selfie        String           // Path to Selfie image
-  
+  manager_cip_pdf       String
+  manager_selfie        String
+
   // Avaliseur / Garant
   guarantor_name        String
   guarantor_rccm        String?
@@ -61,9 +61,9 @@ model Company {
   guarantor_district    String
   guarantor_house       String
   guarantor_square      String
-  guarantor_cip_pdf     String           // Path to CIP PDF
-  guarantor_selfie      String           // Path to Selfie image
-  
+  guarantor_cip_pdf     String
+  guarantor_selfie      String
+
   kyc_status            KYCStatus        @default(PENDING)
   created_at            DateTime         @default(now())
   wallet                Wallet?
@@ -85,7 +85,7 @@ model Wallet {
 model Product {
   id          String      @id @default(uuid())
   name        String
-  description String      @db.Text
+  description String
   price       Decimal     @db.Decimal(15, 2)
   image_url   String
   created_at  DateTime    @default(now())
@@ -98,7 +98,7 @@ model Order {
   company          Company     @relation(fields: [company_id], references: [id], onDelete: Cascade)
   order_number     String      @unique
   total_amount     Decimal     @db.Decimal(15, 2)
-  payment_schedule Json        // JSON list of installments
+  payment_schedule Json
   status           OrderStatus @default(PENDING)
   created_at       DateTime    @default(now())
   order_items      OrderItem[]
@@ -118,7 +118,7 @@ model SpecialRequest {
   id              String        @id @default(uuid())
   company_id      String
   company         Company       @relation(fields: [company_id], references: [id], onDelete: Cascade)
-  description     String        @db.Text
+  description     String
   quantity        Int
   estimated_price Decimal?      @db.Decimal(15, 2)
   status          RequestStatus @default(SUBMITTED)
