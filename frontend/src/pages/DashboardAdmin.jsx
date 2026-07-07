@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent } from 'lucide-react';
+import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardAdmin() {
@@ -16,6 +16,11 @@ function DashboardAdmin() {
 
   // Status management Loading
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Company Backup / Directory States
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [companySearch, setCompanySearch] = useState('');
+
 
   useEffect(() => {
     fetchAdminData();
@@ -448,8 +453,280 @@ function DashboardAdmin() {
               </tbody>
             </table>
           </div>
+          </div>
         </div>
       </div>
+
+      {/* DIRECTORY & BACKUP PANEL */}
+      <div className="space-y-4 pt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Users size={18} className="text-zinc-400" />
+            <h3 className="font-bold text-white text-lg">Annuaire & Sauvegarde des Dossiers Entreprises</h3>
+          </div>
+          <input
+            type="text"
+            placeholder="Rechercher une entreprise..."
+            value={companySearch}
+            onChange={(e) => setCompanySearch(e.target.value)}
+            className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-105 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+          />
+        </div>
+
+        <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
+                  <th className="p-4">Dénomination</th>
+                  <th className="p-4">Email</th>
+                  <th className="p-4">Téléphone</th>
+                  <th className="p-4">Statut KYC</th>
+                  <th className="p-4">Date d'inscription</th>
+                  <th className="p-4 text-center">Sauvegarde des Infos</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                {companies.filter(c => 
+                  c.denomination_sociale.toLowerCase().includes(companySearch.toLowerCase()) ||
+                  c.email.toLowerCase().includes(companySearch.toLowerCase())
+                ).length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="p-8 text-center text-zinc-500">
+                      Aucune entreprise trouvée.
+                    </td>
+                  </tr>
+                ) : (
+                  companies.filter(c => 
+                    c.denomination_sociale.toLowerCase().includes(companySearch.toLowerCase()) ||
+                    c.email.toLowerCase().includes(companySearch.toLowerCase())
+                  ).map((c) => (
+                    <tr key={c.id} className="hover:bg-surface-custom/20 transition-colors">
+                      <td className="p-4 font-semibold text-white">{c.denomination_sociale}</td>
+                      <td className="p-4 font-mono text-zinc-400">{c.email}</td>
+                      <td className="p-4">{c.phone}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          c.kyc_status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' :
+                          c.kyc_status === 'REJECTED' ? 'bg-red-950/40 text-red-400 border border-red-900/40' :
+                          'bg-amber-950/40 text-amber-400 border border-amber-900/40'
+                        }`}>
+                          {c.kyc_status === 'APPROVED' ? 'APPROUVÉ' : c.kyc_status === 'REJECTED' ? 'REJETÉ' : 'EN ATTENTE'}
+                        </span>
+                      </td>
+                      <td className="p-4">{new Date(c.created_at).toLocaleDateString('fr-FR')}</td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => setSelectedCompany(c)}
+                          className="px-2.5 py-1 rounded bg-surface-custom border border-border-custom hover:bg-zinc-800 text-[10px] text-zinc-300 font-semibold cursor-pointer"
+                        >
+                          📄 Consulter les Infos
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* COMPANY DETAIL & BACKUP MODAL */}
+      {selectedCompany && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm overflow-y-auto">
+          <div className="modal-scale w-full max-w-4xl bg-[#0f0f11] border border-zinc-900 rounded-2xl p-6 sm:p-8 shadow-2xl relative my-8">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 border-b border-zinc-900 pb-4">
+              <div>
+                <h3 className="font-bold text-white text-lg uppercase tracking-wider">
+                  Sauvegarde Dossier : {selectedCompany.denomination_sociale}
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1 font-mono">ID unique : {selectedCompany.id}</p>
+              </div>
+              <button 
+                onClick={() => setSelectedCompany(null)}
+                className="icon-btn w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-h-[50vh] overflow-y-auto pr-1">
+              
+              {/* Col 1: Entreprise Info */}
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
+                <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                  01. Informations Entreprise
+                </h4>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="text-zinc-500 block">Dénomination sociale</span>
+                    <span className="text-white font-medium">{selectedCompany.denomination_sociale}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">N° RCCM</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.rccm_number}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">N° IFU</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.ifu_number}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Téléphone</span>
+                    <span className="text-zinc-300">{selectedCompany.phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Email officiel</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.email}</span>
+                  </div>
+                  <div className="pt-2 border-t border-zinc-900 space-y-1">
+                    <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
+                    <p className="text-zinc-300">
+                      {selectedCompany.house}, Carré {selectedCompany.square}<br />
+                      Quartier {selectedCompany.district}<br />
+                      {selectedCompany.city}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Col 2: Gérant Info */}
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
+                <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                  02. Informations du Gérant
+                </h4>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="text-zinc-500 block">Nom et Prénom</span>
+                    <span className="text-white font-medium">{selectedCompany.manager_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">N° RCCM (si applicable)</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.manager_rccm || 'Non renseigné'}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">N° IFU</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.manager_ifu}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Téléphone</span>
+                    <span className="text-zinc-300">{selectedCompany.manager_phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Email</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.manager_email}</span>
+                  </div>
+                  <div className="pt-2 border-t border-zinc-900 space-y-1">
+                    <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
+                    <p className="text-zinc-300">
+                      {selectedCompany.manager_house}, Carré {selectedCompany.manager_square}<br />
+                      Quartier {selectedCompany.manager_district}<br />
+                      {selectedCompany.manager_city}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Col 3: Garant Info */}
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
+                <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                  03. Informations de l'Avaliseur
+                </h4>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <span className="text-zinc-500 block">Nom et Prénom</span>
+                    <span className="text-white font-medium">{selectedCompany.guarantor_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">N° RCCM (si applicable)</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_rccm || 'Non renseigné'}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">N° IFU</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_ifu}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block">Téléphone</span>
+                    <span className="text-zinc-300">{selectedCompany.guarantor_phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-550 block">Email</span>
+                    <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_email}</span>
+                  </div>
+                  <div className="pt-2 border-t border-zinc-900 space-y-1">
+                    <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
+                    <p className="text-zinc-300">
+                      {selectedCompany.guarantor_house}, Carré {selectedCompany.guarantor_square}<br />
+                      Quartier {selectedCompany.guarantor_district}<br />
+                      {selectedCompany.guarantor_city}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Documents Section at bottom of modal */}
+            <div className="mt-6 p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3">
+              <h4 className="font-bold text-xs text-zinc-400 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                Pièces Justificatives (Téléchargement et consultation)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <a 
+                  href={`${API_URL}/uploads/${selectedCompany.manager_cip_pdf}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                >
+                  <span className="text-lg">📄</span>
+                  <span className="font-semibold mt-1">CIP Gérant (PDF)</span>
+                </a>
+                <a 
+                  href={`${API_URL}/uploads/${selectedCompany.manager_selfie}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                >
+                  <span className="text-lg">📹</span>
+                  <span className="font-semibold mt-1">Selfie Vidéo Gérant</span>
+                </a>
+                <a 
+                  href={`${API_URL}/uploads/${selectedCompany.guarantor_cip_pdf}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                >
+                  <span className="text-lg">📄</span>
+                  <span className="font-semibold mt-1">CIP Garant (PDF)</span>
+                </a>
+                <a 
+                  href={`${API_URL}/uploads/${selectedCompany.guarantor_selfie}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                >
+                  <span className="text-lg">📹</span>
+                  <span className="font-semibold mt-1">Selfie Vidéo Garant</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end mt-6 border-t border-zinc-900 pt-4">
+              <button 
+                onClick={() => setSelectedCompany(null)}
+                className="px-5 py-2 rounded bg-surface-custom hover:bg-zinc-800 text-white text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
