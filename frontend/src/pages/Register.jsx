@@ -170,7 +170,7 @@ function Register() {
 
   const isLettersOnly = (val) => /^[A-Za-zÀ-ÿ\s'-]+$/.test(val.trim());
   const isDigitsOnly = (val) => /^\d+$/.test(val.trim());
-  const isValidPhone = (val) => /^\+?\d[\d\s]*$/.test(val.trim());
+  const isValidPhone = (val) => /^\d{10}$/.test(val.trim());
   const isValidEmail = (val) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val.trim().toLowerCase());
   const isValidRCCM = (val) => /^[A-Za-z0-9-]+$/.test(val.trim());
   const isAlphanumeric = (val) => /^[A-Za-z0-9À-ÿ\s'-]+$/.test(val.trim());
@@ -410,10 +410,10 @@ function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Téléphone Officiel *</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Téléphone Officiel * (10 chiffres)</label>
                 <input 
                   type="text" required name="phone" value={formData.phone} onChange={handleInputChange}
-                  placeholder="+229 97 00 00 00"
+                  placeholder="Ex: 0197000000" maxLength={10}
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
@@ -517,10 +517,10 @@ function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Téléphone *</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Téléphone * (10 chiffres)</label>
                 <input 
                   type="text" required name="manager_phone" value={formData.manager_phone} onChange={handleInputChange}
-                  placeholder="+229 97 12 34 56"
+                  placeholder="Ex: 0197123456" maxLength={10}
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>
@@ -639,10 +639,10 @@ function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Téléphone *</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Téléphone * (10 chiffres)</label>
                 <input 
                   type="text" required name="guarantor_phone" value={formData.guarantor_phone} onChange={handleInputChange}
-                  placeholder="+229 97 99 99 99"
+                  placeholder="Ex: 0197999999" maxLength={10}
                   className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
                 />
               </div>

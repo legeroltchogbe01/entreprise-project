@@ -59,7 +59,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
     }`;
 
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: '#09090b' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#09090b' }}>
 
       {/* ── HEADER ─────────────────────────────────────────── */}
       <header className="w-full bg-black/50 border-b border-zinc-900/60 px-4 sm:px-8 py-3 sticky top-0 z-50 backdrop-blur-sm">
@@ -179,7 +179,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
       </header>
 
       {/* ── MAIN CONTENT ─────────────────────────────────── */}
-      <main className="flex-1 flex flex-col overflow-x-hidden">
+      <main className="flex-1 flex flex-col">
         <Routes>
           <Route
             path="/"

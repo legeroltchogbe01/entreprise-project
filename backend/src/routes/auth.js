@@ -141,6 +141,21 @@ router.post('/register', uploadFields, async (req, res) => {
       return res.status(400).json({ error: "Le numéro RCCM de l'entreprise doit contenir entre 12 et 15 caractères." });
     }
 
+    // Phone Number Validations (Benin phone numbers are exactly 10 digits)
+    const cleanPhone = phone.trim().replace(/\s/g, '');
+    const cleanManagerPhone = manager_phone.trim().replace(/\s/g, '');
+    const cleanGuarantorPhone = guarantor_phone.trim().replace(/\s/g, '');
+
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      return res.status(400).json({ error: "Le numéro de téléphone officiel de l'entreprise doit contenir exactement 10 chiffres." });
+    }
+    if (!/^\d{10}$/.test(cleanManagerPhone)) {
+      return res.status(400).json({ error: "Le numéro de téléphone du gérant doit contenir exactement 10 chiffres." });
+    }
+    if (!/^\d{10}$/.test(cleanGuarantorPhone)) {
+      return res.status(400).json({ error: "Le numéro de téléphone du garant doit contenir exactement 10 chiffres." });
+    }
+
     // Check if email already exists
     const existing = await prisma.company.findUnique({
       where: { email: normalizedEmail }
