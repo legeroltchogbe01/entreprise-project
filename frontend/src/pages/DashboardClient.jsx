@@ -789,6 +789,178 @@ function DashboardClient({ user }) {
           </div>
         )}
 
+        {/* ── ONGLET DEVIS : DEMANDES SUR-MESURE + PROPOSITIONS ADMIN ── */}
+        {activeTab === 'devis' && (
+          <div className="space-y-6">
+
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-1">
+              <FileText size={16} className="text-amber-400" />
+              <h3 className="font-bold text-white text-sm">Mes Devis & Propositions</h3>
+            </div>
+
+            {/* Quota bar */}
+            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-2">
+              <div className="flex justify-between text-[10px] font-semibold text-zinc-400">
+                <span>Quota de soumission (7 jours)</span>
+                <span className={weeklyQuota >= 30 ? 'text-red-400' : 'text-zinc-200'}>{weeklyQuota} / 30 articles</span>
+              </div>
+              <div className="w-full h-1.5 bg-surface-custom rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all ${weeklyQuota >= 30 ? 'bg-red-500' : 'bg-amber-500'}`}
+                  style={{ width: `${Math.min((weeklyQuota / 30) * 100, 100)}%` }}
+                ></div>
+              </div>
+              <p className="text-[9px] text-zinc-500">Limite de 30 articles/semaine. Réponse sous 48h ouvrées.</p>
+            </div>
+
+            {/* Formulaire nouvelle demande */}
+            <div className="p-5 rounded-xl bg-zinc-950 border border-zinc-800/60 space-y-4 shadow-lg">
+              <div className="flex items-center gap-2 border-b border-zinc-800/50 pb-3">
+                <Send size={14} className="text-amber-400" />
+                <h4 className="font-bold text-white text-xs uppercase tracking-wider">Nouvelle Demande Sur-mesure</h4>
+              </div>
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] flex gap-2">
+                  <AlertCircle size={12} className="shrink-0 mt-0.5" /><p>{formError}</p>
+                </div>
+              )}
+              {formSuccess && (
+                <div className="p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] flex gap-2">
+                  <Check size={12} className="shrink-0 mt-0.5" /><p>{formSuccess}</p>
+                </div>
+              )}
+              <form onSubmit={handleSubmitSpecialRequest} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1.5">Description technique du modèle</label>
+                  <textarea
+                    required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Ex: Table de conférence ovale en noyer massif, 4m × 1.5m, avec passe-câbles intégrés..."
+                    rows="4"
+                    className="w-full px-3 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 placeholder-zinc-700 text-xs focus:outline-none focus:border-amber-600/60 resize-none"
+                  ></textarea>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1.5">Quantité souhaitée</label>
+                  <input
+                    type="number" min="1" required
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-amber-600/60"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={formLoading || weeklyQuota >= 30}
+                  className="w-full py-2.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  <Send size={12} />
+                  {formLoading ? 'Envoi en cours...' : weeklyQuota >= 30 ? 'Quota hebdomadaire atteint' : 'Envoyer la demande'}
+                </button>
+              </form>
+            </div>
+
+            {/* Liste des devis */}
+            <div className="space-y-3">
+              <h4 className="font-bold text-zinc-400 text-[10px] uppercase tracking-wider flex items-center gap-2">
+                <Briefcase size={12} /> Suivi de mes demandes ({specialRequests.length})
+              </h4>
+              {specialRequests.length === 0 ? (
+                <div className="p-8 rounded-xl bg-bg-deepest border border-dashed border-border-custom text-center">
+                  <FileText size={28} className="text-zinc-700 mx-auto mb-3" />
+                  <p className="text-zinc-500 text-xs">Aucune demande de devis pour le moment.</p>
+                  <p className="text-zinc-600 text-[10px] mt-1">Utilisez le formulaire ci-dessus pour soumettre votre première demande.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {specialRequests.map((req) => {
+                    const isQuoted   = req.status === 'QUOTED';
+                    const isApproved = req.status === 'APPROVED';
+                    const isRejected = req.status === 'REJECTED';
+                    const isPending  = req.status === 'SUBMITTED';
+                    return (
+                      <div
+                        key={req.id}
+                        className={`rounded-xl border p-4 space-y-3 transition-all ${
+                          isQuoted   ? 'bg-amber-950/10 border-amber-800/40 shadow-md shadow-amber-950/20' :
+                          isApproved ? 'bg-emerald-950/10 border-emerald-800/40' :
+                          isRejected ? 'bg-red-950/10 border-red-900/30 opacity-70' :
+                                       'bg-bg-deepest border-border-custom'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-3">
+                          <p className="text-xs text-zinc-300 leading-relaxed flex-1">{req.description}</p>
+                          <span className={`px-2.5 py-1 rounded-full text-[9px] font-black shrink-0 uppercase ${
+                            isPending  ? 'bg-zinc-800 text-zinc-400' :
+                            isQuoted   ? 'bg-amber-950/60 text-amber-300 border border-amber-700/50' :
+                            isApproved ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-700/50' :
+                                         'bg-red-950/60 text-red-400 border border-red-800/50'
+                          }`}>
+                            {isPending  && '⏳ En attente'}
+                            {isQuoted   && '📋 Devis reçu'}
+                            {isApproved && '✅ Approuvé'}
+                            {isRejected && '❌ Rejeté'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-[10px] text-zinc-500 font-semibold uppercase">
+                          <span>Quantité: {req.quantity}</span>
+                          <span>Soumis le {new Date(req.created_at).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                        {isQuoted && req.estimated_price && (
+                          <div className="rounded-lg bg-amber-950/20 border border-amber-800/40 p-4 space-y-3">
+                            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">📩 Proposition de Devis GMD</p>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-[10px] text-zinc-500 font-semibold uppercase">Montant proposé</p>
+                                <p className="text-xl font-black text-white font-mono">
+                                  {Number(req.estimated_price).toLocaleString('fr-FR')}
+                                  <span className="text-xs text-zinc-400 ml-1 font-normal">FCFA</span>
+                                </p>
+                              </div>
+                              <div className="text-right text-[9px] text-zinc-500">
+                                <p>Pour {req.quantity} article{req.quantity > 1 ? 's' : ''}</p>
+                                <p className="font-bold text-zinc-400">
+                                  ≈ {(Number(req.estimated_price) / req.quantity).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA/unité
+                                </p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              <button
+                                onClick={() => handleApproveQuote(req.id)}
+                                disabled={paymentLoading}
+                                className="py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
+                              >
+                                <Check size={13} /> Accepter le devis
+                              </button>
+                              <button
+                                disabled
+                                className="py-2.5 rounded-lg bg-zinc-800/60 border border-zinc-700/40 text-zinc-400 font-bold text-xs flex items-center justify-center gap-1.5 opacity-60 cursor-not-allowed"
+                              >
+                                ✕ Refuser
+                              </button>
+                            </div>
+                            <p className="text-[9px] text-zinc-600 text-center">En acceptant, vous confirmez la commande avec paiement échelonné.</p>
+                          </div>
+                        )}
+                        {isApproved && req.estimated_price && (
+                          <div className="rounded-lg bg-emerald-950/20 border border-emerald-800/40 px-4 py-3 flex items-center justify-between">
+                            <span className="text-[10px] text-emerald-400 font-semibold">Commande confirmée</span>
+                            <span className="font-bold text-white font-mono text-sm">
+                              {Number(req.estimated_price).toLocaleString('fr-FR')} FCFA
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ── WhatsApp FAB ──────────── */}
