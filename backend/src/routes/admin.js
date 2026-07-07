@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { checkAndDeactivateAllCompanies } = require('../utils/autoDeactivate');
 const cloudinary = require('cloudinary').v2;
 
 // Helper to delete cloudinary resource if we can extract public_id
@@ -33,6 +34,9 @@ async function tryDeleteCloudinaryResource(fileUrl) {
 // Get all companies (Admin KYC Review & Directory)
 router.get('/companies', async (req, res) => {
   try {
+    // Run batch auto-deactivation checks
+    await checkAndDeactivateAllCompanies();
+
     const companies = await prisma.company.findMany({
       include: { wallet: true },
       orderBy: { created_at: 'desc' }
@@ -48,15 +52,18 @@ router.get('/companies', async (req, res) => {
 router.post('/companies/:id/kyc', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body; // 'APPROVED' or 'REJECTED'
+    const { status } = req.body; // 'APPROVED' or 'REJECTED' or 'DEACTIVATED'
 
-    if (!['APPROVED', 'REJECTED'].includes(status)) {
-      return res.status(400).json({ error: 'Statut KYC invalide. Utilisez "APPROVED" ou "REJECTED".' });
+    if (!['APPROVED', 'REJECTED', 'DEACTIVATED'].includes(status)) {
+      return res.status(400).json({ error: 'Statut KYC invalide. Utilisez "APPROVED", "REJECTED" ou "DEACTIVATED".' });
     }
 
     const company = await prisma.company.update({
       where: { id },
-      data: { kyc_status: status }
+      data: { 
+        kyc_status: status,
+        activated_at: status === 'APPROVED' ? new Date() : undefined
+      }
     });
 
     res.json({

@@ -11,6 +11,7 @@ enum KYCStatus {
   PENDING
   APPROVED
   REJECTED
+  DEACTIVATED
 }
 
 enum OrderStatus {
@@ -69,6 +70,7 @@ model Company {
   guarantor_ifu_pdf     String?
 
   kyc_status            KYCStatus        @default(PENDING)
+  activated_at          DateTime?
   created_at            DateTime         @default(now())
   wallet                Wallet?
   orders                Order[]

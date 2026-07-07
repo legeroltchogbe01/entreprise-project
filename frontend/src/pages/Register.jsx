@@ -356,6 +356,29 @@ function Register() {
     }
   };
 
+  // Validation error flags
+  const errCompanyDenomination = formData.denomination_sociale.trim() !== '' && !isAlphanumeric(formData.denomination_sociale);
+  const errCompanyEmail = formData.email.trim() !== '' && !isValidEmail(formData.email);
+  const errCompanyPhone = formData.phone.trim() !== '' && !isValidPhone(formData.phone);
+  const errCompanyRccm = formData.rccm_number.trim() !== '' && (formData.rccm_number.trim().length < 12 || formData.rccm_number.trim().length > 15);
+  const errCompanyIfu = formData.ifu_number.trim() !== '' && formData.ifu_number.trim().length !== 13;
+  const errCompanyCity = formData.city.trim() !== '' && !isLettersOnly(formData.city);
+  const errCompanyDistrict = formData.district.trim() !== '' && !isLettersOnly(formData.district);
+
+  const errManagerName = formData.manager_name.trim() !== '' && !isLettersOnly(formData.manager_name);
+  const errManagerIfu = formData.manager_ifu.trim() !== '' && formData.manager_ifu.trim().length !== 13;
+  const errManagerPhone = formData.manager_phone.trim() !== '' && !isValidPhone(formData.manager_phone);
+  const errManagerEmail = formData.manager_email.trim() !== '' && !isValidEmail(formData.manager_email);
+  const errManagerCity = formData.manager_city.trim() !== '' && !isLettersOnly(formData.manager_city);
+  const errManagerDistrict = formData.manager_district.trim() !== '' && !isLettersOnly(formData.manager_district);
+
+  const errGuarantorName = formData.guarantor_name.trim() !== '' && !isLettersOnly(formData.guarantor_name);
+  const errGuarantorIfu = formData.guarantor_ifu.trim() !== '' && formData.guarantor_ifu.trim().length !== 13;
+  const errGuarantorPhone = formData.guarantor_phone.trim() !== '' && !isValidPhone(formData.guarantor_phone);
+  const errGuarantorEmail = formData.guarantor_email.trim() !== '' && !isValidEmail(formData.guarantor_email);
+  const errGuarantorCity = formData.guarantor_city.trim() !== '' && !isLettersOnly(formData.guarantor_city);
+  const errGuarantorDistrict = formData.guarantor_district.trim() !== '' && !isLettersOnly(formData.guarantor_district);
+
   return (
     <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-12 bg-bg-main relative">
       <div className="absolute max-w-[400px] w-[60vw] h-[60vw] max-h-[400px] rounded-full bg-primary-custom/5 blur-[120px] top-1/4 left-1/4"></div>
@@ -401,8 +424,9 @@ function Register() {
                 <input 
                   type="text" required name="denomination_sociale" value={formData.denomination_sociale} onChange={handleInputChange}
                   placeholder="Ex: BENIN LOGISTICS SARL"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyDenomination ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errCompanyDenomination && <p className="text-red-500 text-[10px] mt-1">Ne doit contenir que des lettres, chiffres, espaces, tirets et apostrophes.</p>}
               </div>
 
               <div>
@@ -410,8 +434,9 @@ function Register() {
                 <input 
                   type="email" required name="email" value={formData.email} onChange={handleInputChange}
                   placeholder="contact@entreprise.bj"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyEmail ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errCompanyEmail && <p className="text-red-500 text-[10px] mt-1">Format d'adresse email invalide (ex: contact@domaine.com).</p>}
               </div>
 
               <div>
@@ -419,8 +444,9 @@ function Register() {
                 <input 
                   type="text" required name="phone" value={formData.phone} onChange={handleInputChange}
                   placeholder="Ex: 0197000000" maxLength={10}
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyPhone ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errCompanyPhone && <p className="text-red-500 text-[10px] mt-1">Le téléphone doit contenir exactement 10 chiffres.</p>}
               </div>
 
               <div>
@@ -428,8 +454,9 @@ function Register() {
                 <input 
                   type="text" required name="rccm_number" value={formData.rccm_number} onChange={handleInputChange}
                   placeholder="Ex: RB-COT-26-B-1234" maxLength={15}
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyRccm ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errCompanyRccm && <p className="text-red-500 text-[10px] mt-1">Le RCCM doit contenir entre 12 et 15 caractères.</p>}
               </div>
 
               <div className="md:col-span-2">
@@ -437,8 +464,9 @@ function Register() {
                 <input 
                   type="text" required name="ifu_number" value={formData.ifu_number} onChange={handleInputChange}
                   placeholder="Ex: 3202612345678" maxLength={13}
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyIfu ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errCompanyIfu && <p className="text-red-500 text-[10px] mt-1">L'IFU doit contenir exactement 13 chiffres.</p>}
               </div>
             </div>
 
@@ -448,15 +476,17 @@ function Register() {
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
                   type="text" name="city" required value={formData.city} onChange={handleInputChange} placeholder="Ex: Cotonou"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyCity ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errCompanyCity && <p className="text-red-500 text-[10px] mt-1">La ville ne doit contenir que des lettres.</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Quartier *</label>
                 <input 
                   type="text" name="district" required value={formData.district} onChange={handleInputChange} placeholder="Ex: Cadjehoun"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyDistrict ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errCompanyDistrict && <p className="text-red-500 text-[10px] mt-1">Le quartier ne doit contenir que des lettres.</p>}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison/Carré *</label>
@@ -508,8 +538,9 @@ function Register() {
                 <input 
                   type="text" required name="manager_name" value={formData.manager_name} onChange={handleInputChange}
                   placeholder="Ex: Richard SOGLO"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errManagerName ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errManagerName && <p className="text-red-500 text-[10px] mt-1">Le nom ne doit contenir que des lettres.</p>}
               </div>
 
               <div>
@@ -517,8 +548,9 @@ function Register() {
                 <input 
                   type="text" required name="manager_ifu" value={formData.manager_ifu} onChange={handleInputChange}
                   placeholder="Ex: 3202612345678" maxLength={13}
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errManagerIfu ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errManagerIfu && <p className="text-red-500 text-[10px] mt-1">L'IFU doit contenir exactement 13 chiffres.</p>}
               </div>
 
               <div>
@@ -526,8 +558,9 @@ function Register() {
                 <input 
                   type="text" required name="manager_phone" value={formData.manager_phone} onChange={handleInputChange}
                   placeholder="Ex: 0197123456" maxLength={10}
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errManagerPhone ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errManagerPhone && <p className="text-red-500 text-[10px] mt-1">Le téléphone doit contenir exactement 10 chiffres.</p>}
               </div>
 
               <div>
@@ -535,8 +568,9 @@ function Register() {
                 <input 
                   type="email" required name="manager_email" value={formData.manager_email} onChange={handleInputChange}
                   placeholder="richard.soglo@gmail.com"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errManagerEmail ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errManagerEmail && <p className="text-red-500 text-[10px] mt-1">Format d'adresse email invalide (ex: richard.soglo@gmail.com).</p>}
               </div>
             </div>
 
@@ -546,15 +580,17 @@ function Register() {
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
                   type="text" name="manager_city" required value={formData.manager_city} onChange={handleInputChange} placeholder="Ex: Cotonou"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errManagerCity ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errManagerCity && <p className="text-red-500 text-[10px] mt-1">La ville ne doit contenir que des lettres.</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Quartier *</label>
                 <input 
                   type="text" name="manager_district" required value={formData.manager_district} onChange={handleInputChange} placeholder="Ex: Gbégamey"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errManagerDistrict ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errManagerDistrict && <p className="text-red-500 text-[10px] mt-1">Le quartier ne doit contenir que des lettres.</p>}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison/Carré *</label>
@@ -630,8 +666,9 @@ function Register() {
                 <input 
                   type="text" required name="guarantor_name" value={formData.guarantor_name} onChange={handleInputChange}
                   placeholder="Ex: Cédric HOUNDÉ"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errGuarantorName ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errGuarantorName && <p className="text-red-500 text-[10px] mt-1">Le nom ne doit contenir que des lettres.</p>}
               </div>
 
               <div>
@@ -639,8 +676,9 @@ function Register() {
                 <input 
                   type="text" required name="guarantor_ifu" value={formData.guarantor_ifu} onChange={handleInputChange}
                   placeholder="Ex: 3202612345678" maxLength={13}
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errGuarantorIfu ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errGuarantorIfu && <p className="text-red-500 text-[10px] mt-1">L'IFU doit contenir exactement 13 chiffres.</p>}
               </div>
 
               <div>
@@ -648,8 +686,9 @@ function Register() {
                 <input 
                   type="text" required name="guarantor_phone" value={formData.guarantor_phone} onChange={handleInputChange}
                   placeholder="Ex: 0197999999" maxLength={10}
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errGuarantorPhone ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errGuarantorPhone && <p className="text-red-500 text-[10px] mt-1">Le téléphone doit contenir exactement 10 chiffres.</p>}
               </div>
 
               <div>
@@ -657,8 +696,9 @@ function Register() {
                 <input 
                   type="email" required name="guarantor_email" value={formData.guarantor_email} onChange={handleInputChange}
                   placeholder="cedric.hounde@gmail.com"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errGuarantorEmail ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errGuarantorEmail && <p className="text-red-500 text-[10px] mt-1">Format d'adresse email invalide (ex: cedric.hounde@gmail.com).</p>}
               </div>
             </div>
 
@@ -668,15 +708,17 @@ function Register() {
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Ville *</label>
                 <input 
                   type="text" name="guarantor_city" required value={formData.guarantor_city} onChange={handleInputChange} placeholder="Ex: Porto-Novo"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errGuarantorCity ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errGuarantorCity && <p className="text-red-500 text-[10px] mt-1">La ville ne doit contenir que des lettres.</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Quartier *</label>
                 <input 
                   type="text" name="guarantor_district" required value={formData.guarantor_district} onChange={handleInputChange} placeholder="Ex: Avakpa"
-                  className="w-full px-4 py-2.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm"
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errGuarantorDistrict ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
                 />
+                {errGuarantorDistrict && <p className="text-red-500 text-[10px] mt-1">Le quartier ne doit contenir que des lettres.</p>}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Maison/Carré *</label>

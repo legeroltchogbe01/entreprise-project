@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { checkAndDeactivateCompany } = require('../utils/autoDeactivate');
 
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -268,13 +269,19 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const company = await prisma.company.findUnique({
+    let company = await prisma.company.findUnique({
       where: { email: normalizedEmail },
       include: { wallet: true }
     });
 
     if (!company) {
       return res.status(404).json({ error: 'Aucun compte entreprise associé à cette adresse email.' });
+    }
+
+    // Run the check & potential deactivation
+    const checkedCompany = await checkAndDeactivateCompany(company.id);
+    if (checkedCompany) {
+      company = checkedCompany;
     }
 
     res.json({

@@ -278,13 +278,19 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
                 Statut actuel de conformité :
                 <span className="px-2 py-0.5 rounded bg-amber-950/30 text-amber-400 border border-amber-800/40 text-[10px] uppercase font-bold">
-                  {user.company?.kyc_status === 'REJECTED' ? 'REJETÉ / À CORRIGER' : 'EN ATTENTE D\'AUDIT'}
+                  {user.company?.kyc_status === 'REJECTED' 
+                    ? 'REJETÉ / À CORRIGER' 
+                    : user.company?.kyc_status === 'DEACTIVATED'
+                      ? 'DÉSACTIVÉ (48H DÉPASSÉ)'
+                      : 'EN ATTENTE D\'AUDIT'}
                 </span>
              </div>
              <p className="text-[11px] text-zinc-500 leading-relaxed">
                {user.company?.kyc_status === 'REJECTED' 
                  ? "Votre dossier de conformité n'a pas été validé. Veuillez contacter le support administratif de GMD pour corriger les pièces fournies."
-                 : "Nos équipes examinent actuellement les documents d'identification fiscale (IFU) et de registre de commerce (RCCM) soumis lors de votre inscription."
+                 : user.company?.kyc_status === 'DEACTIVATED'
+                   ? "Votre compte a été automatiquement désactivé car aucune commande n'a été passée dans les 48 heures suivant sa validation. Veuillez contacter GMD pour réactiver votre accès."
+                   : "Nos équipes examinent actuellement les documents d'identification fiscale (IFU) et de registre de commerce (RCCM) soumis lors de votre inscription."
                }
              </p>
           </div>

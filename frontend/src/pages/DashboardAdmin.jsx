@@ -558,9 +558,10 @@ function DashboardAdmin() {
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                               c.kyc_status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' :
                               c.kyc_status === 'REJECTED' ? 'bg-red-950/40 text-red-400 border border-red-900/40' :
+                              c.kyc_status === 'DEACTIVATED' ? 'bg-zinc-950 text-zinc-500 border border-zinc-800/80' :
                               'bg-amber-950/40 text-amber-400 border border-amber-900/40'
                             }`}>
-                              {c.kyc_status === 'APPROVED' ? 'APPROUVÉ' : c.kyc_status === 'REJECTED' ? 'REJETÉ' : 'EN ATTENTE'}
+                              {c.kyc_status === 'APPROVED' ? 'APPROUVÉ' : c.kyc_status === 'REJECTED' ? 'REJETÉ' : c.kyc_status === 'DEACTIVATED' ? 'DÉSACTIVÉ' : 'EN ATTENTE'}
                             </span>
                           </td>
                           <td className="p-4">{new Date(c.created_at).toLocaleDateString('fr-FR')}</td>
@@ -1449,6 +1450,18 @@ function DashboardAdmin() {
 
             {/* Modal Footer */}
             <div className="flex justify-end mt-6 border-t border-zinc-900 pt-4">
+              {selectedCompany.kyc_status === 'DEACTIVATED' && (
+                <button 
+                  onClick={async () => {
+                    await handleUpdateKyc(selectedCompany.id, 'APPROVED');
+                    setSelectedCompany(null);
+                  }}
+                  disabled={actionLoading}
+                  className="mr-auto px-5 py-2 rounded bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition-colors shadow-md shadow-emerald-950/20"
+                >
+                  Réactiver le compte (48h)
+                </button>
+              )}
               <button 
                 onClick={() => handleDeleteCompany(selectedCompany.id)}
                 className="mr-3 px-5 py-2 rounded bg-red-800/30 hover:bg-red-900 text-red-400 text-xs font-semibold cursor-pointer transition-colors"
