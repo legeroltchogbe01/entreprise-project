@@ -196,9 +196,15 @@ function Register() {
     e.preventDefault();
     setError('');
 
-    // Final validation
+    // Final validation - guarantor fields
+    if (!formData.guarantor_name || !formData.guarantor_ifu || !formData.guarantor_phone || !formData.guarantor_email || !formData.guarantor_city || !formData.guarantor_district || !formData.guarantor_house || !formData.guarantor_square) {
+      setError('Veuillez remplir toutes les informations obligatoires de l\'Avaliseur (Garant).');
+      return;
+    }
+
+    // Final validation - files
     if (!files.manager_cip_pdf || !files.manager_selfie || !files.guarantor_cip_pdf || !files.guarantor_selfie) {
-      setError('Veuillez importer toutes les pièces justificatives requises (CIP et Selfie pour le gérant et le garant).');
+      setError('Veuillez importer toutes les pièces justificatives requises (CIP et Selfie vidéo KYC pour le gérant et le garant).');
       return;
     }
 
@@ -467,7 +473,7 @@ function Register() {
               <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
                   <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
-                    <input type="file" required name="manager_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <input type="file" name="manager_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
                     <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.manager_cip_pdf ? files.manager_cip_pdf.name : 'Sélectionner PDF'}</span>
                   </label>
               </div>
@@ -596,7 +602,7 @@ function Register() {
               <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
                   <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Copie PDF de la carte CIP *</label>
                   <label className="flex-1 border border-dashed border-border-custom hover:border-zinc-500 rounded px-3 py-2 text-center text-xs text-zinc-400 hover:text-zinc-300 transition-all cursor-pointer block">
-                    <input type="file" required name="guarantor_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                    <input type="file" name="guarantor_cip_pdf" accept=".pdf" onChange={handleFileChange} className="hidden" />
                     <span className="flex items-center justify-center gap-1.5"><Upload size={14} /> {files.guarantor_cip_pdf ? files.guarantor_cip_pdf.name : 'Sélectionner PDF'}</span>
                   </label>
               </div>
