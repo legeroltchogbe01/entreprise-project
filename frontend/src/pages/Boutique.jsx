@@ -215,6 +215,46 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
+  if (!user) {
+    return (
+      <div className="flex-1 bg-[#0a0a0a] min-h-screen flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute max-w-[400px] w-[60vw] h-[60vw] max-h-[400px] rounded-full bg-red-950/10 blur-[130px] top-1/4 left-1/4"></div>
+        <div className="absolute max-w-[300px] w-[50vw] h-[50vw] max-h-[300px] rounded-full bg-red-950/5 blur-[100px] bottom-1/4 right-1/4"></div>
+
+        <div className="max-w-xl w-full glass-panel p-8 sm:p-10 rounded-2xl border border-zinc-850 text-center space-y-6 shadow-2xl relative z-10">
+          <div className="w-16 h-16 bg-red-950/30 border border-red-800/50 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse shadow-md shadow-red-950/30">
+             <ShoppingBag size={28} />
+          </div>
+          <div className="space-y-3">
+             <h3 className="text-xl sm:text-2xl font-bold text-white tracking-wide">Espace VIP GMD</h3>
+             <p className="text-sm text-zinc-400 leading-relaxed">
+               Le catalogue de produits et les services financiers de GMD sont exclusivement réservés aux entreprises partenaires enregistrées et approuvées.
+             </p>
+          </div>
+          
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900 text-left space-y-2">
+             <p className="text-xs font-semibold text-zinc-350">
+               Pourquoi cette restriction ?
+             </p>
+             <p className="text-[11px] text-zinc-500 leading-relaxed">
+               En tant que plateforme B2B et grossiste privilégié, GMD requiert la validation des documents de conformité (RCCM, IFU) et l'analyse de crédit avant d'ouvrir l'accès aux commandes et grilles tarifaires.
+             </p>
+          </div>
+
+          <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+             <Link to="/login" className="px-6 py-2.5 rounded bg-red-800 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-md shadow-red-950/20 cursor-pointer">
+                Se connecter
+             </Link>
+             <Link to="/register" className="px-6 py-2.5 rounded bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-bold transition-all cursor-pointer">
+                Créer un compte entreprise
+             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (user && user.role === 'CLIENT' && user.company?.kyc_status !== 'APPROVED') {
     return (
       <div className="flex-1 bg-[#0a0a0a] min-h-screen flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
