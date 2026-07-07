@@ -30,6 +30,13 @@ function DashboardAdmin() {
   const [newProductImage, setNewProductImage] = useState(null);
   const [productLoading, setProductLoading] = useState(false);
   const [newProductCustomValues, setNewProductCustomValues] = useState({});
+
+  // Dynamic field creation states
+  const [newFieldKey, setNewFieldKey] = useState('');
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldType, setNewFieldType] = useState('text');
+  const [fieldLoading, setFieldLoading] = useState(false);
+
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -233,6 +240,33 @@ function DashboardAdmin() {
 
   const handleCustomFieldChange = (key, value) => {
     setNewProductCustomValues(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleCreateField = async (e) => {
+    e.preventDefault();
+    if (!newFieldKey || !newFieldLabel || !newFieldType) {
+      alert('Veuillez remplir tous les champs du champ dynamique');
+      return;
+    }
+    setFieldLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/product-fields`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: newFieldKey, label: newFieldLabel, type: newFieldType })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur création champ');
+      alert(data.message);
+      setNewFieldKey('');
+      setNewFieldLabel('');
+      setNewFieldType('text');
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setFieldLoading(false);
+    }
   };
 
   // Delete Product
@@ -646,8 +680,38 @@ function DashboardAdmin() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulaire d'ajout */}
-          <div className="lg:col-span-1 p-5 rounded-lg bg-bg-deepest border border-border-custom h-fit">
+          {/* Configuration et Ajout */}
+          <div className="lg:col-span-1 space-y-6">
+            
+            {/* Formulaire de création de champ dynamique */}
+            <div className="p-5 rounded-lg bg-bg-deepest border border-border-custom h-fit">
+              <h4 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
+                <Plus size={16} className="text-emerald-500" /> Nouveau Champ Dynamique
+              </h4>
+              <form onSubmit={handleCreateField} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Clé technique (ex: color)</label>
+                  <input type="text" required value={newFieldKey} onChange={(e) => setNewFieldKey(e.target.value)} className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Libellé (ex: Couleur)</label>
+                  <input type="text" required value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-1">Type de champ</label>
+                  <select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value)} className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom">
+                    <option value="text">Texte libre</option>
+                    <option value="number">Nombre</option>
+                  </select>
+                </div>
+                <button type="submit" disabled={fieldLoading} className="w-full py-2 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all disabled:opacity-50 mt-2">
+                  {fieldLoading ? 'Création...' : 'Créer le champ'}
+                </button>
+              </form>
+            </div>
+
+            {/* Formulaire d'ajout de produit */}
+            <div className="p-5 rounded-lg bg-bg-deepest border border-border-custom h-fit">
             <h4 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
               <Plus size={16} className="text-primary-custom" /> Ajouter un produit
             </h4>
@@ -730,6 +794,7 @@ function DashboardAdmin() {
                 {productLoading ? 'Enregistrement...' : 'Enregistrer le produit'}
               </button>
             </form>
+          </div>
           </div>
 
           {/* Liste des produits */}
