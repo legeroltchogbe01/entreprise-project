@@ -9,6 +9,11 @@ import DashboardAdmin from './pages/DashboardAdmin';
 import { LogOut, ShoppingCart, LogIn } from 'lucide-react';
 import { API_URL } from './config';
 
+console.log("=== GMD CREANCE API URL CONFIGURATION ===");
+console.log("API_URL is set to:", API_URL);
+console.log("VITE_API_URL env is:", import.meta.env.VITE_API_URL);
+console.log("=========================================");
+
 function GmdLogo() {
   return (
     <div className="flex items-center select-none">
