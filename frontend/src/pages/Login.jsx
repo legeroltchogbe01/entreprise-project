@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, ArrowRight, AlertTriangle } from 'lucide-react';
 import { API_URL } from '../config';
 
-function Login({ setUser }) {
+function Login({ setUser, onRequestRegister }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -103,9 +103,13 @@ function Login({ setUser }) {
           <p className="text-sm text-zinc-500">
             Votre entreprise n'a pas encore de compte ?
           </p>
-          <Link to="/register" className="text-sm text-primary-hover hover:text-red-400 font-semibold mt-1 inline-block transition-colors">
+          <button
+            type="button"
+            onClick={onRequestRegister}
+            className="text-sm text-primary-hover hover:text-red-400 font-semibold mt-1 inline-block transition-colors cursor-pointer bg-transparent border-none p-0"
+          >
             Créer un compte pour mon entreprise
-          </Link>
+          </button>
         </div>
       </div>
     </div>

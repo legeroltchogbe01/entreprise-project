@@ -31,6 +31,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
   
   const [forceShowProducts, setForceShowProducts] = useState(false);
   const [wallet, setWallet] = useState(null);
+  const [showEligibilityModal, setShowEligibilityModal] = useState(false);
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
@@ -178,6 +179,57 @@ function AppLayout({ user, setUser, cart, setCart }) {
         </div>
       </header>
 
+      {/* ── ELIGIBILITY MODAL ────────────────────────────── */}
+      {showEligibilityModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)'}}>
+          <div className="max-w-md w-full rounded-2xl border border-amber-800/50 bg-[#0e0c07] shadow-2xl shadow-amber-950/30 p-8 flex flex-col gap-6 animate-fade-in">
+            {/* Icon */}
+            <div className="flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-amber-950/40 border border-amber-700/50 flex items-center justify-center text-3xl shadow-lg shadow-amber-950/20">
+                ⚠️
+              </div>
+            </div>
+            {/* Title */}
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-extrabold text-amber-400 tracking-wide uppercase">Vérification d'Éligibilité</h2>
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                Attention — Pour obtenir un <strong className="text-amber-400">compte Gold B2B GMD</strong>, vous devez satisfaire aux conditions suivantes :
+              </p>
+            </div>
+            {/* Conditions */}
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-3 text-zinc-400">
+                <span className="mt-0.5 text-amber-500 text-base shrink-0">✦</span>
+                <span>Avoir une <strong className="text-zinc-200">ancienneté commerciale d'au moins 2 ans</strong> dans votre secteur d'activité.</span>
+              </li>
+              <li className="flex items-start gap-3 text-zinc-400">
+                <span className="mt-0.5 text-amber-500 text-base shrink-0">✦</span>
+                <span>Justifier d'un <strong className="text-zinc-200">total d'achats à crédit d'au moins 50 000 000 FCFA</strong>, entièrement soldé et sans réquisition judiciaire.</span>
+              </li>
+            </ul>
+            {/* Question */}
+            <p className="text-center text-sm font-semibold text-white border-t border-zinc-800 pt-4">
+              Êtes-vous éligible à l'ouverture d'un compte Gold B2B&nbsp;?
+            </p>
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEligibilityModal(false)}
+                className="flex-1 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white text-sm font-bold transition-all cursor-pointer"
+              >
+                Non, pas encore
+              </button>
+              <button
+                onClick={() => { setShowEligibilityModal(false); navigate('/register'); }}
+                className="flex-1 py-2.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-sm font-bold transition-all cursor-pointer shadow-md shadow-amber-950/30"
+              >
+                Oui, je suis éligible
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── MAIN CONTENT ─────────────────────────────────── */}
       <main className="flex-1 flex flex-col">
         <Routes>
@@ -191,6 +243,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
                 wallet={wallet}
                 forceShowProducts={forceShowProducts}
                 setForceShowProducts={setForceShowProducts}
+                onRequestRegister={() => setShowEligibilityModal(true)}
               />
             }
           />
@@ -206,7 +259,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
               />
             }
           />
-          <Route path="/login"    element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} /> : <Login setUser={setUser} />} />
+          <Route path="/login"    element={user ? <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} /> : <Login setUser={setUser} onRequestRegister={() => setShowEligibilityModal(true)} />} />
           <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
           <Route path="/dashboard" element={user?.role === 'CLIENT' ? <DashboardClient user={user} /> : <Navigate to="/login" />} />
           <Route path="/admin"    element={user?.role === 'ADMIN'  ? <DashboardAdmin />            : <Navigate to="/login" />} />

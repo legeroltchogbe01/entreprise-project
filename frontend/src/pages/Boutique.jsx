@@ -19,7 +19,7 @@ const CATEGORIES = [
   { name: 'Autre',                         image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80' },
 ];
 
-function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShowProducts }) {
+function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShowProducts, onRequestRegister }) {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -246,9 +246,13 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
              <Link to="/login" className="px-6 py-2.5 rounded bg-red-800 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-md shadow-red-950/20 cursor-pointer">
                 Se connecter
              </Link>
-             <Link to="/register" className="px-6 py-2.5 rounded bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-bold transition-all cursor-pointer">
+             <button
+               type="button"
+               onClick={onRequestRegister}
+               className="px-6 py-2.5 rounded bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-bold transition-all cursor-pointer"
+             >
                 Créer un compte entreprise
-             </Link>
+             </button>
           </div>
         </div>
       </div>
