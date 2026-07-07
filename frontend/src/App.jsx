@@ -99,8 +99,8 @@ function AppLayout({ user, setUser, cart, setCart }) {
             </div>
           </div>
 
-          {/* Row 2: Nav Tabs — scrollable horizontally on mobile */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+          {/* Row 2: Nav Tabs — scrollable horizontally on mobile, never wraps */}
+          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-0.5" style={{scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch'}}>
 
             {/* Accueil */}
             <Link
