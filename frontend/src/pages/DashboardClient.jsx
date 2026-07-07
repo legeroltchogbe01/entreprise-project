@@ -246,6 +246,51 @@ function DashboardClient({ user }) {
               </div>
             </div>
 
+            {/* Wallet Cards */}
+            {wallet && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
+                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
+                  </p>
+                  <h3 className="font-bold text-white text-lg font-mono">
+                    {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                  </h3>
+                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary-custom"
+                      style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                    <span>Consommé</span>
+                    <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
+                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
+                  </p>
+                  <h3 className="font-bold text-white text-lg font-mono">
+                    {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                  </h3>
+                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-red-800"
+                      style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                    <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
+                    <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ── COMPANY AVATAR + TOTAL REMAINING ── */}
             <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 text-center space-y-5 shadow-lg">
               {/* Avatar circle */}
@@ -390,52 +435,7 @@ function DashboardClient({ user }) {
               </a>
             </div>
 
-            {/* ── FINANCIAL SECTION INCLUDED IN PROFIL (ORIGINAL BEHAVIOR) ── */}
             <div className="border-t border-border-custom pt-6 space-y-6">
-              {/* Wallet Cards */}
-              {wallet && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
-                    </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
-                      {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                    </h3>
-                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary-custom"
-                        style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                      <span>Consommé</span>
-                      <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
-                    </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
-                      {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                    </h3>
-                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-red-800"
-                        style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                      <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
-                      <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Échéancier */}
               <div className="space-y-3">
