@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package } from 'lucide-react';
+import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardClient({ user }) {
@@ -181,7 +181,9 @@ function DashboardClient({ user }) {
 
         {/* ── TITLE ──────────────────── */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Espace Entreprise</h2>
+          <h2 className="text-xl font-bold text-white">
+            {activeTab === 'profil' ? 'Mon profil' : 'Espace Entreprise'}
+          </h2>
           <button
             onClick={fetchDashboardData}
             className="p-2 rounded-lg bg-surface-custom border border-border-custom hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-all"
@@ -202,53 +204,58 @@ function DashboardClient({ user }) {
         {activeTab === 'profil' && (
           <div className="space-y-5">
             {/* ── PAYMENT CARD ──────────── */}
-            <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-950/50 border border-emerald-900/40 flex items-center justify-center shrink-0">
-                    <CreditCard size={18} className="text-emerald-400" />
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Left Side: Blue circular button with eye icon */}
+                <button
+                  type="button"
+                  className="w-10 h-10 rounded-full bg-[#0082f4] hover:bg-blue-600 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-md transition-colors"
+                >
+                  <Eye size={20} />
+                </button>
+
+                {/* Middle: White card */}
+                <div className="flex flex-col items-center">
+                  <div className="bg-white rounded-xl px-6 py-2.5 shadow-md text-center min-w-[185px]">
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">PROCHAIN VERSEMENT</p>
+                    <p className="text-lg font-black text-black mt-0.5 text-center">
+                      {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')} FCFA` : '0 FCFA'}
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Prochain versement</p>
-                    <h3 className="text-xl font-bold text-white font-mono">
-                      {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')}` : '0'} <span className="text-xs text-zinc-400">FCFA</span>
-                    </h3>
+                  {/* Calendar Pill below the white card */}
+                  <div className="mt-3 flex items-center justify-center">
+                    <span className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5 shadow-inner">
+                      <Calendar size={12} className="text-[#0082f4]" />
+                      {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
+                    </span>
                   </div>
                 </div>
-                {nextPayment && (
-                  <button
-                    onClick={() => handlePayInstallment(nextPayment.order_id, nextPayment.installment_number)}
-                    disabled={paymentLoading}
-                    className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow shadow-emerald-950/40 disabled:opacity-60 shrink-0"
-                  >
-                    <CreditCard size={13} /> Payer
-                  </button>
-                )}
-              </div>
-              <div className="mt-3 flex items-center justify-center">
-                <span className="px-3 py-1 rounded-full bg-surface-custom border border-border-custom text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5">
-                  <Calendar size={11} />
-                  {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
-                </span>
+
+                {/* Right Side: Green button "Payer" */}
+                <button
+                  onClick={() => {
+                    if (nextPayment) {
+                      handlePayInstallment(nextPayment.order_id, nextPayment.installment_number);
+                    }
+                  }}
+                  disabled={paymentLoading || !nextPayment}
+                  className="px-5 py-2.5 rounded-full bg-[#00b450] hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-emerald-950/20 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  <CreditCard size={14} /> Payer
+                </button>
               </div>
             </div>
 
             {/* ── COMPANY AVATAR + TOTAL REMAINING ── */}
-            <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom text-center space-y-4">
-              <div className="w-20 h-20 mx-auto rounded-full bg-surface-custom border-2 border-border-custom flex items-center justify-center">
-                <Building2 size={36} className="text-zinc-500" />
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 text-center space-y-5 shadow-lg">
+              {/* Avatar circle */}
+              <div className="w-24 h-24 mx-auto rounded-full bg-zinc-900 border border-zinc-850 flex items-center justify-center shadow-inner">
+                <User size={44} className="text-zinc-550" />
               </div>
-              <h3 className="text-sm font-bold text-white">{c.denomination_sociale}</h3>
-              <div className="space-y-1.5">
-                <div className="w-full h-2 bg-surface-custom rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary-custom transition-all duration-500"
-                    style={{ width: wallet && Number(wallet.credit_initial) > 0 ? `${(Number(wallet.credit_utilise) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
-                  ></div>
-                </div>
-                <p className="text-xs text-zinc-400">
-                  Total restant dû: <span className="text-white font-bold font-mono">{totalRemaining.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA</span>
-                </p>
+              
+              {/* Total remaining field */}
+              <div className="w-full text-center py-3 px-4 rounded-xl bg-black/60 border border-zinc-850 text-sm text-zinc-350 font-medium">
+                Total restant du: <span className="font-bold text-white font-mono">{totalRemaining.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA</span>
               </div>
             </div>
 
