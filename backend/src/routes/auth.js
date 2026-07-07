@@ -5,14 +5,25 @@ const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads'));
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Multer configuration for Cloudinary uploads
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: 'gmd_uploads',
+      resource_type: 'auto', // Important to support pdf (image/raw) and webm (video)
+      public_id: file.fieldname + '-' + Date.now() + '-' + Math.round(Math.random() * 1e9),
+    };
   }
 });
 
@@ -128,8 +139,8 @@ router.post('/register', uploadFields, async (req, res) => {
         manager_district,
         manager_house,
         manager_square,
-        manager_cip_pdf: req.files.manager_cip_pdf[0].filename,
-        manager_selfie: req.files.manager_selfie[0].filename,
+        manager_cip_pdf: req.files.manager_cip_pdf[0].path,
+        manager_selfie: req.files.manager_selfie[0].path,
         
         // Avaliseur / Garant
         guarantor_name,
@@ -141,8 +152,8 @@ router.post('/register', uploadFields, async (req, res) => {
         guarantor_district,
         guarantor_house,
         guarantor_square,
-        guarantor_cip_pdf: req.files.guarantor_cip_pdf[0].filename,
-        guarantor_selfie: req.files.guarantor_selfie[0].filename,
+        guarantor_cip_pdf: req.files.guarantor_cip_pdf[0].path,
+        guarantor_selfie: req.files.guarantor_selfie[0].path,
         
         kyc_status: 'PENDING'
       }

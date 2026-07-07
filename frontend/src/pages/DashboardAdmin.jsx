@@ -675,7 +675,7 @@ function DashboardAdmin() {
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                 <a 
-                  href={`${API_URL}/uploads/${selectedCompany.manager_cip_pdf}`} 
+                  href={selectedCompany.manager_cip_pdf?.startsWith('http') ? selectedCompany.manager_cip_pdf : `${API_URL}/uploads/${selectedCompany.manager_cip_pdf}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
@@ -684,7 +684,7 @@ function DashboardAdmin() {
                   <span className="font-semibold mt-1">CIP Gérant (PDF)</span>
                 </a>
                 <a 
-                  href={`${API_URL}/uploads/${selectedCompany.manager_selfie}`} 
+                  href={selectedCompany.manager_selfie?.startsWith('http') ? selectedCompany.manager_selfie : `${API_URL}/uploads/${selectedCompany.manager_selfie}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
@@ -693,7 +693,7 @@ function DashboardAdmin() {
                   <span className="font-semibold mt-1">Selfie Vidéo Gérant</span>
                 </a>
                 <a 
-                  href={`${API_URL}/uploads/${selectedCompany.guarantor_cip_pdf}`} 
+                  href={selectedCompany.guarantor_cip_pdf?.startsWith('http') ? selectedCompany.guarantor_cip_pdf : `${API_URL}/uploads/${selectedCompany.guarantor_cip_pdf}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
@@ -702,7 +702,7 @@ function DashboardAdmin() {
                   <span className="font-semibold mt-1">CIP Garant (PDF)</span>
                 </a>
                 <a 
-                  href={`${API_URL}/uploads/${selectedCompany.guarantor_selfie}`} 
+                  href={selectedCompany.guarantor_selfie?.startsWith('http') ? selectedCompany.guarantor_selfie : `${API_URL}/uploads/${selectedCompany.guarantor_selfie}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
