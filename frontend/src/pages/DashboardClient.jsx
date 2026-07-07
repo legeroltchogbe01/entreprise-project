@@ -17,6 +17,7 @@ function DashboardClient({ user }) {
   // Special Request Form State
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState('1');
+  const [requestImage, setRequestImage] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
@@ -84,20 +85,25 @@ function DashboardClient({ user }) {
     if (!description || !quantity) return;
     setFormLoading(true);
     try {
+      const formData = new FormData();
+      formData.append('companyId', user.company.id);
+      formData.append('description', description);
+      formData.append('quantity', quantity);
+      if (requestImage) formData.append('image', requestImage);
+
       const res = await fetch(`${API_URL}/api/special-requests`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId: user.company.id,
-          description,
-          quantity: parseInt(quantity)
-        })
+        body: formData
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setFormSuccess(data.message);
       setDescription('');
       setQuantity('1');
+      setRequestImage(null);
+      // reset file input
+      const fi = document.getElementById('devisImageInput');
+      if (fi) fi.value = '';
       await fetchDashboardData();
     } catch (err) {
       console.error(err);
@@ -851,6 +857,42 @@ function DashboardClient({ user }) {
                     className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-amber-600/60"
                   />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1.5">Photo / Modèle de référence <span className="text-zinc-700 font-normal normal-case">(optionnel)</span></label>
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="devisImageInput"
+                      className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-surface-custom/50 border border-dashed border-amber-800/40 hover:border-amber-600/60 text-zinc-500 hover:text-zinc-300 text-xs cursor-pointer transition-all"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                      {requestImage ? requestImage.name : 'Sélectionner une image...'}
+                    </label>
+                    <input
+                      id="devisImageInput"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => setRequestImage(e.target.files[0] || null)}
+                    />
+                    {requestImage && (
+                      <button
+                        type="button"
+                        onClick={() => { setRequestImage(null); const fi = document.getElementById('devisImageInput'); if (fi) fi.value = ''; }}
+                        className="text-zinc-600 hover:text-red-400 transition-all cursor-pointer"
+                        title="Supprimer"
+                      >✕</button>
+                    )}
+                  </div>
+                  {requestImage && (
+                    <div className="mt-2">
+                      <img
+                        src={URL.createObjectURL(requestImage)}
+                        alt="Aperçu"
+                        className="w-24 h-24 object-cover rounded-lg border border-amber-800/30"
+                      />
+                    </div>
+                  )}
+                </div>
                 <button
                   type="submit"
                   disabled={formLoading || weeklyQuota >= 30}
@@ -904,9 +946,18 @@ function DashboardClient({ user }) {
                             {isRejected && '❌ Rejeté'}
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-4 text-[10px] text-zinc-500 font-semibold uppercase">
-                          <span>Quantité: {req.quantity}</span>
-                          <span>Soumis le {new Date(req.created_at).toLocaleDateString('fr-FR')}</span>
+                        <div className="flex items-start gap-3">
+                          {req.image_url && (
+                            <img
+                              src={req.image_url}
+                              alt="Modèle"
+                              className="w-16 h-16 object-cover rounded-lg border border-zinc-700/50 shrink-0"
+                            />
+                          )}
+                          <div className="flex flex-wrap gap-3 text-[10px] text-zinc-500 font-semibold uppercase items-center">
+                            <span>Quantité: {req.quantity}</span>
+                            <span>Soumis le {new Date(req.created_at).toLocaleDateString('fr-FR')}</span>
+                          </div>
                         </div>
                         {isQuoted && req.estimated_price && (
                           <div className="rounded-lg bg-amber-950/20 border border-amber-800/40 p-4 space-y-3">

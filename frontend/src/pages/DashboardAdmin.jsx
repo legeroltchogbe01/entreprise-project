@@ -27,6 +27,7 @@ function DashboardAdmin() {
   const [newProductName, setNewProductName] = useState('');
   const [newProductDesc, setNewProductDesc] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductCategory, setNewProductCategory] = useState('');
   const [newProductImage, setNewProductImage] = useState(null);
   const [productLoading, setProductLoading] = useState(false);
   const [newProductCustomValues, setNewProductCustomValues] = useState({});
@@ -189,6 +190,7 @@ function DashboardAdmin() {
       formData.append('name', newProductName);
       formData.append('description', newProductDesc);
       formData.append('price', newProductPrice);
+      if (newProductCategory) formData.append('category', newProductCategory);
       // custom dynamic fields
       if (Object.keys(newProductCustomValues).length > 0) {
         formData.append('custom_data', JSON.stringify(newProductCustomValues));
@@ -208,6 +210,7 @@ function DashboardAdmin() {
       setNewProductName('');
       setNewProductDesc('');
       setNewProductPrice('');
+      setNewProductCategory('');
       setNewProductImage(null);
       setNewProductCustomValues({});
       // Reset file input
@@ -775,6 +778,25 @@ function DashboardAdmin() {
                   onChange={(e) => setNewProductName(e.target.value)}
                   className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Catégorie</label>
+                <select
+                  value={newProductCategory}
+                  onChange={(e) => setNewProductCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom"
+                >
+                  <option value="">-- Sélectionner une catégorie --</option>
+                  <option value="Mobilier de Bureau">Mobilier de Bureau</option>
+                  <option value="Sièges & Fauteuils">Sièges &amp; Fauteuils</option>
+                  <option value="Tables & Bureaux">Tables &amp; Bureaux</option>
+                  <option value="Rangement & Armoires">Rangement &amp; Armoires</option>
+                  <option value="Mobilier d'Accueil">Mobilier d'Accueil</option>
+                  <option value="Mobilier de Salle de Réunion">Mobilier de Salle de Réunion</option>
+                  <option value="Mobilier Extérieur">Mobilier Extérieur</option>
+                  <option value="Décoration & Accessoires">Décoration &amp; Accessoires</option>
+                  <option value="Autre">Autre</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1">Prix (FCFA) *</label>

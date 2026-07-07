@@ -2,6 +2,41 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const multer = require('multer');
+const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Configure Cloudinary
+if (!process.env.CLOUDINARY_URL) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+} else {
+  cloudinary.config(true);
+  cloudinary.config({ secure: true });
+}
+
+// Multer/Cloudinary for model image uploads
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: 'gmd_special_requests',
+    resource_type: 'image',
+    public_id: 'model-' + Date.now() + '-' + Math.round(Math.random() * 1e9)
+  })
+});
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    allowed.includes(ext) ? cb(null, true) : cb(new Error('Format non autorisé (JPG, PNG, WEBP).'));
+  }
+});
 
 // Get all requests (Admin)
 router.get('/', async (req, res) => {
@@ -33,7 +68,7 @@ router.get('/company/:companyId', async (req, res) => {
 });
 
 // Submit custom/sur-mesure request (Checks 30 items/week limit)
-router.post('/', async (req, res) => {
+router.post('/', upload.single('image'), async (req, res) => {
   try {
     const { companyId, description, quantity } = req.body;
 
@@ -54,7 +89,7 @@ router.post('/', async (req, res) => {
       where: {
         company_id: companyId,
         created_at: { gte: oneWeekAgo },
-        status: { not: 'REJECTED' } // Do not count rejected requests
+        status: { not: 'REJECTED' }
       }
     });
 
@@ -66,12 +101,16 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // 2. Create request
+    // 2. Image URL (from Cloudinary if uploaded)
+    const image_url = req.file ? req.file.path : null;
+
+    // 3. Create request
     const request = await prisma.specialRequest.create({
       data: {
         company_id: companyId,
         description,
         quantity: qty,
+        image_url,
         status: 'SUBMITTED'
       }
     });

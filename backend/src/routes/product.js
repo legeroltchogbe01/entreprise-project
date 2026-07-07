@@ -61,7 +61,7 @@ router.get('/', async (req, res) => {
 // Create product (for Admin Back-office)
 router.post('/', upload.single('image'), async (req, res) => {
   try {
-    const { name, description, price, custom_data } = req.body;
+    const { name, description, price, category, custom_data } = req.body;
     let image_url = 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=600&q=80';
 
     if (req.file) {
@@ -76,7 +76,8 @@ router.post('/', upload.single('image'), async (req, res) => {
       name,
       description: description || '',
       price: parseFloat(price),
-      image_url
+      image_url,
+      category: category || null
     };
 
     if (custom_data) {
