@@ -215,7 +215,49 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
+  if (user && user.role === 'CLIENT' && user.company?.kyc_status !== 'APPROVED') {
+    return (
+      <div className="flex-1 bg-[#0a0a0a] min-h-screen flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute max-w-[400px] w-[60vw] h-[60vw] max-h-[400px] rounded-full bg-red-950/10 blur-[130px] top-1/4 left-1/4"></div>
+        <div className="absolute max-w-[300px] w-[50vw] h-[50vw] max-h-[300px] rounded-full bg-[#004d26]/10 blur-[100px] bottom-1/4 right-1/4"></div>
 
+        <div className="max-w-xl w-full glass-panel p-8 sm:p-10 rounded-2xl border border-zinc-850 text-center space-y-6 shadow-2xl relative z-10">
+          <div className="w-16 h-16 bg-red-950/30 border border-red-800/50 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse shadow-md shadow-red-950/30">
+             <ShoppingBag size={28} />
+          </div>
+          <div className="space-y-3">
+             <h3 className="text-xl sm:text-2xl font-bold text-white tracking-wide">Accès au Catalogue Restreint</h3>
+             <p className="text-sm text-zinc-400 leading-relaxed">
+               Cette section (Boutique et catalogue de produits) sera disponible dès que votre compte entreprise aura été validé et approuvé par les administrateurs de GMD.
+             </p>
+          </div>
+          
+          <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900 text-left space-y-3">
+             <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                Statut actuel de conformité :
+                <span className="px-2 py-0.5 rounded bg-amber-950/30 text-amber-400 border border-amber-800/40 text-[10px] uppercase font-bold">
+                  {user.company?.kyc_status === 'REJECTED' ? 'REJETÉ / À CORRIGER' : 'EN ATTENTE D\'AUDIT'}
+                </span>
+             </div>
+             <p className="text-[11px] text-zinc-500 leading-relaxed">
+               {user.company?.kyc_status === 'REJECTED' 
+                 ? "Votre dossier de conformité n'a pas été validé. Veuillez contacter le support administratif de GMD pour corriger les pièces fournies."
+                 : "Nos équipes examinent actuellement les documents d'identification fiscale (IFU) et de registre de commerce (RCCM) soumis lors de votre inscription."
+               }
+             </p>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+             <Link to="/dashboard?tab=profil" className="px-6 py-2.5 rounded bg-red-900/10 hover:bg-red-900/20 border border-red-800/40 text-red-400 text-xs font-bold transition-all shadow-md shadow-red-950/20 cursor-pointer">
+                Consulter mon Profil
+             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-[#0a0a0a] min-h-screen">
