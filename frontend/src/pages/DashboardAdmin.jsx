@@ -269,6 +269,19 @@ function DashboardAdmin() {
     }
   };
 
+  // Delete Product Field
+  const handleDeleteField = async (id) => {
+    if (!window.confirm('Supprimer ce champ ? Il sera retiré du formulaire d\'achat.')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/product-fields/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur suppression champ');
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   // Delete Product
   const handleDeleteProduct = async (id) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce produit ? Cela supprimera également les lignes de facturation associées s'il y en a.")) return;
@@ -623,7 +636,8 @@ function DashboardAdmin() {
                   <th className="p-4">Téléphone</th>
                   <th className="p-4">Statut KYC</th>
                   <th className="p-4">Date d'inscription</th>
-                  <th className="p-4 text-center">Sauvegarde des Infos</th>
+                  <th className="p-4 text-center">Infos</th>
+                  <th className="p-4 text-center">Supprimer</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-custom/50 text-zinc-300">
@@ -660,7 +674,16 @@ function DashboardAdmin() {
                           onClick={() => setSelectedCompany(c)}
                           className="px-2.5 py-1 rounded bg-surface-custom border border-border-custom hover:bg-zinc-800 text-[10px] text-zinc-300 font-semibold cursor-pointer"
                         >
-                          📄 Consulter les Infos
+                          📄 Consulter
+                        </button>
+                      </td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => handleDeleteCompany(c.id)}
+                          className="p-1.5 rounded bg-red-950/30 border border-red-900/40 hover:bg-red-900/40 text-red-400 cursor-pointer transition-all"
+                          title="Supprimer cette entreprise"
+                        >
+                          <Trash2 size={13} />
                         </button>
                       </td>
                     </tr>
@@ -683,6 +706,33 @@ function DashboardAdmin() {
           {/* Configuration et Ajout */}
           <div className="lg:col-span-1 space-y-6">
             
+            {/* Liste des champs existants avec suppression */}
+            {productFields.length > 0 && (
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom">
+                <h4 className="font-bold text-sm text-white mb-3 flex items-center gap-2">
+                  <PackageOpen size={15} className="text-zinc-400" /> Champs du formulaire ({productFields.length})
+                </h4>
+                <div className="space-y-1.5">
+                  {productFields.map(f => (
+                    <div key={f.id} className="flex items-center justify-between px-3 py-2 rounded bg-surface-custom/50 border border-border-custom/50">
+                      <div>
+                        <span className="text-xs font-semibold text-white">{f.label}</span>
+                        <span className="ml-2 text-[10px] text-zinc-500 font-mono">({f.key} · {f.type})</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteField(f.id)}
+                        className="p-1 rounded hover:bg-red-950/40 text-zinc-500 hover:text-red-400 transition-all cursor-pointer"
+                        title="Supprimer ce champ"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Formulaire de création de champ dynamique */}
             <div className="p-5 rounded-lg bg-bg-deepest border border-border-custom h-fit">
               <h4 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
