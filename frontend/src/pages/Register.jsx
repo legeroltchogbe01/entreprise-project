@@ -182,7 +182,7 @@ function Register() {
 
   const isStep1Valid = () => {
     return (
-      isAlphanumeric(formData.denomination_sociale) &&
+      formData.denomination_sociale.trim() !== '' &&
       isValidRCCM(formData.rccm_number) &&
       formData.rccm_number.trim().length >= 12 &&
       formData.rccm_number.trim().length <= 15 &&
@@ -357,7 +357,7 @@ function Register() {
   };
 
   // Validation error flags
-  const errCompanyDenomination = formData.denomination_sociale.trim() !== '' && !isAlphanumeric(formData.denomination_sociale);
+  const errCompanyDenomination = formData.denomination_sociale !== '' && formData.denomination_sociale.trim() === '';
   const errCompanyEmail = formData.email.trim() !== '' && !isValidEmail(formData.email);
   const errCompanyPhone = formData.phone.trim() !== '' && !isValidPhone(formData.phone);
   const errCompanyRccm = formData.rccm_number.trim() !== '' && (formData.rccm_number.trim().length < 12 || formData.rccm_number.trim().length > 15);
@@ -419,14 +419,18 @@ function Register() {
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">01. Informations de l'Entreprise</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Dénomination Sociale *</label>
                 <input 
                   type="text" required name="denomination_sociale" value={formData.denomination_sociale} onChange={handleInputChange}
                   placeholder="Ex: BENIN LOGISTICS SARL"
-                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none focus:border-red-500 transition-all text-base sm:text-sm ${errCompanyDenomination ? 'border-red-500/70 focus:border-red-500' : 'border-border-custom'}`}
+                  className={`w-full px-4 py-2.5 rounded bg-bg-deepest border text-zinc-100 placeholder-zinc-750 focus:outline-none transition-all text-base sm:text-sm ${errCompanyDenomination ? 'border-red-500/70 focus:border-red-400' : 'border-border-custom focus:border-red-500'}`}
                 />
-                {errCompanyDenomination && <p className="text-red-500 text-[10px] mt-1">Ne doit contenir que des lettres, chiffres, espaces, tirets et apostrophes.</p>}
+                <p className="mt-1.5 text-[10px] leading-relaxed text-amber-500/80 flex items-start gap-1">
+                  <span className="mt-[1px] shrink-0">⚠️</span>
+                  <span>Ce champ doit contenir la <strong>dénomination exacte</strong> telle qu'elle est inscrite sur le <strong>Registre de Commerce et du Crédit Mobilier (RCCM)</strong>. Toute différence de nom par rapport au RCCM entraînera le rejet du dossier de conformité KYC.</span>
+                </p>
+                {errCompanyDenomination && <p className="text-red-500 text-[10px] mt-1">Ce champ ne peut pas être vide.</p>}
               </div>
 
               <div>
