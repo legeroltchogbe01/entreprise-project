@@ -135,5 +135,8 @@ model SpecialRequest {
   image_url       String?
   estimated_price Decimal?      @db.Decimal(15, 2)
   status          RequestStatus @default(SUBMITTED)
+  quote_items     Json?
+  quote_notes     String?
+  contract_content String?
   created_at      DateTime      @default(now())
 }

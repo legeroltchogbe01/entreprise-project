@@ -130,10 +130,10 @@ router.post('/', upload.single('image'), async (req, res) => {
 router.post('/:id/quote', async (req, res) => {
   try {
     const { id } = req.params;
-    const { estimatedPrice } = req.body;
+    const { quoteItems, quoteNotes } = req.body; // quoteItems: Array of { article, price, quantity, total }
 
-    if (!estimatedPrice) {
-      return res.status(400).json({ error: 'Veuillez saisir un prix pour le devis.' });
+    if (!quoteItems || !Array.isArray(quoteItems) || quoteItems.length === 0) {
+      return res.status(400).json({ error: 'Veuillez saisir au moins une ligne d\'article pour le devis.' });
     }
 
     const request = await prisma.specialRequest.findUnique({
@@ -148,22 +148,74 @@ router.post('/:id/quote', async (req, res) => {
       return res.status(400).json({ error: 'Ce devis a déjà été traité.' });
     }
 
+    // Calculate total price: Sum of (quantity * price) for each item
+    const computedTotal = quoteItems.reduce((sum, item) => {
+      const p = parseFloat(item.price) || 0;
+      const q = parseInt(item.quantity) || 0;
+      return sum + (p * q);
+    }, 0);
+
+    const defaultContract = `CONTRAT DE VENTE ET FINANCEMENT SUR-MESURE\n\n` +
+      `Entre la société GMD Créance d'une part, et l'entreprise ${request.id.slice(0, 8)} d'autre part.\n\n` +
+      `Objet : Vente de mobilier sur-mesure d'un montant total de ${computedTotal.toLocaleString('fr-FR')} FCFA.\n` +
+      `Paiement : 1/3 d'acompte (${(computedTotal / 3).toLocaleString('fr-FR')} FCFA) et 2/3 à crédit échelonné.\n\n` +
+      `Fait à Cotonou, le ${new Date().toLocaleDateString('fr-FR')}`;
+
     const updated = await prisma.specialRequest.update({
       where: { id },
       data: {
-        estimated_price: parseFloat(estimatedPrice),
+        estimated_price: computedTotal,
+        quote_items: quoteItems,
+        quote_notes: quoteNotes || '',
+        contract_content: defaultContract,
         status: 'QUOTED'
       }
     });
 
     res.json({
-      message: 'Devis envoyé avec succès au client.',
+      message: 'Devis et contrat initial émis avec succès au client.',
       request: updated
     });
 
   } catch (error) {
     console.error('Submit quote error:', error);
     res.status(500).json({ error: 'Erreur lors de l\'envoi du devis.' });
+  }
+});
+
+// Admin update/customize contract
+router.post('/:id/contract', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { contractContent } = req.body;
+
+    if (!contractContent) {
+      return res.status(400).json({ error: 'Le contenu du contrat ne peut pas être vide.' });
+    }
+
+    const request = await prisma.specialRequest.findUnique({
+      where: { id }
+    });
+
+    if (!request) {
+      return res.status(404).json({ error: 'Demande spéciale introuvable.' });
+    }
+
+    const updated = await prisma.specialRequest.update({
+      where: { id },
+      data: {
+        contract_content: contractContent
+      }
+    });
+
+    res.json({
+      message: 'Contrat personnalisé avec succès.',
+      request: updated
+    });
+
+  } catch (error) {
+    console.error('Update contract error:', error);
+    res.status(500).json({ error: 'Erreur lors de la personnalisation du contrat.' });
   }
 });
 

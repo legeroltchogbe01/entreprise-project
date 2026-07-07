@@ -17,6 +17,17 @@ function DashboardAdmin() {
   // Status management Loading
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Advanced Quoter States
+  const [activeQuoteId, setActiveQuoteId] = useState(null); // specialRequest id being quoted
+  const [quoteRows, setQuoteRows] = useState([]); // [{ article, price, quantity, total }]
+  const [quoteNotes, setQuoteNotes] = useState('');
+  const [quoteTotal, setQuoteTotal] = useState(0);
+
+  // Contract Customizer States
+  const [selectedContractId, setSelectedContractId] = useState(null); // specialRequest id to edit contract for
+  const [contractContent, setContractContent] = useState('');
+  const [contractLoading, setContractLoading] = useState(false);
+
   // Company Backup / Directory States
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companySearch, setCompanySearch] = useState('');
@@ -116,11 +127,10 @@ function DashboardAdmin() {
     }
   };
 
-  // Submit quote price estimates
+  // Submit quote price estimates with dynamic items table
   const handleSendQuote = async (requestId) => {
-    const price = quotes[requestId];
-    if (!price) {
-      alert('Veuillez renseigner un prix pour émettre le devis.');
+    if (quoteRows.length === 0) {
+      alert('Veuillez ajouter au moins un article au devis.');
       return;
     }
 
@@ -131,13 +141,18 @@ function DashboardAdmin() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ estimatedPrice: parseFloat(price) })
+        body: JSON.stringify({
+          quoteItems: quoteRows,
+          quoteNotes
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
       alert(data.message);
-      setQuotes({ ...quotes, [requestId]: '' });
+      setActiveQuoteId(null);
+      setQuoteRows([]);
+      setQuoteNotes('');
       await fetchAdminData();
     } catch (err) {
       console.error(err);
@@ -147,8 +162,77 @@ function DashboardAdmin() {
     }
   };
 
-  const handleQuotePriceChange = (requestId, value) => {
-    setQuotes({ ...quotes, [requestId]: value });
+  // Submit contract customization
+  const handleSaveContract = async (requestId) => {
+    setContractLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/special-requests/${requestId}/contract`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contractContent
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      alert(data.message);
+      setSelectedContractId(null);
+      await fetchAdminData();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setContractLoading(false);
+    }
+  };
+
+  // Helper methods for dynamic quote items
+  const addQuoteRow = () => {
+    setQuoteRows([...quoteRows, { article: '', price: 0, quantity: 1, total: 0 }]);
+  };
+
+  const removeQuoteRow = (index) => {
+    const next = [...quoteRows];
+    next.splice(index, 1);
+    setQuoteRows(next);
+    recalcQuoteTotal(next);
+  };
+
+  const updateQuoteRow = (index, field, value) => {
+    const next = [...quoteRows];
+    const row = { ...next[index] };
+    if (field === 'price') {
+      row.price = parseFloat(value) || 0;
+      row.total = row.price * row.quantity;
+    } else if (field === 'quantity') {
+      row.quantity = parseInt(value) || 0;
+      row.total = row.price * row.quantity;
+    } else {
+      row[field] = value;
+    }
+    next[index] = row;
+    setQuoteRows(next);
+    recalcQuoteTotal(next);
+  };
+
+  const recalcQuoteTotal = (rows) => {
+    const tot = rows.reduce((acc, r) => acc + (r.price * r.quantity), 0);
+    setQuoteTotal(tot);
+  };
+
+  const handleStartQuote = (req) => {
+    setActiveQuoteId(req.id);
+    setQuoteRows([{ article: req.description, price: 0, quantity: req.quantity, total: 0 }]);
+    setQuoteNotes('');
+    setQuoteTotal(0);
+  };
+
+  const handleStartContractEdit = (req) => {
+    setSelectedContractId(req.id);
+    setContractContent(req.contract_content || '');
   };
 
   // Trigger simulated WhatsApp relance message
@@ -481,7 +565,7 @@ function DashboardAdmin() {
             <h3 className="font-bold text-white text-lg">Chiffrage des Commandes Spéciales</h3>
           </div>
 
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-[700px] overflow-y-auto pr-1">
             {specialRequests.filter(r => r.status === 'SUBMITTED').length === 0 ? (
               <p className="text-zinc-500 text-xs text-center py-10 border border-dashed border-border-custom rounded-lg bg-bg-deepest">
                 Aucune commande sur-mesure en attente de tarification.
@@ -499,31 +583,200 @@ function DashboardAdmin() {
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded bg-surface-custom/30 border border-border-custom/50 text-xs text-zinc-300 space-y-2">
-                    <p className="font-semibold text-zinc-400">Description du Mobilier :</p>
-                    <p className="leading-relaxed font-mono text-[11px]">{req.description}</p>
-                    <p className="font-semibold text-zinc-400 pt-1">Quantité : {req.quantity} article(s)</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3.5 rounded bg-surface-custom/30 border border-border-custom/50 text-xs text-zinc-300 space-y-2">
+                      <p className="font-semibold text-zinc-400">Description du Mobilier :</p>
+                      <p className="leading-relaxed font-mono text-[11px]">{req.description}</p>
+                      <p className="font-semibold text-zinc-400 pt-1">Quantité demandée : {req.quantity} article(s)</p>
+                    </div>
+                    {req.image_url && (
+                      <div className="flex items-center gap-2 border border-border-custom/50 rounded-lg p-2 bg-surface-custom/10">
+                        <img src={req.image_url} alt="Modèle demandé" className="w-28 h-28 object-cover rounded-lg border border-border-custom" />
+                        <span className="text-[10px] text-zinc-500">Image jointe par le client</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Estimation Input Form */}
-                  <div className="flex items-center gap-3 border-t border-border-custom/50 pt-3">
-                    <div className="flex-1">
-                      <input
-                        type="number"
-                        placeholder="Estimation Coût (FCFA)"
-                        value={quotes[req.id] || ''}
-                        onChange={(e) => handleQuotePriceChange(req.id, e.target.value)}
-                        className="w-full px-3 py-2 rounded bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom"
-                      />
+                  {activeQuoteId === req.id ? (
+                    <div className="space-y-4 border-t border-border-custom/40 pt-4">
+                      <p className="text-xs font-bold text-amber-500 uppercase tracking-wider">Création du Devis Quantitatif</p>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-border-custom text-zinc-450 uppercase text-[10px]">
+                              <th className="py-2 pr-2">Article / Modèle</th>
+                              <th className="py-2 px-2 w-28">Prix Unit. (FCFA)</th>
+                              <th className="py-2 px-2 w-20">Quantité</th>
+                              <th className="py-2 pl-2 w-32 text-right">Total</th>
+                              <th className="py-2 pl-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border-custom/30">
+                            {quoteRows.map((row, idx) => (
+                              <tr key={idx}>
+                                <td className="py-2 pr-2">
+                                  <input
+                                    type="text"
+                                    required
+                                    value={row.article}
+                                    onChange={(e) => updateQuoteRow(idx, 'article', e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs text-white"
+                                    placeholder="Libellé de l'article"
+                                  />
+                                </td>
+                                <td className="py-2 px-2">
+                                  <input
+                                    type="number"
+                                    required
+                                    min="0"
+                                    value={row.price}
+                                    onChange={(e) => updateQuoteRow(idx, 'price', e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs text-white"
+                                  />
+                                </td>
+                                <td className="py-2 px-2">
+                                  <input
+                                    type="number"
+                                    required
+                                    min="1"
+                                    value={row.quantity}
+                                    onChange={(e) => updateQuoteRow(idx, 'quantity', e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs text-white"
+                                  />
+                                </td>
+                                <td className="py-2 pl-2 text-right font-mono text-zinc-300 font-semibold">
+                                  {Number(row.total).toLocaleString('fr-FR')} FCFA
+                                </td>
+                                <td className="py-2 pl-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeQuoteRow(idx)}
+                                    className="text-red-500 hover:text-red-400 text-xs"
+                                  >✕</button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="flex justify-between items-center bg-zinc-900/30 p-3 rounded border border-border-custom/50">
+                        <button
+                          type="button"
+                          onClick={addQuoteRow}
+                          className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-750 text-white text-xs font-semibold"
+                        >
+                          + Ajouter une ligne
+                        </button>
+                        <div className="text-right">
+                          <span className="text-[10px] text-zinc-500 uppercase block font-semibold">Montant global calculé</span>
+                          <span className="text-lg font-black text-white font-mono">{quoteTotal.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-zinc-500 font-bold uppercase">Notes sur le devis / Mentions</label>
+                        <textarea
+                          rows={2}
+                          value={quoteNotes}
+                          onChange={(e) => setQuoteNotes(e.target.value)}
+                          placeholder="Ex: Garantie de 2 ans incluse. Bois de noyer traité..."
+                          className="w-full px-3 py-2 rounded bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs resize-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => setActiveQuoteId(null)}
+                          className="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-750 text-white text-xs font-semibold cursor-pointer"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={() => handleSendQuote(req.id)}
+                          disabled={quoteLoading}
+                          className="px-5 py-2 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                        >
+                          <Send size={12} /> Émettre et Envoyer le Devis
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleSendQuote(req.id)}
-                      disabled={quoteLoading}
-                      className="px-4 py-2 rounded bg-primary-custom hover:bg-primary-hover text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
-                    >
-                      <Send size={12} /> Émettre le Devis
-                    </button>
+                  ) : (
+                    <div className="flex justify-end border-t border-border-custom/50 pt-3">
+                      <button
+                        onClick={() => handleStartQuote(req)}
+                        className="px-4 py-2 rounded bg-primary-custom hover:bg-primary-hover text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        ⚡ Commencer le chiffrage
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* CONTRACT CUSTOMIZER PANEL */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Award size={18} className="text-zinc-400" />
+            <h3 className="font-bold text-white text-lg">Édition & Personnalisation des Contrats</h3>
+          </div>
+
+          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+            {specialRequests.filter(r => r.status === 'QUOTED' || r.status === 'APPROVED').length === 0 ? (
+              <p className="text-zinc-500 text-xs text-center py-10 border border-dashed border-border-custom rounded-lg bg-bg-deepest">
+                Aucun contrat disponible pour personnalisation (les devis doivent d'abord être émis).
+              </p>
+            ) : (
+              specialRequests.filter(r => r.status === 'QUOTED' || r.status === 'APPROVED').map((req) => (
+                <div key={req.id} className="p-5 rounded-lg bg-bg-deepest border border-border-custom space-y-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Société : {req.company.denomination_sociale}</h4>
+                      <p className="text-[11px] text-zinc-500 mt-0.5">Montant : {Number(req.estimated_price).toLocaleString('fr-FR')} FCFA · Statut : {req.status}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${req.status === 'APPROVED' ? 'bg-emerald-950 text-emerald-400' : 'bg-amber-950 text-amber-400'}`}>
+                      {req.status === 'APPROVED' ? 'CONTRAT SIGNÉ' : 'DEVIS ÉMIS'}
+                    </span>
                   </div>
+
+                  {selectedContractId === req.id ? (
+                    <div className="space-y-3">
+                      <textarea
+                        rows={10}
+                        value={contractContent}
+                        onChange={(e) => setContractContent(e.target.value)}
+                        className="w-full p-3 rounded bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs font-mono leading-relaxed resize-y"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setSelectedContractId(null)}
+                          className="px-4 py-2 rounded bg-zinc-850 hover:bg-zinc-800 text-white text-xs font-semibold cursor-pointer"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={() => handleSaveContract(req.id)}
+                          disabled={contractLoading}
+                          className="px-4 py-2 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold cursor-pointer transition-colors"
+                        >
+                          {contractLoading ? 'Enregistrement...' : 'Sauvegarder le contrat personnalisé'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => handleStartContractEdit(req)}
+                        className="px-4 py-2 rounded bg-surface-custom border border-border-custom hover:bg-zinc-800 text-zinc-300 text-xs font-semibold cursor-pointer transition-all"
+                      >
+                        ✍️ Éditer / Personnaliser le contrat
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             )}

@@ -960,30 +960,70 @@ function DashboardClient({ user }) {
                           </div>
                         </div>
                         {isQuoted && req.estimated_price && (
-                          <div className="rounded-lg bg-amber-950/20 border border-amber-800/40 p-4 space-y-3">
-                            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">📩 Proposition de Devis GMD</p>
-                            <div className="flex items-center justify-between">
+                          <div className="rounded-lg bg-amber-950/20 border border-amber-800/40 p-4 space-y-4">
+                            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">📩 Proposition de Devis Détaillée GMD</p>
+                            
+                            {/* Devis Quantitatif Table */}
+                            {req.quote_items && Array.isArray(req.quote_items) && (
+                              <div className="overflow-x-auto border-t border-b border-amber-900/30 py-2 my-2">
+                                <table className="w-full text-left text-[11px]">
+                                  <thead>
+                                    <tr className="text-zinc-550 uppercase text-[9px] font-semibold">
+                                      <th className="py-1">Désignation</th>
+                                      <th className="py-1 text-center w-12">Qté</th>
+                                      <th className="py-1 text-right w-24">P.U (FCFA)</th>
+                                      <th className="py-1 text-right w-28">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-amber-900/10 text-zinc-300">
+                                    {req.quote_items.map((item, idx) => (
+                                      <tr key={idx}>
+                                        <td className="py-1 font-medium">{item.article}</td>
+                                        <td className="py-1 text-center">{item.quantity}</td>
+                                        <td className="py-1 text-right font-mono">{Number(item.price).toLocaleString('fr-FR')}</td>
+                                        <td className="py-1 text-right font-mono font-semibold text-white">{Number(item.total).toLocaleString('fr-FR')}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                            {req.quote_notes && (
+                              <div className="text-[11px] text-zinc-400 bg-black/30 p-2.5 rounded border border-amber-950/40">
+                                <span className="font-bold text-amber-500 uppercase text-[9px] block mb-1">Notes administratives :</span>
+                                <p className="leading-relaxed whitespace-pre-line">{req.quote_notes}</p>
+                              </div>
+                            )}
+
+                            {req.contract_content && (
+                              <div className="text-[10px] text-zinc-450 bg-black/40 p-3 rounded-lg border border-zinc-800/80 font-mono space-y-1">
+                                <span className="font-bold text-zinc-400 uppercase text-[9px] block border-b border-zinc-800 pb-1 mb-1">📜 Aperçu du Contrat de Vente</span>
+                                <p className="leading-relaxed whitespace-pre-line">{req.contract_content}</p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between border-t border-amber-900/30 pt-3">
                               <div>
-                                <p className="text-[10px] text-zinc-500 font-semibold uppercase">Montant proposé</p>
+                                <p className="text-[10px] text-zinc-500 font-semibold uppercase">Total Devis</p>
                                 <p className="text-xl font-black text-white font-mono">
                                   {Number(req.estimated_price).toLocaleString('fr-FR')}
                                   <span className="text-xs text-zinc-400 ml-1 font-normal">FCFA</span>
                                 </p>
                               </div>
                               <div className="text-right text-[9px] text-zinc-500">
-                                <p>Pour {req.quantity} article{req.quantity > 1 ? 's' : ''}</p>
-                                <p className="font-bold text-zinc-400">
-                                  ≈ {(Number(req.estimated_price) / req.quantity).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA/unité
-                                </p>
+                                <p>Payable en échelonnement</p>
+                                <p className="font-bold text-zinc-400">1/3 d'acompte + 2/3 crédit</p>
                               </div>
                             </div>
+
                             <div className="grid grid-cols-2 gap-2 pt-1">
                               <button
                                 onClick={() => handleApproveQuote(req.id)}
                                 disabled={paymentLoading}
                                 className="py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
                               >
-                                <Check size={13} /> Accepter le devis
+                                <Check size={13} /> Signer et Accepter le devis
                               </button>
                               <button
                                 disabled
@@ -992,15 +1032,23 @@ function DashboardClient({ user }) {
                                 ✕ Refuser
                               </button>
                             </div>
-                            <p className="text-[9px] text-zinc-600 text-center">En acceptant, vous confirmez la commande avec paiement échelonné.</p>
+                            <p className="text-[9px] text-zinc-650 text-center">En acceptant, vous signez le contrat affiché ci-dessus.</p>
                           </div>
                         )}
                         {isApproved && req.estimated_price && (
-                          <div className="rounded-lg bg-emerald-950/20 border border-emerald-800/40 px-4 py-3 flex items-center justify-between">
-                            <span className="text-[10px] text-emerald-400 font-semibold">Commande confirmée</span>
-                            <span className="font-bold text-white font-mono text-sm">
-                              {Number(req.estimated_price).toLocaleString('fr-FR')} FCFA
-                            </span>
+                          <div className="rounded-lg bg-emerald-950/10 border border-emerald-800/30 p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">✅ COMMANDE APPROUVÉE & CONTRAT SIGNÉ</span>
+                              <span className="font-bold text-white font-mono text-sm">
+                                {Number(req.estimated_price).toLocaleString('fr-FR')} FCFA
+                              </span>
+                            </div>
+                            {req.contract_content && (
+                              <details className="mt-2 text-[10px] text-zinc-500 bg-black/10 p-2.5 rounded border border-zinc-900 font-mono">
+                                <summary className="cursor-pointer hover:text-zinc-300 font-bold uppercase tracking-wider text-[9px]">Afficher le contrat signé</summary>
+                                <p className="mt-2 leading-relaxed whitespace-pre-line text-zinc-400">{req.contract_content}</p>
+                              </details>
+                            )}
                           </div>
                         )}
                       </div>
