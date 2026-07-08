@@ -5,6 +5,7 @@ const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { checkAndDeactivateCompany } = require('../utils/autoDeactivate');
+const { sendAccountCreatedEmail } = require('../utils/emailService');
 
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
