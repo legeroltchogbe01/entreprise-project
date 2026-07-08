@@ -7,8 +7,13 @@ import { API_URL } from '../config';
 function KYCDeactivationTimer({ company, wallet }) {
   const [timeLeft, setTimeLeft] = useState('');
 
+  console.log("KYCDeactivationTimer Props:", {
+    company_activated_at: company?.activated_at,
+    wallet_activated_at: wallet?.activated_at
+  });
+
   useEffect(() => {
-    if (!company.activated_at || (wallet && wallet.activated_at)) {
+    if (!company?.activated_at || (wallet && wallet.activated_at)) {
       return;
     }
 
@@ -33,9 +38,9 @@ function KYCDeactivationTimer({ company, wallet }) {
     calculateTime();
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
-  }, [company.activated_at, wallet?.activated_at]);
+  }, [company?.activated_at, wallet?.activated_at]);
 
-  if (!company.activated_at || (wallet && wallet.activated_at)) {
+  if (!company?.activated_at || (wallet && wallet.activated_at)) {
     return null;
   }
 

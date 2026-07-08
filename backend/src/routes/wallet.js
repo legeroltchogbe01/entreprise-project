@@ -14,7 +14,8 @@ router.get('/:companyId', async (req, res) => {
         company: {
           select: {
             denomination_sociale: true,
-            kyc_status: true
+            kyc_status: true,
+            activated_at: true
           }
         }
       }
@@ -38,7 +39,8 @@ router.get('/:companyId', async (req, res) => {
           company: {
             select: {
               denomination_sociale: true,
-              kyc_status: true
+              kyc_status: true,
+              activated_at: true
             }
           }
         }
