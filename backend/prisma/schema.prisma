@@ -116,6 +116,11 @@ model Category {
   created_at DateTime @default(now())
 }
 
+model SystemSetting {
+  key   String @id
+  value String
+}
+
 model Order {
   id               String      @id @default(uuid())
   company_id       String

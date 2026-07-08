@@ -80,26 +80,111 @@ router.post('/activate/:id', async (req, res) => {
       return res.status(400).json({ error: 'Ce portefeuille a déjà été activé financièrement.' });
     }
 
-    // Set balances
+    // Set balances based on global SystemSetting
+    const minActivationSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'MIN_ACTIVATION_DEPOSIT' }
+    });
+    const acompte = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
+    const credit = acompte * 2.0;
+
     const updatedWallet = await prisma.wallet.update({
       where: { id: wallet.id },
       data: {
-        acompte_initial: 5000000.00,
-        acompte_restant: 5000000.00,
-        credit_initial: 10000000.00,
+        acompte_initial: acompte,
+        acompte_restant: acompte,
+        credit_initial: credit,
         credit_utilise: 0.00,
         activated_at: new Date()
       }
     });
 
     res.json({
-      message: 'Portefeuille activé avec succès. Apport initial de 5 000 000 FCFA reçu et ligne de crédit de 10 000 000 FCFA débloquée.',
+      message: `Portefeuille activé avec succès. Apport initial de ${acompte.toLocaleString('fr-FR')} FCFA reçu (1/3) et ligne de crédit de ${credit.toLocaleString('fr-FR')} FCFA débloquée (2/3).`,
       wallet: updatedWallet
     });
 
   } catch (error) {
     console.error('Wallet activation error:', error);
     res.status(500).json({ error: 'Erreur lors de l\'activation financière du portefeuille.' });
+  }
+});
+
+// Recharge Wallet via Kkiapay (Adds to acompte_restant and acompte_initial)
+router.post('/recharge', async (req, res) => {
+  try {
+    const { companyId, transactionId, amount } = req.body;
+
+    if (!companyId || !transactionId || !amount) {
+      return res.status(400).json({ error: 'Informations de rechargement incomplètes.' });
+    }
+
+    // 1. Verify transaction via Kkiapay SDK
+    const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
+    const k = kkiapay({
+      privatekey: process.env.KKIAPAY_PRIVATE_KEY,
+      publickey: process.env.KKIAPAY_PUBLIC_KEY,
+      secretkey: process.env.KKIAPAY_SECRET_KEY,
+      sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+    });
+
+    let verifyResponse;
+    try {
+      verifyResponse = await k.verify(transactionId);
+    } catch (e) {
+      console.error('Kkiapay SDK verify error:', e);
+      return res.status(400).json({ error: 'Échec de la validation de la transaction auprès de Kkiapay.' });
+    }
+
+    if (!verifyResponse || verifyResponse.status !== 'SUCCESS') {
+      return res.status(400).json({ error: `La transaction Kkiapay n'a pas réussi. Statut: ${verifyResponse ? verifyResponse.status : 'INCONNU'}` });
+    }
+
+    const verifiedAmount = parseFloat(verifyResponse.amount);
+    if (Math.abs(verifiedAmount - parseFloat(amount)) > 10) { // Allow tiny variance due to conversion or processing fee if any
+      return res.status(400).json({ error: `Montant de la transaction incohérent. Requis: ${amount} FCFA, Reçu: ${verifiedAmount} FCFA.` });
+    }
+
+    // 2. Fetch company and wallet
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      include: { wallet: true }
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: 'Entreprise introuvable.' });
+    }
+
+    let wallet = company.wallet;
+    if (!wallet) {
+      // Create wallet if it somehow doesn't exist
+      wallet = await prisma.wallet.create({
+        data: {
+          company_id: companyId,
+          acompte_initial: 0,
+          acompte_restant: 0,
+          credit_initial: 0,
+          credit_utilise: 0
+        }
+      });
+    }
+
+    // 3. Update balance
+    const updatedWallet = await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        acompte_initial: Number(wallet.acompte_initial) + verifiedAmount,
+        acompte_restant: Number(wallet.acompte_restant) + verifiedAmount
+      }
+    });
+
+    res.json({
+      message: `Votre portefeuille a été approvisionné de ${verifiedAmount.toLocaleString('fr-FR')} FCFA avec succès.`,
+      wallet: updatedWallet
+    });
+
+  } catch (error) {
+    console.error('Recharge wallet error:', error);
+    res.status(500).json({ error: 'Erreur interne lors du rechargement de votre portefeuille.' });
   }
 });
 

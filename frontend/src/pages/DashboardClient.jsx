@@ -3,6 +3,57 @@ import { useLocation } from 'react-router-dom';
 import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye } from 'lucide-react';
 import { API_URL } from '../config';
 
+// ─── MINUTERIE DÉS-ACTIVATION 48H ──────────────────────────────────────────
+function KYCDeactivationTimer({ company, wallet }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    if (!company.activated_at || (wallet && wallet.activated_at)) {
+      return;
+    }
+
+    const calculateTime = () => {
+      const approvedAt = new Date(company.activated_at).getTime();
+      const limit = approvedAt + 48 * 60 * 60 * 1000; // 48 hours
+      const now = Date.now();
+      const diff = limit - now;
+
+      if (diff <= 0) {
+        setTimeLeft('Temps écoulé');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [company.activated_at, wallet?.activated_at]);
+
+  if (!company.activated_at || (wallet && wallet.activated_at)) {
+    return null;
+  }
+
+  return (
+    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-900/50 text-amber-300 flex items-center justify-between gap-4 shadow-lg shadow-amber-950/10">
+      <div className="space-y-1">
+        <p className="text-xs font-bold uppercase tracking-wider text-amber-400">⏳ Activation requise sous 48h</p>
+        <p className="text-[11px] text-zinc-400 leading-relaxed">
+          Pour préserver l'accès à vos tarifs Gold B2B, veuillez effectuer le dépôt initial avant la fin du décompte.
+        </p>
+      </div>
+      <div className="bg-amber-950/60 border border-amber-800/40 rounded-lg px-3.5 py-2 flex items-center justify-center shrink-0">
+        <span className="font-mono text-sm font-black tracking-wider text-white">{timeLeft || 'Calcul...'}</span>
+      </div>
+    </div>
+  );
+}
+
 function DashboardClient({ user }) {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -209,6 +260,9 @@ function DashboardClient({ user }) {
         {/* ── ONGLET PROFIL : CONTIENT TOUT COMME AVANT ── */}
         {activeTab === 'profil' && (
           <div className="space-y-5">
+            {wallet && wallet.company && (
+              <KYCDeactivationTimer company={wallet.company} wallet={wallet} />
+            )}
             {/* ── PAYMENT CARD ──────────── */}
             <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-lg">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

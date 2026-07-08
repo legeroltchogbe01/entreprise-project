@@ -67,6 +67,10 @@ function DashboardAdmin() {
   const [editProductCustomValues, setEditProductCustomValues] = useState({});
   const [editProductLoading, setEditProductLoading] = useState(false);
 
+  // Wallet Activation & System Settings States
+  const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
+  const [walletLoading, setWalletLoading] = useState(false);
+
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -115,6 +119,11 @@ function DashboardAdmin() {
       const catRes = await fetch(`${API_URL}/api/admin/categories`);
       const catData = await catRes.json();
       if (catRes.ok) setCategories(catData);
+
+      // Fetch Settings
+      const setRes = await fetch(`${API_URL}/api/admin/settings`);
+      const setData = await setRes.json();
+      if (setRes.ok) setMinActivationDeposit(setData.minActivationDeposit);
 
     } catch (err) {
       console.error(err);
@@ -345,6 +354,61 @@ function DashboardAdmin() {
     } catch (err) {
       console.error(err);
       alert(err.message);
+    }
+  };
+
+  const handleActivateWallet = async (companyId) => {
+    if (!window.confirm("Voulez-vous vraiment activer le portefeuille de cette entreprise ?")) return;
+    setWalletLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/wallets/activate/${companyId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      alert(data.message);
+      await fetchAdminData();
+      setSelectedCompany(prev => {
+        if (prev && prev.id === companyId) {
+          return {
+            ...prev,
+            wallet: data.wallet
+          };
+        }
+        return prev;
+      });
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Erreur lors de l'activation financière.");
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    if (!minActivationDeposit || parseFloat(minActivationDeposit) <= 0) {
+      alert("Veuillez saisir un montant d'activation minimum valide.");
+      return;
+    }
+    setWalletLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minActivationDeposit: parseFloat(minActivationDeposit) })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      alert(data.message);
+      await fetchAdminData();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Erreur lors de la mise à jour des paramètres.');
+    } finally {
+      setWalletLoading(false);
     }
   };
 
@@ -596,7 +660,8 @@ function DashboardAdmin() {
           { id: 'devis', label: '⚡ Chiffrage Devis' },
           { id: 'contracts', label: '📜 Édition Contrats' },
           { id: 'risk', label: '📊 Risque & Créances' },
-          { id: 'products', label: '📦 Catalogue Produits' }
+          { id: 'products', label: '📦 Catalogue Produits' },
+          { id: 'settings', label: '⚙️ Paramètres' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -1397,6 +1462,51 @@ function DashboardAdmin() {
       </div>
       )}
 
+      {/* SETTINGS PANEL */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <ShieldCheck size={18} className="text-zinc-400" />
+            <h3 className="font-bold text-white text-lg">Paramètres Généraux du Système</h3>
+          </div>
+
+          <div className="p-6 rounded-lg bg-bg-deepest border border-border-custom space-y-6">
+            <form onSubmit={handleSaveSettings} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">
+                  Montant minimum d'activation du portefeuille (FCFA) *
+                </label>
+                <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 w-full sm:w-80">
+                  <input
+                    type="number"
+                    required
+                    min="1000"
+                    value={minActivationDeposit}
+                    onChange={(e) => setMinActivationDeposit(e.target.value)}
+                    className="bg-transparent border-0 text-white font-mono text-sm w-full focus:outline-none focus:ring-0 text-right"
+                  />
+                  <span className="text-zinc-500 text-xs ml-2 font-bold">FCFA</span>
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">
+                  Ce montant définit le dépôt d'acompte (1/3) minimal exigé pour l'activation. 
+                  La ligne de crédit associée sera fixée au double (2/3), portant la capacité totale à **{Number(minActivationDeposit * 3).toLocaleString('fr-FR')} FCFA** (le triple).
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-900 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={walletLoading}
+                  className="px-5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-950/20"
+                >
+                  {walletLoading ? 'Sauvegarde...' : '✓ Enregistrer les configurations'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ── PRODUCT EDIT MODAL ── */}
       {editingProduct && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm overflow-y-auto">
@@ -1655,6 +1765,62 @@ function DashboardAdmin() {
                 </div>
               </div>
 
+            </div>
+
+            {/* ── SECTION 04: PORTEFEUILLE FINANCIER ── */}
+            <div className="mt-6 p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
+              <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2 flex justify-between items-center">
+                <span>04. Situation du Portefeuille Financier</span>
+                {selectedCompany.wallet && selectedCompany.wallet.activated_at ? (
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 font-bold uppercase">
+                    Actif depuis le {new Date(selectedCompany.wallet.activated_at).toLocaleDateString('fr-FR')}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-amber-950/40 text-amber-400 border border-amber-900/40 font-bold uppercase">
+                    Non Activé Financièrement
+                  </span>
+                )}
+              </h4>
+
+              {selectedCompany.wallet && selectedCompany.wallet.activated_at ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Acompte Initial (1/3)</span>
+                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Acompte Restant</span>
+                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.acompte_restant).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Ligne de Crédit (2/3)</span>
+                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Crédit Consommé</span>
+                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded bg-zinc-950/50 border border-zinc-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs text-zinc-300">
+                      Ce portefeuille n'est pas encore activé financièrement.
+                    </p>
+                    <p className="text-[10px] text-zinc-500">
+                      Le dépôt d'acompte initial requis (configuré globalement) est de <strong className="text-white font-mono">{Number(minActivationDeposit).toLocaleString('fr-FR')} FCFA</strong>. La ligne de crédit associée sera fixée au double ({Number(minActivationDeposit * 2).toLocaleString('fr-FR')} FCFA).
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleActivateWallet(selectedCompany.id)}
+                    disabled={walletLoading}
+                    className="px-4 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-950/20"
+                  >
+                    🚀 {walletLoading ? 'Activation...' : 'Activer le Portefeuille'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Documents Section at bottom of modal */}

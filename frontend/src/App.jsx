@@ -35,12 +35,27 @@ function AppLayout({ user, setUser, cart, setCart }) {
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
-  /* Fetch wallet when user logs in */
+  /* Fetch wallet when user logs in and sync KYC status */
   useEffect(() => {
     if (user?.role === 'CLIENT' && user?.company?.id) {
       fetch(`${API_URL}/api/wallets/${user.company.id}`)
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) setWallet(d); })
+        .then(d => { 
+          if (d) {
+            setWallet(d);
+            if (d.company && d.company.kyc_status !== user.company?.kyc_status) {
+              const updatedUser = {
+                ...user,
+                company: {
+                  ...user.company,
+                  kyc_status: d.company.kyc_status
+                }
+              };
+              setUser(updatedUser);
+              localStorage.setItem('gmd_user', JSON.stringify(updatedUser));
+            }
+          }
+        })
         .catch(() => {});
     }
   }, [user]);

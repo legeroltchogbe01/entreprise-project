@@ -48,7 +48,11 @@ router.post('/', async (req, res) => {
 
     const wallet = company.wallet;
     if (!wallet || !wallet.activated_at) {
-      return res.status(400).json({ error: 'Votre portefeuille n\'a pas été activé financièrement. Veuillez effectuer le dépôt de démarrage de 5 000 000 FCFA.' });
+      const minActivationSetting = await prisma.systemSetting.findUnique({
+        where: { key: 'MIN_ACTIVATION_DEPOSIT' }
+      });
+      const minDeposit = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
+      return res.status(400).json({ error: `Votre portefeuille n'a pas été activé financièrement. Veuillez effectuer le dépôt de démarrage de ${minDeposit.toLocaleString('fr-FR')} FCFA.` });
     }
 
     // 1. Check 8-Month Safeguard Veto Rule
@@ -183,7 +187,11 @@ router.post('/', async (req, res) => {
 router.post('/:orderId/pay-installment', async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { installmentNumber } = req.body;
+    const { installmentNumber, transactionId } = req.body;
+
+    if (!transactionId) {
+      return res.status(400).json({ error: 'Identifiant de transaction Kkiapay requis pour régler l\'échéance.' });
+    }
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -203,6 +211,34 @@ router.post('/:orderId/pay-installment', async (req, res) => {
 
     if (targetInstallment.paid) {
       return res.status(400).json({ error: 'Cette échéance est déjà payée.' });
+    }
+
+    // Verify transaction via Kkiapay SDK
+    const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
+    const k = kkiapay({
+      privatekey: process.env.KKIAPAY_PRIVATE_KEY,
+      publickey: process.env.KKIAPAY_PUBLIC_KEY,
+      secretkey: process.env.KKIAPAY_SECRET_KEY,
+      sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+    });
+
+    let verifyResponse;
+    try {
+      verifyResponse = await k.verify(transactionId);
+    } catch (e) {
+      console.error('Kkiapay SDK verify error:', e);
+      return res.status(400).json({ error: 'Échec de la validation de la transaction auprès de Kkiapay.' });
+    }
+
+    if (!verifyResponse || verifyResponse.status !== 'SUCCESS') {
+      return res.status(400).json({ error: `La transaction Kkiapay n'a pas réussi. Statut: ${verifyResponse ? verifyResponse.status : 'INCONNU'}` });
+    }
+
+    const verifiedAmount = parseFloat(verifyResponse.amount);
+    const amountToPay = targetInstallment.amount;
+
+    if (Math.abs(verifiedAmount - amountToPay) > 10) { // allow tiny variance
+       return res.status(400).json({ error: `Montant de transaction incorrect. Requis: ${amountToPay} FCFA, Reçu: ${verifiedAmount} FCFA.` });
     }
 
     // Mark as paid

@@ -347,4 +347,45 @@ router.delete('/categories/:id', async (req, res) => {
   }
 });
 
+// ── Global System Settings ─────────────────────────────────────────
+// GET system settings
+router.get('/settings', async (req, res) => {
+  try {
+    const minActivationSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'MIN_ACTIVATION_DEPOSIT' }
+    });
+    const value = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
+    res.json({ minActivationDeposit: value });
+  } catch (error) {
+    console.error('Fetch settings error:', error);
+    res.status(500).json({ error: 'Erreur lors du chargement des configurations.' });
+  }
+});
+
+// UPDATE system settings
+router.post('/settings', async (req, res) => {
+  try {
+    const { minActivationDeposit } = req.body;
+    if (minActivationDeposit === undefined || isNaN(parseFloat(minActivationDeposit))) {
+      return res.status(400).json({ error: 'Le montant minimum d\'activation est invalide.' });
+    }
+
+    const valueStr = String(parseFloat(minActivationDeposit));
+
+    const setting = await prisma.systemSetting.upsert({
+      where: { key: 'MIN_ACTIVATION_DEPOSIT' },
+      update: { value: valueStr },
+      create: { key: 'MIN_ACTIVATION_DEPOSIT', value: valueStr }
+    });
+
+    res.json({
+      message: 'Configurations système mises à jour avec succès.',
+      minActivationDeposit: parseFloat(setting.value)
+    });
+  } catch (error) {
+    console.error('Update settings error:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour des configurations.' });
+  }
+});
+
 module.exports = router;

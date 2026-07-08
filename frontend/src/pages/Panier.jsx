@@ -214,6 +214,34 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   const [expandedDesc, setExpandedDesc] = useState({});
   const [showConditions, setShowConditions] = useState(false);
 
+  if (!user || (user.role === 'CLIENT' && user.company?.kyc_status !== 'APPROVED')) {
+    return (
+      <div className="flex-1 bg-[#0a0a0a] min-h-screen flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute max-w-[400px] w-[60vw] h-[60vw] max-h-[400px] rounded-full bg-red-950/10 blur-[130px] top-1/4 left-1/4"></div>
+        <div className="absolute max-w-[300px] w-[50vw] h-[50vw] max-h-[300px] rounded-full bg-red-950/5 blur-[100px] bottom-1/4 right-1/4"></div>
+
+        <div className="max-w-xl w-full glass-panel p-8 sm:p-10 rounded-2xl border border-zinc-850 text-center space-y-6 shadow-2xl relative z-10">
+          <div className="w-16 h-16 bg-red-950/30 border border-red-800/50 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse shadow-md shadow-red-950/30">
+             <ShoppingCart size={28} />
+          </div>
+          <div className="space-y-3">
+             <h3 className="text-xl sm:text-2xl font-bold text-white tracking-wide">Accès au Panier Restreint</h3>
+             <p className="text-sm text-zinc-400 leading-relaxed">
+               Le panier et les fonctionnalités de passation de commandes sont réservés exclusivement aux entreprises dont le dossier de conformité a été validé et approuvé par l'administration GMD.
+             </p>
+          </div>
+          
+          <div className="pt-4 flex justify-center">
+             <Link to="/" className="px-6 py-2.5 rounded bg-[#cc0000] hover:bg-[#b30000] text-white text-xs font-bold transition-all shadow-md shadow-red-950/20 cursor-pointer">
+                Retour à la Boutique
+             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const activatedAt  = wallet?.activated_at || null;
   const remaining    = calcRemainingMonths(activatedAt);
   const kycApproved  = wallet?.company?.kyc_status === 'APPROVED';
