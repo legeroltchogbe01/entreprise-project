@@ -190,4 +190,89 @@ router.post('/recharge', async (req, res) => {
   }
 });
 
+// Activate Wallet by Client (Initial Recharge via Kkiapay)
+router.post('/activate-client', async (req, res) => {
+  try {
+    const { companyId, transactionId } = req.body;
+
+    if (!companyId || !transactionId) {
+      return res.status(400).json({ error: 'Informations d\'activation incomplètes.' });
+    }
+
+    // 1. Fetch global system settings to get minimum activation deposit required
+    const minActivationSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'MIN_ACTIVATION_DEPOSIT' }
+    });
+    const requiredDeposit = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
+
+    // 2. Verify transaction via Kkiapay SDK
+    const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
+    const k = kkiapay({
+      privatekey: process.env.KKIAPAY_PRIVATE_KEY,
+      publickey: process.env.KKIAPAY_PUBLIC_KEY,
+      secretkey: process.env.KKIAPAY_SECRET_KEY,
+      sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+    });
+
+    let verifyResponse;
+    try {
+      verifyResponse = await k.verify(transactionId);
+    } catch (e) {
+      console.error('Kkiapay SDK verify error:', e);
+      return res.status(400).json({ error: 'Échec de la validation de la transaction auprès de Kkiapay.' });
+    }
+
+    if (!verifyResponse || verifyResponse.status !== 'SUCCESS') {
+      return res.status(400).json({ error: `La transaction Kkiapay n'a pas réussi. Statut: ${verifyResponse ? verifyResponse.status : 'INCONNU'}` });
+    }
+
+    const verifiedAmount = parseFloat(verifyResponse.amount);
+    if (verifiedAmount < requiredDeposit) {
+      return res.status(400).json({ error: `Le montant payé (${verifiedAmount} FCFA) est inférieur au dépôt d'acompte minimum requis (${requiredDeposit} FCFA).` });
+    }
+
+    // 3. Find wallet
+    let wallet = await prisma.wallet.findUnique({
+      where: { company_id: companyId },
+      include: { company: true }
+    });
+
+    if (!wallet) {
+      return res.status(404).json({ error: 'Portefeuille introuvable.' });
+    }
+
+    if (wallet.company.kyc_status !== 'APPROVED') {
+      return res.status(400).json({ error: 'L\'activation financière requiert l\'approbation préalable du KYC par l\'administration.' });
+    }
+
+    if (wallet.activated_at) {
+      return res.status(400).json({ error: 'Ce portefeuille a déjà été activé financièrement.' });
+    }
+
+    // 4. Activate wallet with verified paid amount as acompte, and double as credit
+    const acompte = verifiedAmount;
+    const credit = acompte * 2.0;
+
+    const updatedWallet = await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        acompte_initial: acompte,
+        acompte_restant: acompte,
+        credit_initial: credit,
+        credit_utilise: 0.00,
+        activated_at: new Date()
+      }
+    });
+
+    res.json({
+      message: `Votre portefeuille a été activé financièrement avec succès ! Apport initial de ${acompte.toLocaleString('fr-FR')} FCFA reçu (1/3) et ligne de crédit de ${credit.toLocaleString('fr-FR')} FCFA débloquée (2/3).`,
+      wallet: updatedWallet
+    });
+
+  } catch (error) {
+    console.error('Client wallet activation error:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'activation financière du portefeuille.' });
+  }
+});
+
 module.exports = router;

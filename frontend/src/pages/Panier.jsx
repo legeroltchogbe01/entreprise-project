@@ -207,6 +207,7 @@ function SidebarSummary({ paymentMode, total, activatedAt }) {
 export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   const [paymentMode, setPaymentMode]   = useState(null);
   const [accepted,    setAccepted]      = useState(false);
+  const [deliveryAccepted, setDeliveryAccepted] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState('');
   const [orderError,   setOrderError]   = useState('');
@@ -501,9 +502,14 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
               {/* Delivery */}
               <div className="space-y-1">
                 <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">Délai de livraison</p>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <div className="w-3 h-3 rounded border border-zinc-600 bg-zinc-900" />
-                  <span className="text-zinc-400 text-[11px]">Livraison max. {getDeliveryDate()}</span>
+                <label className="flex items-center gap-2.5 cursor-pointer group">
+                  <div
+                    onClick={() => setDeliveryAccepted(v => !v)}
+                    className={`icon-btn w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${deliveryAccepted ? 'bg-red-700 border-red-600' : 'bg-zinc-900 border-zinc-700'}`}
+                  >
+                    {deliveryAccepted && <svg width="8" height="6" viewBox="0 0 8 6"><path d="M1 3l1.5 1.5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
+                  </div>
+                  <span className="text-zinc-400 text-[11px] group-hover:text-zinc-200">Livraison max. {getDeliveryDate()}</span>
                 </label>
               </div>
 

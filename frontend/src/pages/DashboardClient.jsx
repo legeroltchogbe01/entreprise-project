@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye } from 'lucide-react';
-import { API_URL } from '../config';
+import { API_URL, KKIAPAY_PUBLIC_KEY } from '../config';
 
 // ─── MINUTERIE DÉS-ACTIVATION 48H ──────────────────────────────────────────
 function KYCDeactivationTimer({ company, wallet }) {
@@ -61,6 +61,7 @@ function DashboardClient({ user }) {
   const activeTab = searchParams.get('tab') || 'profil';
 
   const [wallet, setWallet] = useState(null);
+  const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
   const [orders, setOrders] = useState([]);
   const [specialRequests, setSpecialRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,11 +102,70 @@ function DashboardClient({ user }) {
       if (!sRes.ok) throw new Error(sData.error);
       setSpecialRequests(sData);
 
+      // Fetch global settings for initial deposit
+      const setRes = await fetch(`${API_URL}/api/admin/settings`);
+      const setData = await setRes.json();
+      if (setRes.ok) setMinActivationDeposit(setData.minActivationDeposit);
+
     } catch (err) {
       console.error(err);
       setError(err.message || 'Erreur lors du chargement des données.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleKkiapaySuccess = async (response) => {
+      console.log("Kkiapay callback received:", response);
+      if (response && response.transactionId) {
+        setPaymentLoading(true);
+        try {
+          const res = await fetch(`${API_URL}/api/wallets/activate-client`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyId: user.company.id,
+              transactionId: response.transactionId
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          alert(data.message);
+          await fetchDashboardData();
+        } catch (err) {
+          console.error(err);
+          alert(err.message || "Erreur lors de l'activation du portefeuille.");
+        } finally {
+          setPaymentLoading(false);
+        }
+      }
+    };
+
+    if (window.addKkiapayListener) {
+      window.addKkiapayListener('success', handleKkiapaySuccess);
+    }
+
+    return () => {
+      if (window.removeKkiapayListener) {
+        window.removeKkiapayListener('success', handleKkiapaySuccess);
+      }
+    };
+  }, [user.company.id]);
+
+  const handleOpenActivationPayment = () => {
+    if (typeof window.openKkiapayWidget !== 'undefined') {
+      window.openKkiapayWidget({
+        amount: minActivationDeposit,
+        position: "right",
+        callback: "",
+        data: "activation",
+        key: KKIAPAY_PUBLIC_KEY,
+        sandbox: true
+      });
+    } else {
+      alert("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");
     }
   };
 
@@ -264,90 +324,131 @@ function DashboardClient({ user }) {
             {wallet && wallet.company && (
               <KYCDeactivationTimer company={wallet.company} wallet={wallet} />
             )}
-            {/* ── PAYMENT CARD ──────────── */}
-            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-lg">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                {/* Left Side: Blue circular button with eye icon */}
-                <button
-                  type="button"
-                  className="w-10 h-10 rounded-full bg-[#0082f4] hover:bg-blue-600 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-md transition-colors"
-                >
-                  <Eye size={20} />
-                </button>
+            {/* ── PAYMENT & WALLET CARDS (IF ACTIVE) ── */}
+            {wallet && wallet.activated_at ? (
+              <>
+                {/* ── PAYMENT CARD ──────────── */}
+                <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 shadow-lg">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* Left Side: Blue circular button with eye icon */}
+                    <button
+                      type="button"
+                      className="w-10 h-10 rounded-full bg-[#0082f4] hover:bg-blue-600 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-md transition-colors"
+                    >
+                      <Eye size={20} />
+                    </button>
 
-                {/* Middle: White card */}
-                <div className="flex flex-col items-center">
-                  <div className="bg-white rounded-xl px-6 py-2.5 shadow-md text-center min-w-[185px]">
-                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">PROCHAIN VERSEMENT</p>
-                    <p className="text-lg font-black text-black mt-0.5 text-center">
-                      {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')} FCFA` : '0 FCFA'}
+                    {/* Middle: White card */}
+                    <div className="flex flex-col items-center">
+                      <div className="bg-white rounded-xl px-6 py-2.5 shadow-md text-center min-w-[185px]">
+                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">PROCHAIN VERSEMENT</p>
+                        <p className="text-lg font-black text-black mt-0.5 text-center">
+                          {nextPayment ? `${Number(nextPayment.amount).toLocaleString('fr-FR')} FCFA` : '0 FCFA'}
+                        </p>
+                      </div>
+                      {/* Calendar Pill below the white card */}
+                      <div className="mt-3 flex items-center justify-center">
+                        <span className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5 shadow-inner">
+                          <Calendar size={12} className="text-[#0082f4]" />
+                          {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right Side: Green button "Payer" */}
+                    <button
+                      onClick={() => {
+                        if (nextPayment) {
+                          handlePayInstallment(nextPayment.order_id, nextPayment.installment_number);
+                        }
+                      }}
+                      disabled={paymentLoading || !nextPayment}
+                      className="px-5 py-2.5 rounded-full bg-[#00b450] hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-emerald-950/20 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    >
+                      <CreditCard size={14} /> Payer
+                    </button>
+                  </div>
+                </div>
+
+                {/* Wallet Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
                     </p>
+                    <h3 className="font-bold text-white text-lg font-mono">
+                      {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                    </h3>
+                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary-custom"
+                        style={{ width: `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                      <span>Consommé</span>
+                      <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
                   </div>
-                  {/* Calendar Pill below the white card */}
-                  <div className="mt-3 flex items-center justify-center">
-                    <span className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-400 font-semibold flex items-center gap-1.5 shadow-inner">
-                      <Calendar size={12} className="text-[#0082f4]" />
-                      {nextPayment ? new Date(nextPayment.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pas de date de paiement'}
-                    </span>
+
+                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
+                    </p>
+                    <h3 className="font-bold text-white text-lg font-mono">
+                      {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
+                    </h3>
+                    <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-red-800"
+                        style={{ width: `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
+                      <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
+                      <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : wallet && (
+              /* ── ACTIVATION FINANCIÈRE REQUISE ── */
+              <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-850 shadow-lg text-center space-y-6">
+                <div className="w-14 h-14 bg-red-950/30 border border-red-800/50 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse">
+                  <Wallet2 size={24} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-bold text-white tracking-wide">Dépôt d'Activation Requis</h3>
+                  <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
+                    Votre compte a été approuvé administrativement. Pour commencer vos achats à crédit échelonné, vous devez effectuer le versement de démarrage via notre passerelle de paiement sécurisée.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900 text-left space-y-3.5 max-w-sm mx-auto font-sans">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Dépôt d'activation (1/3) :</span>
+                    <span className="text-white font-mono font-bold">{Number(minActivationDeposit).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Ligne de crédit débloquée (2/3) :</span>
+                    <span className="text-emerald-500 font-mono font-bold">+ {Number(minActivationDeposit * 2).toLocaleString('fr-FR')} FCFA</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs border-t border-zinc-800/80 pt-2">
+                    <span className="text-zinc-400 font-bold">Capacité d'achat totale (3/3) :</span>
+                    <span className="text-white font-mono font-black text-sm">{Number(minActivationDeposit * 3).toLocaleString('fr-FR')} FCFA</span>
                   </div>
                 </div>
 
-                {/* Right Side: Green button "Payer" */}
-                <button
-                  onClick={() => {
-                    if (nextPayment) {
-                      handlePayInstallment(nextPayment.order_id, nextPayment.installment_number);
-                    }
-                  }}
-                  disabled={paymentLoading || !nextPayment}
-                  className="px-5 py-2.5 rounded-full bg-[#00b450] hover:bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-emerald-950/20 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                >
-                  <CreditCard size={14} /> Payer
-                </button>
-              </div>
-            </div>
-
-            {/* Wallet Cards */}
-            {wallet && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
-                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <Wallet2 size={12} className="text-zinc-400" /> Volet Acompte (1/3)
-                  </p>
-                  <h3 className="font-bold text-white text-lg font-mono">
-                    {Number(wallet.acompte_restant).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                  </h3>
-                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary-custom"
-                      style={{ width: wallet.activated_at ? `${(Number(wallet.acompte_restant) / Number(wallet.acompte_initial)) * 100}%` : '0%' }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                    <span>Consommé</span>
-                    <span>Sur {Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
-                  <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <Wallet2 size={12} className="text-zinc-400" /> Volet Crédit (2/3)
-                  </p>
-                  <h3 className="font-bold text-white text-lg font-mono">
-                    {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} <span className="text-[10px] text-zinc-400">FCFA</span>
-                  </h3>
-                  <div className="w-full h-1 bg-surface-custom rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-red-800"
-                      style={{ width: wallet.activated_at ? `${((Number(wallet.credit_initial) - Number(wallet.credit_utilise)) / Number(wallet.credit_initial)) * 100}%` : '0%' }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-[9px] text-zinc-500 font-semibold uppercase">
-                    <span>Dette: {Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
-                    <span>Limite: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
-                  </div>
+                <div className="pt-2">
+                  <button
+                    onClick={handleOpenActivationPayment}
+                    disabled={paymentLoading}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#cc0000] hover:bg-red-700 text-white text-xs font-black tracking-wide uppercase transition-all shadow-md shadow-red-950/20 cursor-pointer disabled:opacity-50"
+                  >
+                    {paymentLoading ? 'Traitement...' : '🚀 Payer le dépôt via Kkiapay'}
+                  </button>
                 </div>
               </div>
             )}

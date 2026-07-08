@@ -424,10 +424,10 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
               {/* Price */}
               <div className="flex items-baseline gap-3 pt-2">
                 <span className="text-3xl font-black text-[#cc0000]">
-                  {Number(selectedProduct.price).toLocaleString('fr-FR')} FCFA
+                  {(Number(selectedProduct.price) * detailQty).toLocaleString('fr-FR')} FCFA
                 </span>
                 <span className="text-sm text-zinc-550 line-through">
-                  {(Number(selectedProduct.price) * 1.15).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
+                  {(Number(selectedProduct.price) * 1.15 * detailQty).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} FCFA
                 </span>
               </div>
 
