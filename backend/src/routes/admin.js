@@ -4,6 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { checkAndDeactivateAllCompanies } = require('../utils/autoDeactivate');
 const cloudinary = require('cloudinary').v2;
+const { sendKycApprovedEmail, sendKycRejectedEmail } = require('../utils/emailService');
 
 // Helper to delete cloudinary resource if we can extract public_id
 async function tryDeleteCloudinaryResource(fileUrl) {
@@ -65,6 +66,18 @@ router.post('/companies/:id/kyc', async (req, res) => {
         activated_at: status === 'APPROVED' ? new Date() : undefined
       }
     });
+
+    // ── Envoi de l'email de notification KYC ──────────────────
+    if (status === 'APPROVED' && company.email) {
+      sendKycApprovedEmail({ to: company.email, denominationSociale: company.denomination_sociale })
+        .then(() => console.log(`[KYC] Email APPROVED envoyé à ${company.email}`))
+        .catch(err => console.error('[KYC] Erreur email APPROVED:', err.message));
+    } else if (status === 'REJECTED' && company.email) {
+      sendKycRejectedEmail({ to: company.email, denominationSociale: company.denomination_sociale })
+        .then(() => console.log(`[KYC] Email REJECTED envoyé à ${company.email}`))
+        .catch(err => console.error('[KYC] Erreur email REJECTED:', err.message));
+    }
+    // ──────────────────────────────────────────────────────────
 
     res.json({
       message: `Statut KYC de l'entreprise mis à jour avec succès : ${status}`,
