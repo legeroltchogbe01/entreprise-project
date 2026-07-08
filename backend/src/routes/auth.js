@@ -237,6 +237,13 @@ router.post('/register', uploadFields, async (req, res) => {
       }
     });
 
+    // ── Email de confirmation de réception du dossier (entreprise + gérant) ──
+    const recipients = [normalizedEmail, normalizedManagerEmail].filter(Boolean).join(', ');
+    sendAccountCreatedEmail({ to: recipients, denominationSociale: denomination_sociale })
+      .then(() => console.log(`[REGISTER] Email de confirmation envoyé à : ${recipients}`))
+      .catch(err => console.error('[REGISTER] Erreur email confirmation:', err.message));
+    // ──────────────────────────────────────────────────────────────────────────
+
     res.status(201).json({
       message: 'Inscription enregistrée avec succès. Votre dossier de conformité est en attente d\'approbation.',
       companyId: company.id
