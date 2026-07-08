@@ -297,4 +297,54 @@ router.delete('/product-fields/:id', async (req, res) => {
   }
 });
 
+// ── Category Management ─────────────────────────────────────────
+// GET all categories
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
+    res.json(categories);
+  } catch (error) {
+    console.error('Fetch categories error:', error);
+    res.status(500).json({ error: 'Erreur lors du chargement des catégories.' });
+  }
+});
+
+// CREATE category
+router.post('/categories', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Le nom de la catégorie est obligatoire.' });
+    }
+
+    const existing = await prisma.category.findUnique({ where: { name: name.trim() } });
+    if (existing) {
+      return res.status(409).json({ error: 'Cette catégorie existe déjà.' });
+    }
+
+    const category = await prisma.category.create({
+      data: { name: name.trim() }
+    });
+    res.status(201).json({ message: 'Catégorie créée avec succès.', category });
+  } catch (error) {
+    console.error('Create category error:', error);
+    res.status(500).json({ error: 'Erreur lors de la création de la catégorie.' });
+  }
+});
+
+// DELETE category
+router.delete('/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.category.delete({ where: { id } });
+    res.json({ message: 'Catégorie supprimée avec succès.' });
+  } catch (error) {
+    console.error('Delete category error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Catégorie introuvable.' });
+    }
+    res.status(500).json({ error: 'Erreur lors de la suppression de la catégorie.' });
+  }
+});
+
 module.exports = router;

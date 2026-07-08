@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon, Edit3, Tag } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardAdmin() {
@@ -52,6 +52,21 @@ function DashboardAdmin() {
   const [newFieldType, setNewFieldType] = useState('text');
   const [fieldLoading, setFieldLoading] = useState(false);
 
+  // Categories States
+  const [categories, setCategories] = useState([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryLoading, setCategoryLoading] = useState(false);
+
+  // Product Edit Modal States
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editProductName, setEditProductName] = useState('');
+  const [editProductDesc, setEditProductDesc] = useState('');
+  const [editProductPrice, setEditProductPrice] = useState('');
+  const [editProductCategory, setEditProductCategory] = useState('');
+  const [editProductImage, setEditProductImage] = useState(null);
+  const [editProductCustomValues, setEditProductCustomValues] = useState({});
+  const [editProductLoading, setEditProductLoading] = useState(false);
+
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -95,6 +110,11 @@ function DashboardAdmin() {
       const fieldsRes = await fetch(`${API_URL}/api/admin/product-fields`);
       const fieldsData = await fieldsRes.json();
       if (fieldsRes.ok) setProductFields(fieldsData);
+
+      // Fetch Categories
+      const catRes = await fetch(`${API_URL}/api/admin/categories`);
+      const catData = await catRes.json();
+      if (catRes.ok) setCategories(catData);
 
     } catch (err) {
       console.error(err);
@@ -392,6 +412,97 @@ function DashboardAdmin() {
     } finally {
       setProductLoading(false);
     }
+  };
+
+  // ── Category Handlers ─────────────────────────────────────────
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) {
+      alert('Veuillez saisir un nom de catégorie');
+      return;
+    }
+    setCategoryLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCategoryName.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur création catégorie');
+      alert(data.message);
+      setNewCategoryName('');
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm('Supprimer cette catégorie ? Les produits existants garderont leur catégorie actuelle.')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/categories/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur suppression catégorie');
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // ── Product Edit Handlers ──────────────────────────────────────
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setEditProductName(product.name);
+    setEditProductDesc(product.description || '');
+    setEditProductPrice(String(product.price));
+    setEditProductCategory(product.category || '');
+    setEditProductImage(null);
+    setEditProductCustomValues(product.custom_data || {});
+  };
+
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
+    if (!editProductName || !editProductPrice) {
+      alert('Le nom et le prix sont obligatoires');
+      return;
+    }
+    setEditProductLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', editProductName);
+      formData.append('description', editProductDesc);
+      formData.append('price', editProductPrice);
+      formData.append('category', editProductCategory);
+      if (Object.keys(editProductCustomValues).length > 0) {
+        formData.append('custom_data', JSON.stringify(editProductCustomValues));
+      }
+      if (editProductImage) {
+        formData.append('image', editProductImage);
+      }
+
+      const res = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
+        method: 'PUT',
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de la modification');
+
+      alert(data.message);
+      setEditingProduct(null);
+      await fetchAdminData();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setEditProductLoading(false);
+    }
+  };
+
+  const handleEditCustomFieldChange = (key, value) => {
+    setEditProductCustomValues(prev => ({ ...prev, [key]: value }));
   };
 
   if (loading) {
@@ -996,8 +1107,60 @@ function DashboardAdmin() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Configuration et Ajout */}
+          {/* Configuration, Catégories et Ajout */}
           <div className="lg:col-span-1 space-y-6">
+
+            {/* ── Section Gestion des Catégories ── */}
+            <div className="p-5 rounded-lg bg-bg-deepest border border-border-custom">
+              <h4 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
+                <Tag size={16} className="text-amber-500" /> Catégories
+              </h4>
+
+              {/* Liste des catégories existantes */}
+              {categories.length > 0 && (
+                <div className="space-y-1.5 mb-4">
+                  {categories.map(cat => (
+                    <div key={cat.id} className="flex items-center justify-between px-3 py-2 rounded bg-surface-custom/50 border border-border-custom/50">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500/60"></span>
+                        <span className="text-xs font-semibold text-white">{cat.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="p-1 rounded hover:bg-red-950/40 text-zinc-500 hover:text-red-400 transition-all cursor-pointer"
+                        title="Supprimer cette catégorie"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {categories.length === 0 && (
+                <p className="text-zinc-500 text-[11px] mb-3 text-center py-3 border border-dashed border-border-custom rounded">
+                  Aucune catégorie créée. Ajoutez-en ci-dessous.
+                </p>
+              )}
+
+              {/* Formulaire de création de catégorie */}
+              <form onSubmit={handleCreateCategory} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nouvelle catégorie..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-amber-500 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={categoryLoading}
+                  className="px-3 py-2 rounded bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                >
+                  <Plus size={12} /> {categoryLoading ? '...' : 'Créer'}
+                </button>
+              </form>
+            </div>
             
             {/* Liste des champs existants avec suppression */}
             {productFields.length > 0 && (
@@ -1077,15 +1240,9 @@ function DashboardAdmin() {
                   className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-primary-custom"
                 >
                   <option value="">-- Sélectionner une catégorie --</option>
-                  <option value="Mobilier de Bureau">Mobilier de Bureau</option>
-                  <option value="Sièges & Fauteuils">Sièges &amp; Fauteuils</option>
-                  <option value="Tables & Bureaux">Tables &amp; Bureaux</option>
-                  <option value="Rangement & Armoires">Rangement &amp; Armoires</option>
-                  <option value="Mobilier d'Accueil">Mobilier d'Accueil</option>
-                  <option value="Mobilier de Salle de Réunion">Mobilier de Salle de Réunion</option>
-                  <option value="Mobilier Extérieur">Mobilier Extérieur</option>
-                  <option value="Décoration & Accessoires">Décoration &amp; Accessoires</option>
-                  <option value="Autre">Autre</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -1167,15 +1324,16 @@ function DashboardAdmin() {
                   <thead>
                     <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
                       <th className="p-4">Produit</th>
+                      <th className="p-4">Catégorie</th>
                       <th className="p-4">Prix</th>
                       <th className="p-4">Date d'ajout</th>
-                      <th className="p-4 text-center">Action</th>
+                      <th className="p-4 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-custom/50 text-zinc-300">
                     {products.length === 0 ? (
                       <tr>
-                        <td colSpan="4" className="p-8 text-center text-zinc-500">
+                        <td colSpan="5" className="p-8 text-center text-zinc-500">
                           Aucun produit dans le catalogue.
                         </td>
                       </tr>
@@ -1197,17 +1355,35 @@ function DashboardAdmin() {
                               </div>
                             </div>
                           </td>
+                          <td className="p-4">
+                            {product.category ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/30 text-amber-400 border border-amber-900/40">
+                                {product.category}
+                              </span>
+                            ) : (
+                              <span className="text-zinc-600 text-[10px]">—</span>
+                            )}
+                          </td>
                           <td className="p-4 font-bold font-mono text-white">{Number(product.price).toLocaleString('fr-FR')} FCFA</td>
                           <td className="p-4 text-zinc-400">{new Date(product.created_at).toLocaleDateString('fr-FR')}</td>
                           <td className="p-4 text-center">
-                            <button
-                              onClick={() => handleDeleteProduct(product.id)}
-                              disabled={productLoading}
-                              className="p-2 rounded bg-red-950/20 text-red-500 hover:bg-red-900/40 hover:text-red-400 transition-colors cursor-pointer"
-                              title="Supprimer ce produit"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            <div className="flex gap-1.5 justify-center">
+                              <button
+                                onClick={() => openEditModal(product)}
+                                className="p-2 rounded bg-blue-950/20 text-blue-400 hover:bg-blue-900/40 hover:text-blue-300 transition-colors cursor-pointer"
+                                title="Modifier ce produit"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(product.id)}
+                                disabled={productLoading}
+                                className="p-2 rounded bg-red-950/20 text-red-500 hover:bg-red-900/40 hover:text-red-400 transition-colors cursor-pointer"
+                                title="Supprimer ce produit"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -1219,6 +1395,129 @@ function DashboardAdmin() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* ── PRODUCT EDIT MODAL ── */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm overflow-y-auto">
+          <div className="modal-scale w-full max-w-lg bg-[#0f0f11] border border-zinc-900 rounded-2xl p-6 sm:p-8 shadow-2xl relative my-8">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6 border-b border-zinc-900 pb-4">
+              <div>
+                <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                  <Edit3 size={18} className="text-blue-400" /> Modifier le produit
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1 font-mono">ID: {editingProduct.id}</p>
+              </div>
+              <button 
+                onClick={() => setEditingProduct(null)}
+                className="icon-btn w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Current image preview */}
+            {editingProduct.image_url && (
+              <div className="mb-4 flex items-center gap-3">
+                <div className="w-16 h-16 rounded-lg bg-surface-custom overflow-hidden border border-border-custom/50 flex-shrink-0">
+                  <img src={editingProduct.image_url} alt={editingProduct.name} className="w-full h-full object-cover" />
+                </div>
+                <span className="text-[10px] text-zinc-500">Image actuelle</span>
+              </div>
+            )}
+
+            {/* Edit Form */}
+            <form onSubmit={handleUpdateProduct} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Nom du produit *</label>
+                <input
+                  type="text"
+                  required
+                  value={editProductName}
+                  onChange={(e) => setEditProductName(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Catégorie</label>
+                <select
+                  value={editProductCategory}
+                  onChange={(e) => setEditProductCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">-- Aucune catégorie --</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Prix (FCFA) *</label>
+                <input
+                  type="number"
+                  required
+                  value={editProductPrice}
+                  onChange={(e) => setEditProductPrice(e.target.value)}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Description</label>
+                <textarea
+                  value={editProductDesc}
+                  onChange={(e) => setEditProductDesc(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-blue-500 focus:outline-none resize-none"
+                />
+              </div>
+              {/* Dynamic custom fields */}
+              {productFields.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-400 mb-2">Champs personnalisés</label>
+                  <div className="space-y-2">
+                    {productFields.map(f => (
+                      <div key={f.id}>
+                        <label className="block text-[11px] text-zinc-400 mb-1">{f.label}</label>
+                        {f.type === 'number' ? (
+                          <input type="number" value={editProductCustomValues[f.key] || ''} onChange={(e) => handleEditCustomFieldChange(f.key, e.target.value)} className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs" />
+                        ) : (
+                          <input type="text" value={editProductCustomValues[f.key] || ''} onChange={(e) => handleEditCustomFieldChange(f.key, e.target.value)} className="w-full px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">Remplacer l'image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setEditProductImage(e.target.files[0])}
+                  className="w-full text-xs text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-surface-custom file:text-zinc-300 hover:file:bg-zinc-800"
+                />
+              </div>
+              <div className="flex gap-3 justify-end border-t border-zinc-900 pt-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingProduct(null)}
+                  className="px-5 py-2 rounded bg-surface-custom hover:bg-zinc-800 text-white text-xs font-semibold cursor-pointer transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={editProductLoading}
+                  className="px-5 py-2 rounded bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {editProductLoading ? 'Enregistrement...' : '✓ Sauvegarder les modifications'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* COMPANY DETAIL & BACKUP MODAL */}

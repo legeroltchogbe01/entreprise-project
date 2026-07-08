@@ -120,4 +120,62 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Update product (for Admin Back-office)
+router.put('/:id', upload.single('image'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, price, category, custom_data } = req.body;
+
+    const existing = await prisma.product.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Produit introuvable.' });
+    }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (category !== undefined) updateData.category = category || null;
+
+    if (custom_data) {
+      try {
+        updateData.custom_data = JSON.parse(custom_data);
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+
+    // Handle image replacement
+    if (req.file) {
+      updateData.image_url = req.file.path;
+      // Try to clean up old Cloudinary image
+      if (existing.image_url && existing.image_url.includes('cloudinary')) {
+        try {
+          const url = new URL(existing.image_url);
+          const parts = url.pathname.split('/');
+          const uploadIndex = parts.findIndex(p => p === 'upload');
+          if (uploadIndex !== -1) {
+            let publicPath = parts.slice(uploadIndex + 1).join('/');
+            publicPath = publicPath.replace(/v\d+\//, '');
+            const publicId = publicPath.replace(/\.[^/.]+$/, '');
+            await cloudinary.uploader.destroy(publicId, { resource_type: 'image' }).catch(() => {});
+          }
+        } catch (e) {
+          // ignore cleanup errors
+        }
+      }
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({ message: 'Produit mis à jour avec succès.', product });
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour du produit.' });
+  }
+});
+
 module.exports = router;
