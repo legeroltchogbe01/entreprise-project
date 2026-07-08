@@ -67,17 +67,19 @@ router.post('/companies/:id/kyc', async (req, res) => {
       }
     });
 
-    // ── Envoi de l'email de notification KYC ──────────────────
-    if (status === 'APPROVED' && company.email) {
-      sendKycApprovedEmail({ to: company.email, denominationSociale: company.denomination_sociale })
-        .then(() => console.log(`[KYC] Email APPROVED envoyé à ${company.email}`))
+    // ── Envoi des emails de notification KYC (entreprise + gérant) ──
+    const recipients = [company.email, company.manager_email].filter(Boolean).join(', ');
+
+    if (status === 'APPROVED' && recipients) {
+      sendKycApprovedEmail({ to: recipients, denominationSociale: company.denomination_sociale })
+        .then(() => console.log(`[KYC] Email APPROVED envoyé à : ${recipients}`))
         .catch(err => console.error('[KYC] Erreur email APPROVED:', err.message));
-    } else if (status === 'REJECTED' && company.email) {
-      sendKycRejectedEmail({ to: company.email, denominationSociale: company.denomination_sociale })
-        .then(() => console.log(`[KYC] Email REJECTED envoyé à ${company.email}`))
+    } else if (status === 'REJECTED' && recipients) {
+      sendKycRejectedEmail({ to: recipients, denominationSociale: company.denomination_sociale })
+        .then(() => console.log(`[KYC] Email REJECTED envoyé à : ${recipients}`))
         .catch(err => console.error('[KYC] Erreur email REJECTED:', err.message));
     }
-    // ──────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
 
     res.json({
       message: `Statut KYC de l'entreprise mis à jour avec succès : ${status}`,
