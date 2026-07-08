@@ -7,9 +7,9 @@ const nodemailer = require('nodemailer');
  * SMTP_FROM  = email affiché aux destinataires (ex: galassymeubledecor@gmail.com)
  */
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: false, // TLS via STARTTLS
+  host: process.env.SMTP_HOST || 'smtp.hostinger.com',
+  port: parseInt(process.env.SMTP_PORT) || 465,
+  secure: parseInt(process.env.SMTP_PORT) === 465, // true for 465, false for 587/others
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
