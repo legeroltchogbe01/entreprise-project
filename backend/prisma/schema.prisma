@@ -113,6 +113,7 @@ model ProductField {
 model Category {
   id         String   @id @default(uuid())
   name       String   @unique
+  image_url  String?
   created_at DateTime @default(now())
 }
 

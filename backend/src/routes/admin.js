@@ -5,6 +5,47 @@ const prisma = new PrismaClient();
 const { checkAndDeactivateAllCompanies } = require('../utils/autoDeactivate');
 const cloudinary = require('cloudinary').v2;
 const { sendKycApprovedEmail, sendKycRejectedEmail } = require('../utils/emailService');
+const multer = require('multer');
+const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Configure Cloudinary for category uploads
+if (!process.env.CLOUDINARY_URL) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+} else {
+  cloudinary.config(true);
+  cloudinary.config({ secure: true });
+}
+
+const categoryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: 'gmd_categories',
+      resource_type: 'image',
+      public_id: 'category-' + Date.now() + '-' + Math.round(Math.random() * 1e9),
+    };
+  }
+});
+
+const uploadCategory = multer({
+  storage: categoryStorage,
+  fileFilter: (req, file, cb) => {
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExtensions.includes(ext) || ext === '') {
+      cb(null, true);
+    } else {
+      cb(new Error('Extension de fichier non autorisée (uniquement JPG, JPEG, PNG, WEBP).'));
+    }
+  }
+});
+
 
 // Helper to delete cloudinary resource if we can extract public_id
 async function tryDeleteCloudinaryResource(fileUrl) {
@@ -310,7 +351,7 @@ router.get('/categories', async (req, res) => {
 });
 
 // CREATE category
-router.post('/categories', async (req, res) => {
+router.post('/categories', uploadCategory.single('image'), async (req, res) => {
   try {
     const { name } = req.body;
     if (!name || !name.trim()) {
@@ -322,8 +363,13 @@ router.post('/categories', async (req, res) => {
       return res.status(409).json({ error: 'Cette catégorie existe déjà.' });
     }
 
+    const imageUrl = req.file ? req.file.path : null;
+
     const category = await prisma.category.create({
-      data: { name: name.trim() }
+      data: { 
+        name: name.trim(),
+        image_url: imageUrl
+      }
     });
     res.status(201).json({ message: 'Catégorie créée avec succès.', category });
   } catch (error) {
@@ -336,6 +382,10 @@ router.post('/categories', async (req, res) => {
 router.delete('/categories/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.category.findUnique({ where: { id } });
+    if (existing && existing.image_url) {
+      await tryDeleteCloudinaryResource(existing.image_url);
+    }
     await prisma.category.delete({ where: { id } });
     res.json({ message: 'Catégorie supprimée avec succès.' });
   } catch (error) {

@@ -193,13 +193,8 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
     let result = products;
 
     if (selectedCategory && selectedCategory !== 'Tous les produits' && selectedCategory !== 'search') {
-      result = result.filter(p =>
-        p.category === selectedCategory ||
-        // fallback: keyword match for products without category set yet
-        (!p.category && selectedCategory.toLowerCase().split(' ').some(kw =>
-          p.name.toLowerCase().includes(kw) || p.description.toLowerCase().includes(kw)
-        ))
-      );
+      const catLower = selectedCategory.trim().toLowerCase();
+      result = result.filter(p => p.category && p.category.trim().toLowerCase() === catLower);
     }
 
     if (searchQuery.trim()) {
@@ -672,7 +667,7 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
                   <div className="img-zoom h-40 relative bg-zinc-900">
-                    <img src={getCategoryImage(cat.name)} alt={cat.name} className="w-full h-full object-cover opacity-90" />
+                    <img src={cat.image_url || getCategoryImage(cat.name)} alt={cat.name} className="w-full h-full object-cover opacity-90" />
                   </div>
                   <div className="px-4 py-3 space-y-0.5">
                     <p className="font-bold text-white text-sm transition-colors group-hover:text-red-500">{cat.name}</p>
