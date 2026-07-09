@@ -1357,9 +1357,14 @@ function DashboardAdmin() {
 
             {/* Formulaire d'ajout de produit */}
             <div className="p-5 rounded-lg bg-bg-deepest border border-border-custom h-fit">
-            <h4 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
-              <Plus size={16} className="text-primary-custom" /> Ajouter un produit
-            </h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                <Plus size={16} className="text-primary-custom" /> Ajouter un produit
+              </h4>
+              <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 text-[10px] font-semibold">
+                Total : {products.length}
+              </span>
+            </div>
             <form onSubmit={handleCreateProduct} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1">Nom du produit *</label>
@@ -1458,6 +1463,12 @@ function DashboardAdmin() {
           {/* Liste des produits */}
           <div className="lg:col-span-2">
             <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
+              <div className="px-4 py-3 border-b border-border-custom/50 flex items-center justify-between">
+                <span className="font-bold text-xs text-white">Liste des produits</span>
+                <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 text-[10px] font-semibold">
+                  {products.length} produit(s)
+                </span>
+              </div>
 
               {/* Bulk action toolbar */}
               {selectedProducts.size > 0 && (
