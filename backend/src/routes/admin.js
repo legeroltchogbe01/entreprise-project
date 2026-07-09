@@ -378,6 +378,55 @@ router.post('/categories', uploadCategory.single('image'), async (req, res) => {
   }
 });
 
+// UPDATE category
+router.put('/categories/:id', uploadCategory.single('image'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Le nom de la catégorie est obligatoire.' });
+    }
+
+    const existing = await prisma.category.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Catégorie introuvable.' });
+    }
+
+    // Check conflict
+    const nameConflict = await prisma.category.findFirst({
+      where: {
+        name: name.trim(),
+        NOT: { id }
+      }
+    });
+    if (nameConflict) {
+      return res.status(409).json({ error: 'Une autre catégorie porte déjà ce nom.' });
+    }
+
+    let imageUrl = existing.image_url;
+    if (req.file) {
+      if (existing.image_url) {
+        await tryDeleteCloudinaryResource(existing.image_url);
+      }
+      imageUrl = req.file.path;
+    }
+
+    const category = await prisma.category.update({
+      where: { id },
+      data: {
+        name: name.trim(),
+        image_url: imageUrl
+      }
+    });
+
+    res.json({ message: 'Catégorie mise à jour avec succès.', category });
+  } catch (error) {
+    console.error('Update category error:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de la catégorie.' });
+  }
+});
+
 // DELETE category
 router.delete('/categories/:id', async (req, res) => {
   try {

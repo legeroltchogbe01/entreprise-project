@@ -57,6 +57,9 @@ function DashboardAdmin() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryImage, setNewCategoryImage] = useState(null);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [editCategoryImage, setEditCategoryImage] = useState(null);
 
   // Product Edit Modal States
   const [editingProduct, setEditingProduct] = useState(null);
@@ -554,6 +557,50 @@ function DashboardAdmin() {
       setNewCategoryImage(null);
       const fileInput = document.getElementById('categoryImageInput');
       if (fileInput) fileInput.value = '';
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
+  const handleStartEditCategory = (cat) => {
+    setEditingCategory(cat);
+    setEditCategoryName(cat.name);
+    setEditCategoryImage(null);
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategory(null);
+    setEditCategoryName('');
+    setEditCategoryImage(null);
+  };
+
+  const handleUpdateCategory = async (e) => {
+    e.preventDefault();
+    if (!editCategoryName.trim()) {
+      alert('Veuillez saisir un nom de catégorie');
+      return;
+    }
+    setCategoryLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', editCategoryName.trim());
+      if (editCategoryImage) {
+        formData.append('image', editCategoryImage);
+      }
+
+      const res = await fetch(`${API_URL}/api/admin/categories/${editingCategory.id}`, {
+        method: 'PUT',
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur mise à jour catégorie');
+      alert(data.message);
+      setEditingCategory(null);
+      setEditCategoryName('');
+      setEditCategoryImage(null);
       await fetchAdminData();
     } catch (err) {
       alert(err.message);
@@ -1252,14 +1299,24 @@ function DashboardAdmin() {
                         )}
                         <span className="text-xs font-semibold text-white">{cat.name}</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCategory(cat.id)}
-                        className="p-1 rounded hover:bg-red-950/40 text-zinc-500 hover:text-red-400 transition-all cursor-pointer"
-                        title="Supprimer cette catégorie"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditCategory(cat)}
+                          className="p-1 rounded hover:bg-blue-950/40 text-zinc-500 hover:text-blue-400 transition-all cursor-pointer"
+                          title="Modifier cette catégorie"
+                        >
+                          <Edit3 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(cat.id)}
+                          className="p-1 rounded hover:bg-red-950/40 text-zinc-500 hover:text-red-400 transition-all cursor-pointer"
+                          title="Supprimer cette catégorie"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1270,35 +1327,71 @@ function DashboardAdmin() {
                 </p>
               )}
 
-              {/* Formulaire de création de catégorie */}
-              <form onSubmit={handleCreateCategory} className="space-y-2 mt-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Nouvelle catégorie..."
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-amber-500 focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={categoryLoading}
-                    className="px-3 py-2 rounded bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
-                  >
-                    <Plus size={12} /> {categoryLoading ? '...' : 'Créer'}
-                  </button>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-zinc-500 mb-1">Image de la catégorie (Optionnelle)</label>
-                  <input
-                    id="categoryImageInput"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setNewCategoryImage(e.target.files[0])}
-                    className="w-full text-[10px] text-zinc-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-surface-custom file:text-zinc-300 hover:file:bg-zinc-800"
-                  />
-                </div>
-              </form>
+              {editingCategory ? (
+                /* Formulaire de modification de catégorie */
+                <form onSubmit={handleUpdateCategory} className="space-y-3 mt-3 p-3 bg-zinc-900/40 rounded border border-zinc-800/80">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-500 uppercase">Modifier la catégorie</span>
+                    <button type="button" onClick={handleCancelEditCategory} className="text-zinc-500 hover:text-white text-[10px]">Annuler</button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nom de la catégorie..."
+                      value={editCategoryName}
+                      onChange={(e) => setEditCategoryName(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={categoryLoading}
+                      className="px-3 py-2 rounded bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+                    >
+                      Enregistrer
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-500 mb-1">Nouvelle Image de la catégorie (Optionnelle)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setEditCategoryImage(e.target.files[0])}
+                      className="w-full text-[10px] text-zinc-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-surface-custom file:text-zinc-300 hover:file:bg-zinc-800"
+                    />
+                  </div>
+                </form>
+              ) : (
+                /* Formulaire de création de catégorie */
+                <form onSubmit={handleCreateCategory} className="space-y-2 mt-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nouvelle catégorie..."
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs focus:border-amber-500 focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={categoryLoading}
+                      className="px-3 py-2 rounded bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+                    >
+                      <Plus size={12} /> {categoryLoading ? '...' : 'Créer'}
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-500 mb-1">Image de la catégorie (Optionnelle)</label>
+                    <input
+                      id="categoryImageInput"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setNewCategoryImage(e.target.files[0])}
+                      className="w-full text-[10px] text-zinc-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-surface-custom file:text-zinc-300 hover:file:bg-zinc-800"
+                    />
+                  </div>
+                </form>
+              )}
             </div>
             
             {/* Liste des champs existants avec suppression */}
