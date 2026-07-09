@@ -72,6 +72,10 @@ function DashboardAdmin() {
   const [purchaseEligibilityPeriod, setPurchaseEligibilityPeriod] = useState(4);
   const [walletLoading, setWalletLoading] = useState(false);
 
+  // Bulk product selection
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -486,6 +490,40 @@ function DashboardAdmin() {
       alert(err.message);
     } finally {
       setProductLoading(false);
+    }
+  };
+
+  // Bulk Delete Products
+  const handleDeleteSelectedProducts = async () => {
+    if (selectedProducts.size === 0) return;
+    if (!window.confirm(`Supprimer ${selectedProducts.size} produit(s) sélectionné(s) ? Cette action est irréversible.`)) return;
+    setBulkDeleteLoading(true);
+    try {
+      await Promise.all([...selectedProducts].map(id =>
+        fetch(`${API_URL}/api/products/${id}`, { method: 'DELETE' })
+      ));
+      setSelectedProducts(new Set());
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
+  const toggleSelectProduct = (id) => {
+    setSelectedProducts(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProducts.size === products.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(products.map(p => p.id)));
     }
   };
 
@@ -1395,10 +1433,37 @@ function DashboardAdmin() {
           {/* Liste des produits */}
           <div className="lg:col-span-2">
             <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
+
+              {/* Bulk action toolbar */}
+              {selectedProducts.size > 0 && (
+                <div className="flex items-center justify-between px-4 py-2 bg-red-950/30 border-b border-red-900/40">
+                  <span className="text-red-300 text-xs font-semibold">
+                    {selectedProducts.size} produit(s) sélectionné(s)
+                  </span>
+                  <button
+                    onClick={handleDeleteSelectedProducts}
+                    disabled={bulkDeleteLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-red-700 hover:bg-red-600 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 size={12} />
+                    {bulkDeleteLoading ? 'Suppression...' : 'Supprimer la sélection'}
+                  </button>
+                </div>
+              )}
+
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
+                      <th className="p-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={products.length > 0 && selectedProducts.size === products.length}
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 accent-red-500 cursor-pointer"
+                          title="Tout sélectionner"
+                        />
+                      </th>
                       <th className="p-4">Produit</th>
                       <th className="p-4">Catégorie</th>
                       <th className="p-4">Prix</th>
@@ -1409,13 +1474,24 @@ function DashboardAdmin() {
                   <tbody className="divide-y divide-border-custom/50 text-zinc-300">
                     {products.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="p-8 text-center text-zinc-500">
+                        <td colSpan="6" className="p-8 text-center text-zinc-500">
                           Aucun produit dans le catalogue.
                         </td>
                       </tr>
                     ) : (
                       products.map((product) => (
-                        <tr key={product.id} className="hover:bg-surface-custom/20 transition-colors">
+                        <tr
+                          key={product.id}
+                          className={`hover:bg-surface-custom/20 transition-colors ${selectedProducts.has(product.id) ? 'bg-red-950/10 border-l-2 border-l-red-700' : ''}`}
+                        >
+                          <td className="p-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.has(product.id)}
+                              onChange={() => toggleSelectProduct(product.id)}
+                              className="w-4 h-4 accent-red-500 cursor-pointer"
+                            />
+                          </td>
                           <td className="p-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded bg-surface-custom flex-shrink-0 overflow-hidden border border-border-custom/50">
