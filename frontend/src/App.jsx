@@ -131,15 +131,6 @@ function AppLayout({ user, setUser, cart, setCart }) {
               Accueil
             </Link>
 
-            {/* Produits */}
-            <Link
-              to="/"
-              onClick={() => { setForceShowProducts(true); }}
-              className={tabClass(path === '/' && forceShowProducts) + ' shrink-0'}
-            >
-              Produits
-            </Link>
-
             {/* Panier */}
             <Link
               to="/panier"

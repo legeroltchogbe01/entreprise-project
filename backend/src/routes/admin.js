@@ -354,8 +354,17 @@ router.get('/settings', async (req, res) => {
     const minActivationSetting = await prisma.systemSetting.findUnique({
       where: { key: 'MIN_ACTIVATION_DEPOSIT' }
     });
-    const value = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
-    res.json({ minActivationDeposit: value });
+    const eligibilityPeriodSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'PURCHASE_ELIGIBILITY_PERIOD' }
+    });
+    
+    const minVal = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
+    const periodVal = eligibilityPeriodSetting ? parseInt(eligibilityPeriodSetting.value, 10) : 4;
+
+    res.json({
+      minActivationDeposit: minVal,
+      purchaseEligibilityPeriod: periodVal
+    });
   } catch (error) {
     console.error('Fetch settings error:', error);
     res.status(500).json({ error: 'Erreur lors du chargement des configurations.' });
@@ -365,22 +374,39 @@ router.get('/settings', async (req, res) => {
 // UPDATE system settings
 router.post('/settings', async (req, res) => {
   try {
-    const { minActivationDeposit } = req.body;
-    if (minActivationDeposit === undefined || isNaN(parseFloat(minActivationDeposit))) {
-      return res.status(400).json({ error: 'Le montant minimum d\'activation est invalide.' });
+    const { minActivationDeposit, purchaseEligibilityPeriod } = req.body;
+    
+    let response = {};
+
+    if (minActivationDeposit !== undefined) {
+      if (isNaN(parseFloat(minActivationDeposit))) {
+        return res.status(400).json({ error: 'Le montant minimum d\'activation est invalide.' });
+      }
+      const valueStr = String(parseFloat(minActivationDeposit));
+      const setting = await prisma.systemSetting.upsert({
+        where: { key: 'MIN_ACTIVATION_DEPOSIT' },
+        update: { value: valueStr },
+        create: { key: 'MIN_ACTIVATION_DEPOSIT', value: valueStr }
+      });
+      response.minActivationDeposit = parseFloat(setting.value);
     }
 
-    const valueStr = String(parseFloat(minActivationDeposit));
-
-    const setting = await prisma.systemSetting.upsert({
-      where: { key: 'MIN_ACTIVATION_DEPOSIT' },
-      update: { value: valueStr },
-      create: { key: 'MIN_ACTIVATION_DEPOSIT', value: valueStr }
-    });
+    if (purchaseEligibilityPeriod !== undefined) {
+      const pVal = parseInt(purchaseEligibilityPeriod, 10);
+      if (isNaN(pVal) || pVal < 1) {
+        return res.status(400).json({ error: 'La période d\'éligibilité d\'achat doit être supérieure ou égale à 1 mois.' });
+      }
+      const periodSetting = await prisma.systemSetting.upsert({
+        where: { key: 'PURCHASE_ELIGIBILITY_PERIOD' },
+        update: { value: String(pVal) },
+        create: { key: 'PURCHASE_ELIGIBILITY_PERIOD', value: String(pVal) }
+      });
+      response.purchaseEligibilityPeriod = parseInt(periodSetting.value, 10);
+    }
 
     res.json({
       message: 'Configurations système mises à jour avec succès.',
-      minActivationDeposit: parseFloat(setting.value)
+      ...response
     });
   } catch (error) {
     console.error('Update settings error:', error);

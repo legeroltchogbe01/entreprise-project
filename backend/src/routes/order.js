@@ -67,10 +67,15 @@ router.post('/', async (req, res) => {
       monthsDiff--;
     }
 
-    // Safest way: if monthsDiff >= 4 (meaning 5th month or later, which is less than 8 months remaining)
-    if (monthsDiff >= 4) {
+    // Dynamic check using PURCHASE_ELIGIBILITY_PERIOD
+    const eligibilitySetting = await prisma.systemSetting.findUnique({
+      where: { key: 'PURCHASE_ELIGIBILITY_PERIOD' }
+    });
+    const eligibilityPeriod = eligibilitySetting ? parseInt(eligibilitySetting.value, 10) : 4;
+
+    if (monthsDiff >= eligibilityPeriod) {
       return res.status(400).json({ 
-        error: `Garde-fou des 8 mois : Tunnel d'achat bloqué. L'activation a eu lieu le ${activatedAt.toLocaleDateString('fr-FR')} (${monthsDiff} mois écoulés). Toute nouvelle commande est interdite après 4 mois d'activité pour lisser les remboursements sur le cycle de 12 mois.`
+        error: `La période autorisée pour effectuer des achats échelonnés est expirée (${monthsDiff} mois écoulés depuis l'activation). Pour finaliser votre commande, veuillez choisir l'option de paiement Cash.`
       });
     }
 
@@ -94,6 +99,19 @@ router.post('/', async (req, res) => {
         product_id: product.id,
         quantity: item.quantity,
         price: price
+      });
+    }
+
+    // Dynamic Seuil Global check (minActivationDeposit * 3)
+    const minActivationSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'MIN_ACTIVATION_DEPOSIT' }
+    });
+    const minDeposit = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
+    const dynamicSeuil = minDeposit * 3.0;
+
+    if (totalAmount > dynamicSeuil) {
+      return res.status(400).json({
+        error: `Le total des produits (${totalAmount.toLocaleString('fr-FR')} FCFA) dépasse le seuil global autorisé de ${dynamicSeuil.toLocaleString('fr-FR')} FCFA. Pour continuer cet achat, vous devez effectuer un paiement cash.`
       });
     }
 
@@ -277,6 +295,114 @@ router.post('/:orderId/pay-installment', async (req, res) => {
   } catch (error) {
     console.error('Installment payment error:', error);
     res.status(500).json({ error: 'Erreur lors du paiement de l\'échéance.' });
+  }
+});
+
+// Pay multiple maturity installments (Global Monthly Due) in one transaction
+router.post('/pay-monthly-due', async (req, res) => {
+  try {
+    const { companyId, transactionId, installments } = req.body;
+
+    if (!transactionId || !installments || !Array.isArray(installments) || installments.length === 0) {
+      return res.status(400).json({ error: 'Informations de règlement incomplètes.' });
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      include: { wallet: true }
+    });
+
+    if (!company || !company.wallet) {
+      return res.status(404).json({ error: 'Portefeuille ou entreprise introuvable.' });
+    }
+
+    const orderIds = [...new Set(installments.map(i => i.orderId))];
+    const orders = await prisma.order.findMany({
+      where: { id: { in: orderIds }, company_id: companyId }
+    });
+
+    let totalRequired = 0;
+    const updates = [];
+
+    for (const order of orders) {
+      const schedule = JSON.parse(JSON.stringify(order.payment_schedule));
+      const targetItems = installments.filter(i => i.orderId === order.id);
+      let orderModified = false;
+
+      for (const item of targetItems) {
+        const inst = schedule.find(x => x.installment_number === Number(item.installmentNumber));
+        if (inst && !inst.paid) {
+          inst.paid = true;
+          inst.paid_at = new Date().toISOString();
+          totalRequired += parseFloat(inst.amount);
+          orderModified = true;
+        }
+      }
+
+      if (orderModified) {
+        updates.push({
+          orderId: order.id,
+          schedule: schedule
+        });
+      }
+    }
+
+    if (totalRequired === 0) {
+      return res.status(400).json({ error: 'Toutes les échéances soumises sont déjà payées.' });
+    }
+
+    const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
+    const k = kkiapay({
+      privatekey: process.env.KKIAPAY_PRIVATE_KEY,
+      publickey: process.env.KKIAPAY_PUBLIC_KEY,
+      secretkey: process.env.KKIAPAY_SECRET_KEY,
+      sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+    });
+
+    let verifyResponse;
+    try {
+      verifyResponse = await k.verify(transactionId);
+    } catch (e) {
+      console.error('Kkiapay SDK verify error:', e);
+      return res.status(400).json({ error: 'Échec de la validation de la transaction auprès de Kkiapay.' });
+    }
+
+    if (!verifyResponse || verifyResponse.status !== 'SUCCESS') {
+      return res.status(400).json({ error: `La transaction Kkiapay n'a pas réussi. Statut: ${verifyResponse ? verifyResponse.status : 'INCONNU'}` });
+    }
+
+    const verifiedAmount = parseFloat(verifyResponse.amount);
+    if (Math.abs(verifiedAmount - totalRequired) > 10) {
+      return res.status(400).json({ error: `Montant de transaction incorrect. Requis: ${totalRequired} FCFA, Reçu: ${verifiedAmount} FCFA.` });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const upd of updates) {
+        await tx.order.update({
+          where: { id: upd.orderId },
+          data: { payment_schedule: upd.schedule }
+        });
+      }
+
+      const currentCreditUtilised = parseFloat(company.wallet.credit_utilise);
+      const newCreditUtilised = Math.max(0, currentCreditUtilised - totalRequired);
+
+      await tx.wallet.update({
+        where: { id: company.wallet.id },
+        data: {
+          credit_utilise: newCreditUtilised
+        }
+      });
+    });
+
+    res.json({
+      message: `Échéance mensuelle globale de ${totalRequired.toLocaleString('fr-FR')} FCFA réglée avec succès. Votre limite de crédit a été restaurée.`,
+      creditUtilisedRestored: totalRequired
+    });
+
+  } catch (error) {
+    console.error('Pay monthly due error:', error);
+    res.status(500).json({ error: 'Erreur lors du traitement du règlement global de l\'échéance.' });
   }
 });
 

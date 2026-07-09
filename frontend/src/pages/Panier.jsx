@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingCart, Trash2, Plus, Minus, ChevronRight,
   ShoppingBag, AlertCircle, CheckCircle2, Wallet,
   Image, Info, Package, X, Maximize2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { API_URL } from '../config';
+import { API_URL, KKIAPAY_PUBLIC_KEY } from '../config';
 
 /* ─── helpers ──────────────────────────────────────────── */
 function fmt(n) {
@@ -215,6 +215,85 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   const [expandedDesc, setExpandedDesc] = useState({});
   const [showConditions, setShowConditions] = useState(false);
 
+  // Popups blocking states
+  const [showActivationPopup, setShowActivationPopup] = useState(false);
+  const [showSeuilPopup, setShowSeuilPopup] = useState(false);
+  const [showExpirationPopup, setShowExpirationPopup] = useState(false);
+
+  // Dynamic Settings States
+  const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
+  const [purchaseEligibilityPeriod, setPurchaseEligibilityPeriod] = useState(4);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/admin/settings`);
+        const data = await res.json();
+        if (res.ok) {
+          setMinActivationDeposit(data.minActivationDeposit);
+          setPurchaseEligibilityPeriod(data.purchaseEligibilityPeriod || 4);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    const handleKkiapaySuccess = async (response) => {
+      console.log("Kkiapay callback in Panier received:", response);
+      if (response && response.transactionId) {
+        setOrderLoading(true);
+        try {
+          const res = await fetch(`${API_URL}/api/wallets/activate-client`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyId: user.company.id,
+              transactionId: response.transactionId
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          alert(data.message);
+          window.location.reload();
+        } catch (err) {
+          console.error(err);
+          alert(err.message || "Erreur lors de l'activation du portefeuille.");
+        } finally {
+          setOrderLoading(false);
+        }
+      }
+    };
+
+    if (window.addKkiapayListener) {
+      window.addKkiapayListener('success', handleKkiapaySuccess);
+    }
+
+    return () => {
+      if (window.removeKkiapayListener) {
+        window.removeKkiapayListener('success', handleKkiapaySuccess);
+      }
+    };
+  }, [user?.company?.id]);
+
+  const handleOpenActivationPayment = () => {
+    if (typeof window.openKkiapayWidget !== 'undefined') {
+      window.openKkiapayWidget({
+        amount: minActivationDeposit,
+        position: "right",
+        callback: "",
+        data: "activation",
+        key: KKIAPAY_PUBLIC_KEY,
+        sandbox: true
+      });
+    } else {
+      alert("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");
+    }
+  };
+
   if (!user || (user.role === 'CLIENT' && user.company?.kyc_status !== 'APPROVED')) {
     return (
       <div className="flex-1 bg-[#0a0a0a] min-h-screen flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
@@ -259,6 +338,39 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   const handleOrder = async () => {
     if (!paymentMode || !accepted) return;
     setOrderLoading(true); setOrderError('');
+
+    // Pre-checks for B2B paymentMode === 'echelonne'
+    if (paymentMode === 'echelonne') {
+      // 1. Seuil Global check (minActivationDeposit * 3)
+      const dynamicSeuil = minActivationDeposit * 3;
+      if (rawTotal > dynamicSeuil) {
+        setShowSeuilPopup(true);
+        setOrderLoading(false);
+        return;
+      }
+
+      // 2. Eligibility Period check
+      const actDate = user?.company?.activated_at ? new Date(user.company.activated_at) : (wallet?.activated_at ? new Date(wallet.activated_at) : null);
+      if (actDate) {
+        const now = new Date();
+        let diff = (now.getFullYear() - actDate.getFullYear()) * 12 + now.getMonth() - actDate.getMonth();
+        if (now.getDate() < actDate.getDate() && diff > 0) diff--;
+
+        if (diff >= purchaseEligibilityPeriod) {
+          setShowExpirationPopup(true);
+          setOrderLoading(false);
+          return;
+        }
+      }
+
+      // 3. Wallet activation check
+      if (!walletActive) {
+        setShowActivationPopup(true);
+        setOrderLoading(false);
+        return;
+      }
+    }
+
     try {
       const res  = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
@@ -653,6 +765,96 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
                 className="px-5 py-2 rounded-xl bg-[#cc0000] hover:bg-[#e60000] text-white text-xs font-bold shadow-lg shadow-red-950/40 cursor-pointer transition-colors"
               >
                 J'accepte et je ferme
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── POPUP D'ACTIVATION REQUIS (BLOQUANT) ── */}
+      {showActivationPopup && (
+        <div className="fixed inset-0 bg-black/85 z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="modal-scale max-w-md w-full rounded-2xl border border-zinc-800 bg-[#0f0f11] p-6 text-center space-y-6 shadow-2xl">
+            <div className="w-14 h-14 bg-red-950/30 border border-red-800/50 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse">
+              <Wallet size={24} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white tracking-wide">Activation de Portefeuille Requise</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Vous ne pouvez pas payer sans créditer votre compte du montant prédéfini par l'administrateur (<strong>{minActivationDeposit.toLocaleString('fr-FR')} FCFA</strong>).
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={() => setShowActivationPopup(false)}
+                className="w-full px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-450 hover:text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                Retour
+              </button>
+              <button
+                onClick={() => {
+                  setShowActivationPopup(false);
+                  handleOpenActivationPayment();
+                }}
+                className="w-full px-5 py-2.5 rounded-xl bg-[#cc0000] hover:bg-red-700 text-white text-xs font-black uppercase tracking-wide transition-all cursor-pointer shadow-md shadow-red-950/20"
+              >
+                Créditer mon compte
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── POPUP SEUIL MAXIMUM DÉPASSÉ (BLOQUANT) ── */}
+      {showSeuilPopup && (
+        <div className="fixed inset-0 bg-black/85 z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="modal-scale max-w-md w-full rounded-2xl border border-zinc-800 bg-[#0f0f11] p-6 text-center space-y-6 shadow-2xl">
+            <div className="w-14 h-14 bg-amber-950/30 border border-amber-800/50 rounded-full flex items-center justify-center mx-auto text-amber-500">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white tracking-wide">Seuil Maximal Dépassé</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Le total des produits ({rawTotal.toLocaleString('fr-FR')} FCFA) dépasse le seuil global autorisé de <strong>{(minActivationDeposit * 3).toLocaleString('fr-FR')} FCFA</strong>. Pour continuer cet achat, vous devez effectuer un paiement cash.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  setShowSeuilPopup(false);
+                  setPaymentMode('cash');
+                }}
+                className="w-full px-5 py-2.5 rounded-xl bg-[#cc0000] hover:bg-red-700 text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                Basculer en paiement Cash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── POPUP PÉRIODE LIMITE EXPIREE (BLOQUANT) ── */}
+      {showExpirationPopup && (
+        <div className="fixed inset-0 bg-black/85 z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="modal-scale max-w-md w-full rounded-2xl border border-zinc-800 bg-[#0f0f11] p-6 text-center space-y-6 shadow-2xl">
+            <div className="w-14 h-14 bg-red-950/30 border border-red-800/50 rounded-full flex items-center justify-center mx-auto text-red-500">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white tracking-wide">Période d'Éligibilité Expirée</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                La période autorisée pour effectuer des achats échelonnés est expirée ({purchaseEligibilityPeriod} mois écoulés depuis l'activation de votre compte). Pour finaliser votre commande, veuillez choisir l'option de paiement Cash.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  setShowExpirationPopup(false);
+                  setPaymentMode('cash');
+                }}
+                className="w-full px-5 py-2.5 rounded-xl bg-[#cc0000] hover:bg-red-700 text-white text-xs font-bold transition-all cursor-pointer"
+              >
+                Basculer en paiement Cash
               </button>
             </div>
           </div>

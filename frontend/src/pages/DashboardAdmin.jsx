@@ -69,6 +69,7 @@ function DashboardAdmin() {
 
   // Wallet Activation & System Settings States
   const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
+  const [purchaseEligibilityPeriod, setPurchaseEligibilityPeriod] = useState(4);
   const [walletLoading, setWalletLoading] = useState(false);
 
   useEffect(() => {
@@ -123,7 +124,10 @@ function DashboardAdmin() {
       // Fetch Settings
       const setRes = await fetch(`${API_URL}/api/admin/settings`);
       const setData = await setRes.json();
-      if (setRes.ok) setMinActivationDeposit(setData.minActivationDeposit);
+      if (setRes.ok) {
+        setMinActivationDeposit(setData.minActivationDeposit);
+        setPurchaseEligibilityPeriod(setData.purchaseEligibilityPeriod || 4);
+      }
 
     } catch (err) {
       console.error(err);
@@ -393,12 +397,19 @@ function DashboardAdmin() {
       alert("Veuillez saisir un montant d'activation minimum valide.");
       return;
     }
+    if (!purchaseEligibilityPeriod || parseInt(purchaseEligibilityPeriod, 10) < 1) {
+      alert("Veuillez saisir une période d'éligibilité d'achat valide (min 1 mois).");
+      return;
+    }
     setWalletLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minActivationDeposit: parseFloat(minActivationDeposit) })
+        body: JSON.stringify({
+          minActivationDeposit: parseFloat(minActivationDeposit),
+          purchaseEligibilityPeriod: parseInt(purchaseEligibilityPeriod, 10)
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -1490,6 +1501,26 @@ function DashboardAdmin() {
                 <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">
                   Ce montant définit le dépôt d'acompte (1/3) minimal exigé pour l'activation. 
                   La ligne de crédit associée sera fixée au double (2/3), portant la capacité totale à **{Number(minActivationDeposit * 3).toLocaleString('fr-FR')} FCFA** (le triple).
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">
+                  Période limite d'éligibilité aux achats échelonnés (mois) *
+                </label>
+                <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 w-full sm:w-80">
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={purchaseEligibilityPeriod}
+                    onChange={(e) => setPurchaseEligibilityPeriod(e.target.value)}
+                    className="bg-transparent border-0 text-white font-mono text-sm w-full focus:outline-none focus:ring-0 text-right"
+                  />
+                  <span className="text-zinc-500 text-xs ml-2 font-bold">MOIS</span>
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">
+                  Définit la période (en mois à partir de la date d'activation du compte) durant laquelle le client est autorisé à réaliser des achats échelonnés. Au-delà de cette période, seul le paiement cash est disponible.
                 </p>
               </div>
 

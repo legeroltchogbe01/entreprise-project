@@ -6,23 +6,31 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 import jsQR from 'jsqr';
-// ─── TOUTES LES CATÉGORIES ────────────────────────────────────────────────────
-const CATEGORIES = [
-  { name: 'Mobilier de Bureau',            image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Sièges & Fauteuils',            image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Tables & Bureaux',              image: 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Rangement & Armoires',          image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80' },
-  { name: "Mobilier d'Accueil",            image: 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Mobilier de Salle de Réunion',  image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Mobilier Extérieur',            image: 'https://images.unsplash.com/photo-1519974719765-e6559eac2575?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Décoration & Accessoires',      image: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80' },
-  { name: 'Autre',                         image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80' },
-];
+// ─── TOUTES LES CATÉGORIES ET IMAGES ASSOCIEES ──────────────────────────────────
+const FALLBACK_CATEGORY_IMAGE = 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80';
+
+const CATEGORY_IMAGES = {
+  'mobilier de bureau': 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=600&q=80',
+  'sièges & fauteuils': 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=600&q=80',
+  'tables & bureaux': 'https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?auto=format&fit=crop&w=600&q=80',
+  'rangement & armoires': 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&w=600&q=80',
+  "mobilier d'accueil": 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&w=600&q=80',
+  'mobilier de salle de réunion': 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=600&q=80',
+  'mobilier extérieur': 'https://images.unsplash.com/photo-1519974719765-e6559eac2575?auto=format&fit=crop&w=600&q=80',
+  'décoration & accessoires': 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80'
+};
+
+const getCategoryImage = (name) => {
+  if (!name) return FALLBACK_CATEGORY_IMAGE;
+  const norm = name.trim().toLowerCase();
+  return CATEGORY_IMAGES[norm] || FALLBACK_CATEGORY_IMAGE;
+};
 
 function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShowProducts, onRequestRegister }) {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -140,6 +148,7 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, [user]);
 
   // Si on force l'affichage depuis le menu "Produits"
@@ -166,6 +175,16 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/categories`);
+      const data = await res.json();
+      if (res.ok) setCategories(data);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
     }
   };
 
@@ -500,6 +519,13 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full accent-red-600 bg-zinc-800 rounded-lg appearance-none h-1.5 cursor-pointer"
                 />
+                <input
+                  type="number"
+                  placeholder="Saisir prix max (FCFA)..."
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value) || 0)}
+                  className="w-full px-3 py-1.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-350 text-xs outline-none focus:border-red-900 font-mono"
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -514,9 +540,9 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                 >
                   Tous les produits
                 </button>
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <button
-                    key={cat.name}
+                    key={cat.id}
                     onClick={() => handleCategoryClick(cat.name)}
                     className={`w-full text-left px-3.5 py-2 rounded-lg text-xs font-semibold transition-all flex justify-between items-center ${
                       selectedCategory === cat.name 
@@ -638,15 +664,15 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
           <div className="px-6 max-w-6xl mx-auto space-y-4">
             <h2 className="text-white font-black text-xl border-b border-zinc-900 pb-2">Catégories</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {CATEGORIES.map((cat, i) => (
+              {categories.map((cat, i) => (
                 <button
-                  key={cat.name}
+                  key={cat.id}
                   onClick={() => handleCategoryClick(cat.name)}
                   className="card-hover rounded-2xl overflow-hidden bg-[#111111] border border-zinc-800 cursor-pointer text-left shadow fade-up"
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
                   <div className="img-zoom h-40 relative bg-zinc-900">
-                    <img src={cat.image} alt={cat.name} className="w-full h-full object-cover opacity-90" />
+                    <img src={getCategoryImage(cat.name)} alt={cat.name} className="w-full h-full object-cover opacity-90" />
                   </div>
                   <div className="px-4 py-3 space-y-0.5">
                     <p className="font-bold text-white text-sm transition-colors group-hover:text-red-500">{cat.name}</p>
