@@ -50,7 +50,7 @@ function calcEchelonne(total, activatedAt) {
 
 /* ─── Payment mode tabs ──────────────────────────────────── */
 const TABS = [
-  { id: 'echelonne', label: 'Paiement échelonné',        sub: 'Premier versement + 6 versements', badge: null, activeColor: '#b45309', activeBg: 'rgba(120,53,15,0.4)', activeBorder: '#d97706' },
+  { id: 'echelonne', label: 'Paiement échelonné',        sub: 'Premier versement + échéances mensuelles', badge: null, activeColor: '#b45309', activeBg: 'rgba(120,53,15,0.4)', activeBorder: '#d97706' },
   { id: 'acompte',   label: 'Paiement avec acompte 50%', sub: '50% à la commande, reste à la livraison', badge: '-5%', activeColor: '#d97706', activeBg: 'rgba(120,53,15,0.5)', activeBorder: '#f59e0b' },
   { id: 'cash',      label: 'Cash',                       sub: 'Paiement total immédiat (-5%)',      badge: '-5%', activeColor: '#065f46', activeBg: 'rgba(6,78,59,0.5)', activeBorder: '#10b981' },
 ];
@@ -72,7 +72,7 @@ function EchelonnéPanel({ total, activatedAt, compact = false }) {
         <p className="text-red-500 font-bold">
           Acompte : {fmt(acompte)} FCFA <span className="text-zinc-500 font-normal">({todayStr})</span>
         </p>
-        {payments.slice(0, compact ? 6 : remaining).map(p => (
+        {payments.slice(0, remaining).map(p => (
           <p key={p.n} className="text-red-500">
             {p.n}- {fmt(p.amount)} FCFA <span className="text-zinc-500">({p.date})</span>
           </p>
