@@ -1892,7 +1892,7 @@ function DashboardAdmin() {
                   <input
                     type="number"
                     required
-                    min="1000"
+                    min="100"
                     value={minActivationDeposit}
                     onChange={(e) => setMinActivationDeposit(e.target.value)}
                     className="bg-transparent border-0 text-white font-mono text-sm w-full focus:outline-none focus:ring-0 text-right"
