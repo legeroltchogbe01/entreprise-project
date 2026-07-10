@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye, EyeOff } from 'lucide-react';
-import { API_URL, KKIAPAY_PUBLIC_KEY } from '../config';
+import { API_URL, KKIAPAY_PUBLIC_KEY, KKIAPAY_SANDBOX } from '../config';
 
 // ─── MINUTERIE DÉS-ACTIVATION 48H ──────────────────────────────────────────
 function KYCDeactivationTimer({ company, wallet }) {
@@ -187,7 +187,7 @@ function DashboardClient({ user }) {
         callback: "",
         data: "monthly_due",
         key: KKIAPAY_PUBLIC_KEY,
-        sandbox: true,
+        sandbox: KKIAPAY_SANDBOX,
         ...(kkiapaySubaccount23 ? { partnerId: kkiapaySubaccount23 } : {})
       });
     } else {

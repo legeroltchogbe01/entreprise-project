@@ -5,7 +5,7 @@ import {
   Image, Info, Package, X, Maximize2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { API_URL, KKIAPAY_PUBLIC_KEY } from '../config';
+import { API_URL, KKIAPAY_PUBLIC_KEY, KKIAPAY_SANDBOX } from '../config';
 
 /* ─── helpers ──────────────────────────────────────────── */
 function fmt(n) {
@@ -289,7 +289,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
         callback: "",
         data: "activation",
         key: KKIAPAY_PUBLIC_KEY,
-        sandbox: true,
+        sandbox: KKIAPAY_SANDBOX,
         ...(kkiapaySubaccount13 ? { partnerId: kkiapaySubaccount13 } : {})
       });
     } else {

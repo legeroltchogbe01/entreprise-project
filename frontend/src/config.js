@@ -16,3 +16,4 @@ const getBackendURL = () => {
 
 export const API_URL = getBackendURL();
 export const KKIAPAY_PUBLIC_KEY = import.meta.env.VITE_KKIAPAY_PUBLIC_KEY || 'pk_sandbox_XXXXXXXXX';
+export const KKIAPAY_SANDBOX = KKIAPAY_PUBLIC_KEY.includes('sandbox') || KKIAPAY_PUBLIC_KEY.includes('test');
