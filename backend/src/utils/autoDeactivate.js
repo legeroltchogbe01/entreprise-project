@@ -15,6 +15,10 @@ async function checkAndDeactivateCompany(companyId) {
     });
 
     if (company && company.kyc_status === 'APPROVED' && company.activated_at) {
+      // If wallet is already activated, do not deactivate
+      if (company.wallet && company.wallet.activated_at) {
+        return company;
+      }
       const elapsedHours = (Date.now() - new Date(company.activated_at).getTime()) / (1000 * 60 * 60);
       if (elapsedHours >= 48 && company.orders.length === 0) {
         console.log(`[AutoDeactivate] Deactivating company "${company.denomination_sociale}" (${company.id}) - 48h limit exceeded without purchases.`);
@@ -40,11 +44,15 @@ async function checkAndDeactivateAllCompanies() {
   try {
     const approvedCompanies = await prisma.company.findMany({
       where: { kyc_status: 'APPROVED' },
-      include: { orders: true }
+      include: { orders: true, wallet: true }
     });
 
     const now = Date.now();
     for (const company of approvedCompanies) {
+      // If wallet is already activated, skip deactivation
+      if (company.wallet && company.wallet.activated_at) {
+        continue;
+      }
       if (company.activated_at) {
         const elapsedHours = (now - new Date(company.activated_at).getTime()) / (1000 * 60 * 60);
         if (elapsedHours >= 48 && company.orders.length === 0) {
