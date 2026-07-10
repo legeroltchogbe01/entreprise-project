@@ -62,6 +62,7 @@ function DashboardClient({ user }) {
 
   const [wallet, setWallet] = useState(null);
   const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
+  const [kkiapaySubaccount23, setKkiapaySubaccount23] = useState('');
   const [orders, setOrders] = useState([]);
   const [specialRequests, setSpecialRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,10 +104,12 @@ function DashboardClient({ user }) {
       if (!sRes.ok) throw new Error(sData.error);
       setSpecialRequests(sData);
 
-      // Fetch global settings for initial deposit
       const setRes = await fetch(`${API_URL}/api/admin/settings`);
       const setData = await setRes.json();
-      if (setRes.ok) setMinActivationDeposit(setData.minActivationDeposit);
+      if (setRes.ok) {
+        setMinActivationDeposit(setData.minActivationDeposit);
+        setKkiapaySubaccount23(setData.kkiapaySubaccount23 || '');
+      }
 
     } catch (err) {
       console.error(err);
@@ -184,7 +187,8 @@ function DashboardClient({ user }) {
         callback: "",
         data: "monthly_due",
         key: KKIAPAY_PUBLIC_KEY,
-        sandbox: true
+        sandbox: true,
+        ...(kkiapaySubaccount23 ? { partnerId: kkiapaySubaccount23 } : {})
       });
     } else {
       alert("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");

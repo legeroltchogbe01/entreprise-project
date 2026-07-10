@@ -223,6 +223,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   // Dynamic Settings States
   const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
   const [purchaseEligibilityPeriod, setPurchaseEligibilityPeriod] = useState(4);
+  const [kkiapaySubaccount13, setKkiapaySubaccount13] = useState('');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -232,6 +233,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
         if (res.ok) {
           setMinActivationDeposit(data.minActivationDeposit);
           setPurchaseEligibilityPeriod(data.purchaseEligibilityPeriod || 4);
+          setKkiapaySubaccount13(data.kkiapaySubaccount13 || '');
         }
       } catch (e) {
         console.error(e);
@@ -287,7 +289,8 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
         callback: "",
         data: "activation",
         key: KKIAPAY_PUBLIC_KEY,
-        sandbox: true
+        sandbox: true,
+        ...(kkiapaySubaccount13 ? { partnerId: kkiapaySubaccount13 } : {})
       });
     } else {
       alert("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");

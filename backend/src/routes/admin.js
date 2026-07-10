@@ -456,13 +456,21 @@ router.get('/settings', async (req, res) => {
     const eligibilityPeriodSetting = await prisma.systemSetting.findUnique({
       where: { key: 'PURCHASE_ELIGIBILITY_PERIOD' }
     });
+    const subaccount13Setting = await prisma.systemSetting.findUnique({
+      where: { key: 'KKIAPAY_SUBACCOUNT_1_3' }
+    });
+    const subaccount23Setting = await prisma.systemSetting.findUnique({
+      where: { key: 'KKIAPAY_SUBACCOUNT_2_3' }
+    });
     
     const minVal = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
     const periodVal = eligibilityPeriodSetting ? parseInt(eligibilityPeriodSetting.value, 10) : 4;
 
     res.json({
       minActivationDeposit: minVal,
-      purchaseEligibilityPeriod: periodVal
+      purchaseEligibilityPeriod: periodVal,
+      kkiapaySubaccount13: subaccount13Setting ? subaccount13Setting.value : '',
+      kkiapaySubaccount23: subaccount23Setting ? subaccount23Setting.value : ''
     });
   } catch (error) {
     console.error('Fetch settings error:', error);
@@ -473,7 +481,7 @@ router.get('/settings', async (req, res) => {
 // UPDATE system settings
 router.post('/settings', async (req, res) => {
   try {
-    const { minActivationDeposit, purchaseEligibilityPeriod } = req.body;
+    const { minActivationDeposit, purchaseEligibilityPeriod, kkiapaySubaccount13, kkiapaySubaccount23 } = req.body;
     
     let response = {};
 
@@ -501,6 +509,24 @@ router.post('/settings', async (req, res) => {
         create: { key: 'PURCHASE_ELIGIBILITY_PERIOD', value: String(pVal) }
       });
       response.purchaseEligibilityPeriod = parseInt(periodSetting.value, 10);
+    }
+
+    if (kkiapaySubaccount13 !== undefined) {
+      const setting = await prisma.systemSetting.upsert({
+        where: { key: 'KKIAPAY_SUBACCOUNT_1_3' },
+        update: { value: String(kkiapaySubaccount13).trim() },
+        create: { key: 'KKIAPAY_SUBACCOUNT_1_3', value: String(kkiapaySubaccount13).trim() }
+      });
+      response.kkiapaySubaccount13 = setting.value;
+    }
+
+    if (kkiapaySubaccount23 !== undefined) {
+      const setting = await prisma.systemSetting.upsert({
+        where: { key: 'KKIAPAY_SUBACCOUNT_2_3' },
+        update: { value: String(kkiapaySubaccount23).trim() },
+        create: { key: 'KKIAPAY_SUBACCOUNT_2_3', value: String(kkiapaySubaccount23).trim() }
+      });
+      response.kkiapaySubaccount23 = setting.value;
     }
 
     res.json({

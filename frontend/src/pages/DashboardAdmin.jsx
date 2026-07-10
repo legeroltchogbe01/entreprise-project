@@ -74,6 +74,8 @@ function DashboardAdmin() {
   // Wallet Activation & System Settings States
   const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
   const [purchaseEligibilityPeriod, setPurchaseEligibilityPeriod] = useState(4);
+  const [kkiapaySubaccount13, setKkiapaySubaccount13] = useState('');
+  const [kkiapaySubaccount23, setKkiapaySubaccount23] = useState('');
   const [walletLoading, setWalletLoading] = useState(false);
 
   // Bulk product selection
@@ -135,6 +137,8 @@ function DashboardAdmin() {
       if (setRes.ok) {
         setMinActivationDeposit(setData.minActivationDeposit);
         setPurchaseEligibilityPeriod(setData.purchaseEligibilityPeriod || 4);
+        setKkiapaySubaccount13(setData.kkiapaySubaccount13 || '');
+        setKkiapaySubaccount23(setData.kkiapaySubaccount23 || '');
       }
 
     } catch (err) {
@@ -416,7 +420,9 @@ function DashboardAdmin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           minActivationDeposit: parseFloat(minActivationDeposit),
-          purchaseEligibilityPeriod: parseInt(purchaseEligibilityPeriod, 10)
+          purchaseEligibilityPeriod: parseInt(purchaseEligibilityPeriod, 10),
+          kkiapaySubaccount13: kkiapaySubaccount13,
+          kkiapaySubaccount23: kkiapaySubaccount23
         })
       });
       const data = await res.json();
@@ -1771,6 +1777,42 @@ function DashboardAdmin() {
                 </div>
                 <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">
                   Définit la période (en mois à partir de la date d'activation du compte) durant laquelle le client est autorisé à réaliser des achats échelonnés. Au-delà de cette période, seul le paiement cash est disponible.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">
+                  ID du sous-compte Kkiapay (Acompte Initial - 1/3)
+                </label>
+                <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 w-full sm:w-96">
+                  <input
+                    type="text"
+                    value={kkiapaySubaccount13}
+                    onChange={(e) => setKkiapaySubaccount13(e.target.value)}
+                    placeholder="Ex: subaccount_1_3_id"
+                    className="bg-transparent border-0 text-white font-mono text-sm w-full focus:outline-none focus:ring-0"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">
+                  Identifiant du sous-compte destinataire pour le versement initial de l'acompte (1/3). Si vide, le compte principal sera utilisé.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1">
+                  ID du sous-compte Kkiapay (Échéances de Crédit - 2/3)
+                </label>
+                <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 w-full sm:w-96">
+                  <input
+                    type="text"
+                    value={kkiapaySubaccount23}
+                    onChange={(e) => setKkiapaySubaccount23(e.target.value)}
+                    placeholder="Ex: subaccount_2_3_id"
+                    className="bg-transparent border-0 text-white font-mono text-sm w-full focus:outline-none focus:ring-0"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed">
+                  Identifiant du sous-compte destinataire pour le règlement des mensualités de crédit (2/3). Si vide, le compte principal sera utilisé.
                 </p>
               </div>
 
