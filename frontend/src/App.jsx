@@ -59,7 +59,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
         })
         .catch(() => {});
     }
-  }, [user]);
+  }, [user, location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('gmd_user');

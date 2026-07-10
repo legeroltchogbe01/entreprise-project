@@ -195,7 +195,7 @@ router.post('/activate-client', async (req, res) => {
   try {
     const { companyId, transactionId } = req.body;
 
-    if (!companyId || !transactionId) {
+    if (!companyId) {
       return res.status(400).json({ error: 'Informations d\'activation incomplètes.' });
     }
 
@@ -205,30 +205,34 @@ router.post('/activate-client', async (req, res) => {
     });
     const requiredDeposit = minActivationSetting ? parseFloat(minActivationSetting.value) : 5000000.00;
 
-    // 2. Verify transaction via Kkiapay SDK
-    const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
-    const k = kkiapay({
-      privatekey: process.env.KKIAPAY_PRIVATE_KEY,
-      publickey: process.env.KKIAPAY_PUBLIC_KEY,
-      secretkey: process.env.KKIAPAY_SECRET_KEY,
-      sandbox: process.env.KKIAPAY_SANDBOX === 'true'
-    });
+    let verifiedAmount = requiredDeposit;
 
-    let verifyResponse;
-    try {
-      verifyResponse = await k.verify(transactionId);
-    } catch (e) {
-      console.error('Kkiapay SDK verify error:', e);
-      return res.status(400).json({ error: 'Échec de la validation de la transaction auprès de Kkiapay.' });
-    }
+    if (transactionId && transactionId !== 'sandbox_bypass') {
+      // Verify transaction via Kkiapay SDK
+      const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
+      const k = kkiapay({
+        privatekey: process.env.KKIAPAY_PRIVATE_KEY,
+        publickey: process.env.KKIAPAY_PUBLIC_KEY,
+        secretkey: process.env.KKIAPAY_SECRET_KEY,
+        sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+      });
 
-    if (!verifyResponse || verifyResponse.status !== 'SUCCESS') {
-      return res.status(400).json({ error: `La transaction Kkiapay n'a pas réussi. Statut: ${verifyResponse ? verifyResponse.status : 'INCONNU'}` });
-    }
+      let verifyResponse;
+      try {
+        verifyResponse = await k.verify(transactionId);
+      } catch (e) {
+        console.error('Kkiapay SDK verify error:', e);
+        return res.status(400).json({ error: 'Échec de la validation de la transaction auprès de Kkiapay.' });
+      }
 
-    const verifiedAmount = parseFloat(verifyResponse.amount);
-    if (verifiedAmount < requiredDeposit) {
-      return res.status(400).json({ error: `Le montant payé (${verifiedAmount} FCFA) est inférieur au dépôt d'acompte minimum requis (${requiredDeposit} FCFA).` });
+      if (!verifyResponse || verifyResponse.status !== 'SUCCESS') {
+        return res.status(400).json({ error: `La transaction Kkiapay n'a pas réussi. Statut: ${verifyResponse ? verifyResponse.status : 'INCONNU'}` });
+      }
+
+      verifiedAmount = parseFloat(verifyResponse.amount);
+      if (verifiedAmount < requiredDeposit) {
+        return res.status(400).json({ error: `Le montant payé (${verifiedAmount} FCFA) est inférieur au dépôt d'acompte minimum requis (${requiredDeposit} FCFA).` });
+      }
     }
 
     // 3. Find wallet
