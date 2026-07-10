@@ -638,9 +638,9 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
               {/* Continuer */}
               <button
                 onClick={handleOrder}
-                disabled={!paymentMode || !accepted || orderLoading || !canOrder}
+                disabled={!paymentMode || !accepted || !deliveryAccepted || orderLoading || !canOrder}
                 className={`btn-glow w-full py-3 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all ${
-                  paymentMode && accepted && canOrder
+                  paymentMode && accepted && deliveryAccepted && canOrder
                     ? 'bg-[#cc0000] shadow-red-950/40'
                     : 'bg-zinc-800 shadow-none cursor-not-allowed opacity-50'
                 }`}
