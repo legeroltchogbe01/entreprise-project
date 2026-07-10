@@ -294,18 +294,30 @@ router.post('/login', async (req, res) => {
 
     res.json({
       role: 'CLIENT',
-      company: {
-        id: company.id,
-        denomination_sociale: company.denomination_sociale,
-        email: company.email,
-        kyc_status: company.kyc_status,
-        wallet: company.wallet
-      }
+      company: company
     });
 
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Erreur serveur lors de la connexion.' });
+  }
+});
+
+// Get company details by ID
+router.get('/company/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const company = await prisma.company.findUnique({
+      where: { id },
+      include: { wallet: true }
+    });
+    if (!company) {
+      return res.status(404).json({ error: 'Entreprise introuvable.' });
+    }
+    res.json(company);
+  } catch (error) {
+    console.error('Fetch company error:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération du profil.' });
   }
 });
 
