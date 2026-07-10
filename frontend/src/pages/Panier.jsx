@@ -327,7 +327,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
 
   const activatedAt  = wallet?.activated_at || null;
   const remaining    = calcRemainingMonths(activatedAt);
-  const kycApproved  = wallet?.company?.kyc_status === 'APPROVED';
+  const kycApproved  = user?.company?.kyc_status === 'APPROVED';
   const walletActive = !!activatedAt;
   /* block if < 8 months remain */
   const canOrder     = !walletActive || remaining >= 8;
