@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { sendOrderConfirmedEmail, sendInstallmentPaidEmail } = require('../utils/emailService');
 
 // Get order history for a company
 router.get('/company/:companyId', async (req, res) => {
@@ -190,6 +191,18 @@ router.post('/', async (req, res) => {
       return newOrder;
     });
 
+    // ── Email de confirmation de commande ──────────────────────────────────
+    const recipients = [company.email, company.manager_email].filter(Boolean).join(', ');
+    sendOrderConfirmedEmail({
+      to: recipients,
+      denominationSociale: company.denomination_sociale,
+      orderRef: orderNumber,
+      totalAmount,
+      paymentMode: 'echelonne',
+      acompte: acomptePortion
+    }).catch(err => console.error('[ORDER] Erreur email confirmation commande:', err.message));
+    // ─────────────────────────────────────────────────────────────────────
+
     res.status(201).json({
       message: 'Commande validée avec succès.',
       order: result
@@ -285,6 +298,19 @@ router.post('/:orderId/pay-installment', async (req, res) => {
         }
       });
     });
+
+    // ── Email confirmation paiement mensualité ──────────────────────────
+    const company = order.company;
+    const remainingCredit = Math.max(0, Number(order.company.wallet.credit_utilise) - amountPaid);
+    const emailRecipients = [company.email, company.manager_email].filter(Boolean).join(', ');
+    sendInstallmentPaidEmail({
+      to: emailRecipients,
+      denominationSociale: company.denomination_sociale,
+      amount: amountPaid,
+      dueDate: targetInstallment.due_date,
+      remaining: remainingCredit
+    }).catch(err => console.error('[INSTALLMENT] Erreur email paiement:', err.message));
+    // ─────────────────────────────────────────────────────────────────────
 
     res.json({
       message: `Échéance N°${installmentNumber} payée avec succès (${amountPaid.toLocaleString()} FCFA). Ligne de crédit restaurée.`,

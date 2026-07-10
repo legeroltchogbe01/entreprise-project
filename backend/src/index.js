@@ -61,4 +61,9 @@ app.use((err, req, res, next) => {
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+
+  // ── Daily payment reminder emails (J-3, J+1, J+7) ──────────────────────
+  const { startReminderCron } = require('./utils/reminderCron');
+  startReminderCron();
+  // ─────────────────────────────────────────────────────────────────────────
 });

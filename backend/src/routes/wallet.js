@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { sendWalletActivatedEmail } = require('../utils/emailService');
 
 // Get wallet status
 router.get('/:companyId', async (req, res) => {
@@ -267,6 +268,17 @@ router.post('/activate-client', async (req, res) => {
         activated_at: new Date()
       }
     });
+
+    // ── Email activation portefeuille ──────────────────────────────────────
+    const company = wallet.company;
+    const emailRecipients = [company.email, company.manager_email].filter(Boolean).join(', ');
+    sendWalletActivatedEmail({
+      to: emailRecipients,
+      denominationSociale: company.denomination_sociale,
+      depositAmount: acompte,
+      creditLimit: credit
+    }).catch(err => console.error('[WALLET] Erreur email activation:', err.message));
+    // ──────────────────────────────────────────────────────────────────────
 
     res.json({
       message: `Votre portefeuille a été activé financièrement avec succès ! Apport initial de ${acompte.toLocaleString('fr-FR')} FCFA reçu (1/3) et ligne de crédit de ${credit.toLocaleString('fr-FR')} FCFA débloquée (2/3).`,

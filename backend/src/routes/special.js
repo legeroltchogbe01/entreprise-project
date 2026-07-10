@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { sendQuoteReadyEmail } = require('../utils/emailService');
 
 // Configure Cloudinary
 if (!process.env.CLOUDINARY_URL) {
@@ -169,8 +170,21 @@ router.post('/:id/quote', async (req, res) => {
         quote_notes: quoteNotes || '',
         contract_content: defaultContract,
         status: 'QUOTED'
-      }
+      },
+      include: { company: true }
     });
+
+    // ── Email devis prêt ─────────────────────────────────────────────
+    const co = updated.company;
+    const emailTo = [co.email, co.manager_email].filter(Boolean).join(', ');
+    sendQuoteReadyEmail({
+      to: emailTo,
+      denominationSociale: co.denomination_sociale,
+      requestDescription: request.description,
+      totalAmount: computedTotal,
+      quoteItems
+    }).catch(err => console.error('[QUOTE] Erreur email devis:', err.message));
+    // ───────────────────────────────────────────────────────────────────
 
     res.json({
       message: 'Devis et contrat initial émis avec succès au client.',

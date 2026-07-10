@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { sendProfileUpdateApprovedEmail, sendProfileUpdateRejectedEmail } = require('../utils/emailService');
 
 // Fields that the client is allowed to request changes for
 const ALLOWED_FIELDS = [
@@ -71,7 +72,19 @@ router.post('/admin/:requestId/approve', async (req, res) => {
     const updated = await prisma.profileUpdateRequest.update({
       where: { id: requestId },
       data: { status: 'APPROVED', admin_note: admin_note || null },
+      include: { company: true },
     });
+
+    // ── Email notification ────────────────────────────────────────────
+    const co = updated.company;
+    const emailTo = [co.email, co.manager_email].filter(Boolean).join(', ');
+    sendProfileUpdateApprovedEmail({
+      to: emailTo,
+      denominationSociale: co.denomination_sociale,
+      changes,
+      adminNote: admin_note || null
+    }).catch(err => console.error('[PROFILE_UPDATE] Erreur email approbation:', err.message));
+    // ─────────────────────────────────────────────────────────────────────
 
     res.json({ message: 'Demande approuvée et profil mis à jour.', request: updated });
   } catch (error) {
@@ -100,7 +113,18 @@ router.post('/admin/:requestId/reject', async (req, res) => {
     const updated = await prisma.profileUpdateRequest.update({
       where: { id: requestId },
       data: { status: 'REJECTED', admin_note: admin_note || null },
+      include: { company: true },
     });
+
+    // ── Email notification ────────────────────────────────────────────
+    const co = updated.company;
+    const emailTo = [co.email, co.manager_email].filter(Boolean).join(', ');
+    sendProfileUpdateRejectedEmail({
+      to: emailTo,
+      denominationSociale: co.denomination_sociale,
+      adminNote: admin_note || null
+    }).catch(err => console.error('[PROFILE_UPDATE] Erreur email rejet:', err.message));
+    // ─────────────────────────────────────────────────────────────────────
 
     res.json({ message: 'Demande rejetée.', request: updated });
   } catch (error) {
