@@ -9,6 +9,9 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showSubmitCurtain, setShowSubmitCurtain] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState(0);
+  const [submitMessage, setSubmitMessage] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -303,6 +306,50 @@ function Register() {
     }
 
     setLoading(true);
+    setShowSubmitCurtain(true);
+    setSubmitProgress(0);
+    setSubmitMessage("Chiffrement et transmission sécurisée du dossier...");
+
+    let apiCompleted = false;
+    let apiError = null;
+
+    // Start progress simulation
+    let currentProgress = 0;
+    const progressInterval = setInterval(() => {
+      currentProgress += 2;
+      if (currentProgress >= 100) {
+        clearInterval(progressInterval);
+        setSubmitProgress(100);
+        
+        // Check API status when visual loader hits 100%
+        if (apiCompleted) {
+          if (apiError) {
+            setError(apiError);
+            setShowSubmitCurtain(false);
+            setLoading(false);
+          } else {
+            setSuccess('Votre dossier a été soumis avec succès ! L\'équipe administrative de GMD va l\'auditer.');
+            setStep(4); // Success step
+            setShowSubmitCurtain(false);
+            setLoading(false);
+          }
+        } else {
+          setSubmitProgress(99);
+          setSubmitMessage("Finalisation de l'enregistrement...");
+        }
+      } else {
+        setSubmitProgress(currentProgress);
+        if (currentProgress < 25) {
+          setSubmitMessage("Chiffrement et transmission sécurisée du dossier...");
+        } else if (currentProgress < 50) {
+          setSubmitMessage("Téléversement des pièces justificatives (PDF, Vidéos KYC)...");
+        } else if (currentProgress < 75) {
+          setSubmitMessage("Génération des clés de signature numérique...");
+        } else {
+          setSubmitMessage("Finalisation de votre profil et notification de l'administrateur...");
+        }
+      }
+    }, 80);
 
     const postData = new FormData();
     // Append standard fields with trimming and lowercasing for emails
@@ -336,7 +383,7 @@ function Register() {
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
         console.error('Non-JSON response:', text);
-        throw new Error("Le serveur a renvoyé une réponse invalide (HTML). Si le backend vient d'être déployé ou est hébergé gratuitement sur Render, il est probablement en cours de démarrage. Veuillez patienter 30 secondes et réessayer.");
+        throw new Error("Le serveur a renvoyé une réponse invalide (HTML). Si le backend vient d'être déployé, il est probablement en cours de démarrage. Veuillez réaccéder au service dans 30 secondes.");
       }
 
       const data = await response.json();
@@ -345,13 +392,24 @@ function Register() {
         throw new Error(data.error || 'Erreur lors de la soumission du dossier.');
       }
 
-      setSuccess('Votre dossier a été soumis avec succès ! L\'équipe administrative de GMD va l\'auditer.');
-      setStep(4); // Success step
+      apiCompleted = true;
+
+      if (currentProgress >= 98) {
+        setSuccess('Votre dossier a été soumis avec succès ! L\'équipe administrative de GMD va l\'auditer.');
+        setStep(4); // Success step
+        setShowSubmitCurtain(false);
+        setLoading(false);
+      }
 
     } catch (err) {
       console.error(err);
+      apiError = err.message;
+      apiCompleted = true;
+
+      // Abort progress immediately on error
+      clearInterval(progressInterval);
       setError(err.message);
-    } finally {
+      setShowSubmitCurtain(false);
       setLoading(false);
     }
   };
@@ -415,7 +473,7 @@ function Register() {
 
         {/* Step 1: Company Info */}
         {step === 1 && (
-          <div className="space-y-6">
+          <div key={1} className="space-y-6 fade-up">
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">01. Informations de l'Entreprise</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -533,7 +591,7 @@ function Register() {
 
         {/* Step 2: Manager Info */}
         {step === 2 && (
-          <div className="space-y-6">
+          <div key={2} className="space-y-6 fade-up">
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">02. Informations du Gérant</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -661,7 +719,7 @@ function Register() {
 
         {/* Step 3: Guarantor Info */}
         {step === 3 && (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form key={3} onSubmit={handleSubmit} className="space-y-6 fade-up">
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">03. Informations de l'Avaliseur (Garant)</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -784,20 +842,25 @@ function Register() {
           </form>
         )}
 
-        {/* Step 4: Success Message */}
+        {/* Step 4: Success Message (Félicitations Popup/Card) */}
         {step === 4 && (
-          <div className="text-center py-8 space-y-6">
-            <CheckCircle className="text-red-500 mx-auto" size={64} />
-            <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-white">Dossier soumis avec succès !</h3>
-              <p className="text-sm text-zinc-400 max-w-md mx-auto">
-                {success}
+          <div key={4} className="text-center py-8 space-y-6 fade-up">
+            <div className="w-20 h-20 bg-emerald-950/30 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-lg shadow-emerald-950/50 animate-bounce">
+              <CheckCircle size={40} />
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-2xl font-extrabold text-white tracking-wide">Félicitations !</h3>
+              <p className="text-sm text-zinc-350 font-bold uppercase tracking-wider text-emerald-400">
+                Dossier soumis avec succès
+              </p>
+              <p className="text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
+                Votre demande de paiement échelonné B2B a bien été enregistrée. L'équipe administrative de GMD étudiera et activera votre compte sous un délai maximal de 48 heures.
               </p>
             </div>
             <div className="pt-6">
               <Link 
                 to="/login"
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold transition-all inline-block shadow-md shadow-red-950/20"
+                className="px-8 py-3 rounded-lg bg-red-800 hover:bg-red-700 text-white text-sm font-bold transition-all inline-block shadow-lg shadow-red-950/40 transform hover:scale-105"
               >
                 Retourner à la page de connexion
               </Link>
@@ -890,6 +953,38 @@ function Register() {
             </div>
           </div>
         )}
+
+      {/* Curtain loading overlay at submit */}
+      {showSubmitCurtain && (
+        <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center p-6 z-[120] backdrop-blur-md transition-all duration-500">
+          <div className="max-w-md w-full space-y-8 text-center">
+            {/* Animated Scanning / Shield Icon */}
+            <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-red-500/20 animate-pulse"></div>
+              <div className="absolute inset-0 rounded-full border-t-4 border-red-500 animate-spin"></div>
+              <ShieldCheck size={44} className="text-red-500 animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-white tracking-wide animate-pulse">Soumission du dossier KYC</h3>
+              <p className="text-xs text-zinc-400 uppercase tracking-widest font-semibold">{submitMessage}</p>
+            </div>
+
+            {/* Progress Bar at the bottom of the overlay screen */}
+            <div className="w-full bg-zinc-900 border border-zinc-800 rounded-full h-3 overflow-hidden p-0.5">
+              <div 
+                className="bg-red-600 h-full rounded-full transition-all duration-100 ease-out"
+                style={{ width: `${submitProgress}%` }}
+              ></div>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] text-zinc-500 font-mono">
+              <span>STATUT: EN COURS</span>
+              <span>{submitProgress}%</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>
