@@ -32,6 +32,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
   const [forceShowProducts, setForceShowProducts] = useState(false);
   const [wallet, setWallet] = useState(null);
   const [showEligibilityModal, setShowEligibilityModal] = useState(false);
+  const [isExitingEligibility, setIsExitingEligibility] = useState(false);
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
@@ -187,8 +188,11 @@ function AppLayout({ user, setUser, cart, setCart }) {
 
       {/* ── ELIGIBILITY MODAL ────────────────────────────── */}
       {showEligibilityModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" style={{background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)'}}>
-          <div className="max-w-md w-full rounded-2xl border border-amber-800/50 bg-[#0e0c07] shadow-2xl shadow-amber-950/30 p-8 flex flex-col gap-6 animate-fade-in">
+        <div 
+          className={`fixed inset-0 z-[999] flex items-center justify-center p-4 transition-all duration-300 ${isExitingEligibility ? 'modal-overlay-fade-out' : ''}`}
+          style={{background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)'}}
+        >
+          <div className={`max-w-md w-full rounded-2xl border border-amber-800/50 bg-[#0e0c07] shadow-2xl shadow-amber-950/30 p-8 flex flex-col gap-6 ${isExitingEligibility ? 'modal-scale-out' : 'modal-scale'}`}>
             {/* Icon */}
             <div className="flex items-center justify-center">
               <div className="w-16 h-16 rounded-full bg-amber-950/40 border border-amber-700/50 flex items-center justify-center text-3xl shadow-lg shadow-amber-950/20">
@@ -220,13 +224,26 @@ function AppLayout({ user, setUser, cart, setCart }) {
             {/* Actions */}
             <div className="flex gap-3">
               <button
-                onClick={() => setShowEligibilityModal(false)}
+                onClick={() => {
+                  setIsExitingEligibility(true);
+                  setTimeout(() => {
+                    setShowEligibilityModal(false);
+                    setIsExitingEligibility(false);
+                  }, 300);
+                }}
                 className="flex-1 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white text-sm font-bold transition-all cursor-pointer"
               >
                 Non, pas encore
               </button>
               <button
-                onClick={() => { setShowEligibilityModal(false); navigate('/register'); }}
+                onClick={() => {
+                  setIsExitingEligibility(true);
+                  setTimeout(() => {
+                    setShowEligibilityModal(false);
+                    setIsExitingEligibility(false);
+                    navigate('/register');
+                  }, 300);
+                }}
                 className="flex-1 py-2.5 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-sm font-bold transition-all cursor-pointer shadow-md shadow-amber-950/30"
               >
                 Oui, je suis éligible

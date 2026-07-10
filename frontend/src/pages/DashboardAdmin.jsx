@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon, Edit3, Tag } from 'lucide-react';
+import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon, Edit3, Tag, FileText, Video } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardAdmin() {
@@ -1864,9 +1864,7 @@ function DashboardAdmin() {
             </form>
           </div>
         </div>
-      )}
-
-      {/* COMPANY DETAIL & BACKUP MODAL */}
+      )}      {/* COMPANY DETAIL & BACKUP MODAL */}
       {selectedCompany && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm overflow-y-auto">
           <div className="modal-scale w-full max-w-4xl bg-[#0f0f11] border border-zinc-900 rounded-2xl p-6 sm:p-8 shadow-2xl relative my-8">
@@ -1887,270 +1885,323 @@ function DashboardAdmin() {
               </button>
             </div>
 
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-h-[50vh] overflow-y-auto pr-1">
+            {/* Scrollable Container to fit all resolutions */}
+            <div className="max-h-[70vh] overflow-y-auto space-y-6 pr-2">
               
-              {/* Col 1: Entreprise Info */}
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
-                <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
-                  01. Informations Entreprise
-                </h4>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <span className="text-zinc-500 block">Dénomination sociale</span>
-                    <span className="text-white font-medium">{selectedCompany.denomination_sociale}</span>
+              {/* Content Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Col 1: Entreprise Info */}
+                <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between space-y-3.5">
+                  <div className="space-y-3.5">
+                    <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                      01. Informations Entreprise
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <span className="text-zinc-500 block">Dénomination sociale</span>
+                        <span className="text-white font-medium">{selectedCompany.denomination_sociale}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">N° RCCM</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.rccm_number}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">N° IFU</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.ifu_number}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">Téléphone</span>
+                        <span className="text-zinc-300">{selectedCompany.phone}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">Email officiel</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.email}</span>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-900 space-y-1">
+                        <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
+                        <p className="text-zinc-300">
+                          {selectedCompany.house}, Carré {selectedCompany.square}<br />
+                          Quartier {selectedCompany.district}<br />
+                          {selectedCompany.city}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-zinc-500 block">N° RCCM</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.rccm_number}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">N° IFU</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.ifu_number}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">Téléphone</span>
-                    <span className="text-zinc-300">{selectedCompany.phone}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">Email officiel</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.email}</span>
-                  </div>
-                  <div className="pt-2 border-t border-zinc-900 space-y-1">
-                    <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
-                    <p className="text-zinc-300">
-                      {selectedCompany.house}, Carré {selectedCompany.square}<br />
-                      Quartier {selectedCompany.district}<br />
-                      {selectedCompany.city}
-                    </p>
+
+                  {/* Documents Section inside Col 1 */}
+                  <div className="pt-3 border-t border-zinc-900 space-y-2">
+                    <span className="text-zinc-400 font-semibold block uppercase text-[10px] tracking-wider">Pièces Jointes</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <a 
+                        href={selectedCompany.company_rccm_pdf?.startsWith('http') ? selectedCompany.company_rccm_pdf : `${API_URL}/uploads/${selectedCompany.company_rccm_pdf}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="p-2 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex items-center justify-center gap-1.5 text-center text-zinc-300 hover:text-white transition-colors"
+                      >
+                        <FileText size={12} className="text-red-400" />
+                        <span className="text-[10px] font-bold">RCCM (PDF)</span>
+                      </a>
+                      <a 
+                        href={selectedCompany.company_ifu_pdf?.startsWith('http') ? selectedCompany.company_ifu_pdf : `${API_URL}/uploads/${selectedCompany.company_ifu_pdf}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="p-2 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex items-center justify-center gap-1.5 text-center text-zinc-300 hover:text-white transition-colors"
+                      >
+                        <FileText size={12} className="text-red-400" />
+                        <span className="text-[10px] font-bold">IFU (PDF)</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Col 2: Gérant Info */}
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
-                <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
-                  02. Informations du Gérant
-                </h4>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <span className="text-zinc-500 block">Nom et Prénom</span>
-                    <span className="text-white font-medium">{selectedCompany.manager_name}</span>
+                {/* Col 2: Gérant Info */}
+                <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between space-y-3.5">
+                  <div className="space-y-3.5">
+                    <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                      02. Informations du Gérant
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <span className="text-zinc-500 block">Nom et Prénom</span>
+                        <span className="text-white font-medium">{selectedCompany.manager_name}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">N° RCCM (si applicable)</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.manager_rccm || 'Non renseigné'}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">N° IFU</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.manager_ifu}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">Téléphone</span>
+                        <span className="text-zinc-300">{selectedCompany.manager_phone}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">Email</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.manager_email}</span>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-900 space-y-1">
+                        <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
+                        <p className="text-zinc-300">
+                          {selectedCompany.manager_house}, Carré {selectedCompany.manager_square}<br />
+                          Quartier {selectedCompany.manager_district}<br />
+                          {selectedCompany.manager_city}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-zinc-500 block">N° RCCM (si applicable)</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.manager_rccm || 'Non renseigné'}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">N° IFU</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.manager_ifu}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">Téléphone</span>
-                    <span className="text-zinc-300">{selectedCompany.manager_phone}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">Email</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.manager_email}</span>
-                  </div>
-                  <div className="pt-2 border-t border-zinc-900 space-y-1">
-                    <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
-                    <p className="text-zinc-300">
-                      {selectedCompany.manager_house}, Carré {selectedCompany.manager_square}<br />
-                      Quartier {selectedCompany.manager_district}<br />
-                      {selectedCompany.manager_city}
-                    </p>
+
+                  {/* Documents Section inside Col 2 */}
+                  <div className="pt-3 border-t border-zinc-900 space-y-2">
+                    <span className="text-zinc-400 font-semibold block uppercase text-[10px] tracking-wider">Pièces Jointes & KYC</span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <a 
+                        href={selectedCompany.manager_cip_pdf?.startsWith('http') ? selectedCompany.manager_cip_pdf : `${API_URL}/uploads/${selectedCompany.manager_cip_pdf}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="p-1.5 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                      >
+                        <FileText size={12} className="text-red-400" />
+                        <span className="text-[9px] font-bold mt-0.5">CIP</span>
+                      </a>
+                      {selectedCompany.manager_ifu_pdf ? (
+                        <a 
+                          href={selectedCompany.manager_ifu_pdf.startsWith('http') ? selectedCompany.manager_ifu_pdf : `${API_URL}/uploads/${selectedCompany.manager_ifu_pdf}`} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="p-1.5 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                        >
+                          <FileText size={12} className="text-red-400" />
+                          <span className="text-[9px] font-bold mt-0.5">IFU</span>
+                        </a>
+                      ) : (
+                        <div className="p-1.5 rounded bg-zinc-900/50 border border-zinc-800/30 flex flex-col items-center justify-center text-zinc-600">
+                          <span className="text-[9px] font-bold">N/A</span>
+                        </div>
+                      )}
+                      <a 
+                        href={selectedCompany.manager_selfie?.startsWith('http') ? selectedCompany.manager_selfie : `${API_URL}/uploads/${selectedCompany.manager_selfie}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="p-1.5 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                      >
+                        <Video size={12} className="text-red-400" />
+                        <span className="text-[9px] font-bold mt-0.5">Selfie</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Col 3: Garant Info */}
-              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
-                <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
-                  03. Informations de l'Avaliseur
-                </h4>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <span className="text-zinc-500 block">Nom et Prénom</span>
-                    <span className="text-white font-medium">{selectedCompany.guarantor_name}</span>
+                {/* Col 3: Garant Info */}
+                <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom flex flex-col justify-between space-y-3.5">
+                  <div className="space-y-3.5">
+                    <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2">
+                      03. Informations de l'Avaliseur
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <span className="text-zinc-500 block">Nom et Prénom</span>
+                        <span className="text-white font-medium">{selectedCompany.guarantor_name}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">N° RCCM (si applicable)</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_rccm || 'Non renseigné'}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">N° IFU</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_ifu}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block">Téléphone</span>
+                        <span className="text-zinc-300">{selectedCompany.guarantor_phone}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-550 block">Email</span>
+                        <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_email}</span>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-900 space-y-1">
+                        <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
+                        <p className="text-zinc-300">
+                          {selectedCompany.guarantor_house}, Carré {selectedCompany.guarantor_square}<br />
+                          Quartier {selectedCompany.guarantor_district}<br />
+                          {selectedCompany.guarantor_city}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-zinc-500 block">N° RCCM (si applicable)</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_rccm || 'Non renseigné'}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">N° IFU</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_ifu}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 block">Téléphone</span>
-                    <span className="text-zinc-300">{selectedCompany.guarantor_phone}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-550 block">Email</span>
-                    <span className="text-zinc-300 font-mono">{selectedCompany.guarantor_email}</span>
-                  </div>
-                  <div className="pt-2 border-t border-zinc-900 space-y-1">
-                    <span className="text-zinc-400 font-semibold block">Adresse Géographique</span>
-                    <p className="text-zinc-300">
-                      {selectedCompany.guarantor_house}, Carré {selectedCompany.guarantor_square}<br />
-                      Quartier {selectedCompany.guarantor_district}<br />
-                      {selectedCompany.guarantor_city}
-                    </p>
+
+                  {/* Documents Section inside Col 3 */}
+                  <div className="pt-3 border-t border-zinc-900 space-y-2">
+                    <span className="text-zinc-400 font-semibold block uppercase text-[10px] tracking-wider">Pièces Jointes & KYC</span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <a 
+                        href={selectedCompany.guarantor_cip_pdf?.startsWith('http') ? selectedCompany.guarantor_cip_pdf : `${API_URL}/uploads/${selectedCompany.guarantor_cip_pdf}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="p-1.5 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                      >
+                        <FileText size={12} className="text-red-400" />
+                        <span className="text-[9px] font-bold mt-0.5">CIP</span>
+                      </a>
+                      {selectedCompany.guarantor_ifu_pdf ? (
+                        <a 
+                          href={selectedCompany.guarantor_ifu_pdf.startsWith('http') ? selectedCompany.guarantor_ifu_pdf : `${API_URL}/uploads/${selectedCompany.guarantor_ifu_pdf}`} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="p-1.5 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                        >
+                          <FileText size={12} className="text-red-400" />
+                          <span className="text-[9px] font-bold mt-0.5">IFU</span>
+                        </a>
+                      ) : (
+                        <div className="p-1.5 rounded bg-zinc-900/50 border border-zinc-800/30 flex flex-col items-center justify-center text-zinc-600">
+                          <span className="text-[9px] font-bold">N/A</span>
+                        </div>
+                      )}
+                      <a 
+                        href={selectedCompany.guarantor_selfie?.startsWith('http') ? selectedCompany.guarantor_selfie : `${API_URL}/uploads/${selectedCompany.guarantor_selfie}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="p-1.5 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
+                      >
+                        <Video size={12} className="text-red-400" />
+                        <span className="text-[9px] font-bold mt-0.5">Selfie</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
+
               </div>
 
-            </div>
+              {/* ── SECTION 04: PORTEFEUILLE FINANCIER ── */}
+              <div className="p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
+                <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2 flex justify-between items-center">
+                  <span>04. Situation du Portefeuille Financier</span>
+                  {selectedCompany.wallet && selectedCompany.wallet.activated_at ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 font-bold uppercase">
+                      Actif depuis le {new Date(selectedCompany.wallet.activated_at).toLocaleDateString('fr-FR')}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-amber-950/40 text-amber-400 border border-amber-900/40 font-bold uppercase">
+                      Non Activé Financièrement
+                    </span>
+                  )}
+                </h4>
 
-            {/* ── SECTION 04: PORTEFEUILLE FINANCIER ── */}
-            <div className="mt-6 p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3.5">
-              <h4 className="font-bold text-xs text-red-500 uppercase tracking-widest border-b border-zinc-800 pb-2 flex justify-between items-center">
-                <span>04. Situation du Portefeuille Financier</span>
                 {selectedCompany.wallet && selectedCompany.wallet.activated_at ? (
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 font-bold uppercase">
-                    Actif depuis le {new Date(selectedCompany.wallet.activated_at).toLocaleDateString('fr-FR')}
-                  </span>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                    <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                      <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Acompte Initial (1/3)</span>
+                      <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                    <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                      <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Acompte Restant</span>
+                      <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.acompte_restant).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                    <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                      <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Ligne de Crédit (2/3)</span>
+                      <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                    <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
+                      <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Crédit Consommé</span>
+                      <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                  </div>
                 ) : (
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-amber-950/40 text-amber-400 border border-amber-900/40 font-bold uppercase">
-                    Non Activé Financièrement
-                  </span>
+                  <div className="p-4 rounded bg-zinc-950/50 border border-zinc-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-xs text-zinc-300">
+                        Ce portefeuille n'est pas encore activé financièrement.
+                      </p>
+                      <p className="text-[10px] text-zinc-500">
+                        Le dépôt d'acompte initial requis (configuré globalement) est de <strong className="text-white font-mono">{Number(minActivationDeposit).toLocaleString('fr-FR')} FCFA</strong>. La ligne de crédit associée sera fixée au double ({Number(minActivationDeposit * 2).toLocaleString('fr-FR')} FCFA).
+                      </p>
+                    </div>
+                    
+                    <button
+                      onClick={() => handleActivateWallet(selectedCompany.id)}
+                      disabled={walletLoading}
+                      className="px-4 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-950/20 animate-pulse"
+                    >
+                      🚀 {walletLoading ? 'Activation...' : 'Activer le Portefeuille'}
+                    </button>
+                  </div>
                 )}
-              </h4>
-
-              {selectedCompany.wallet && selectedCompany.wallet.activated_at ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
-                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Acompte Initial (1/3)</span>
-                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.acompte_initial).toLocaleString('fr-FR')} FCFA</span>
-                  </div>
-                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
-                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Acompte Restant</span>
-                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.acompte_restant).toLocaleString('fr-FR')} FCFA</span>
-                  </div>
-                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
-                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Ligne de Crédit (2/3)</span>
-                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
-                  </div>
-                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/50">
-                    <span className="text-zinc-500 block text-[10px] uppercase font-semibold">Crédit Consommé</span>
-                    <span className="text-white font-mono font-bold text-sm">{Number(selectedCompany.wallet.credit_utilise).toLocaleString('fr-FR')} FCFA</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 rounded bg-zinc-950/50 border border-zinc-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-xs text-zinc-300">
-                      Ce portefeuille n'est pas encore activé financièrement.
-                    </p>
-                    <p className="text-[10px] text-zinc-500">
-                      Le dépôt d'acompte initial requis (configuré globalement) est de <strong className="text-white font-mono">{Number(minActivationDeposit).toLocaleString('fr-FR')} FCFA</strong>. La ligne de crédit associée sera fixée au double ({Number(minActivationDeposit * 2).toLocaleString('fr-FR')} FCFA).
-                    </p>
-                  </div>
-                  
-                  <button
-                    onClick={() => handleActivateWallet(selectedCompany.id)}
-                    disabled={walletLoading}
-                    className="px-4 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-950/20"
-                  >
-                    🚀 {walletLoading ? 'Activation...' : 'Activer le Portefeuille'}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Documents Section at bottom of modal */}
-            <div className="mt-6 p-4 rounded-lg bg-bg-deepest border border-border-custom space-y-3">
-              <h4 className="font-bold text-xs text-zinc-400 uppercase tracking-widest border-b border-zinc-800 pb-2">
-                Pièces Justificatives (Téléchargement et consultation)
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                {/* Entreprise */}
-                <a 
-                  href={selectedCompany.company_rccm_pdf?.startsWith('http') ? selectedCompany.company_rccm_pdf : `${API_URL}/uploads/${selectedCompany.company_rccm_pdf}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span className="text-lg">📄</span>
-                  <span className="font-semibold mt-1">RCCM Entreprise (PDF)</span>
-                </a>
-                <a 
-                  href={selectedCompany.company_ifu_pdf?.startsWith('http') ? selectedCompany.company_ifu_pdf : `${API_URL}/uploads/${selectedCompany.company_ifu_pdf}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span className="text-lg">📄</span>
-                  <span className="font-semibold mt-1">IFU Entreprise (PDF)</span>
-                </a>
-
-                {/* Gérant */}
-                <a 
-                  href={selectedCompany.manager_cip_pdf?.startsWith('http') ? selectedCompany.manager_cip_pdf : `${API_URL}/uploads/${selectedCompany.manager_cip_pdf}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span className="text-lg">📄</span>
-                  <span className="font-semibold mt-1">CIP Gérant (PDF)</span>
-                </a>
-                {selectedCompany.manager_ifu_pdf && (
-                  <a 
-                    href={selectedCompany.manager_ifu_pdf.startsWith('http') ? selectedCompany.manager_ifu_pdf : `${API_URL}/uploads/${selectedCompany.manager_ifu_pdf}`} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                  >
-                    <span className="text-lg">📄</span>
-                    <span className="font-semibold mt-1">IFU Gérant (PDF)</span>
-                  </a>
-                )}
-                <a 
-                  href={selectedCompany.manager_selfie?.startsWith('http') ? selectedCompany.manager_selfie : `${API_URL}/uploads/${selectedCompany.manager_selfie}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span className="text-lg">📹</span>
-                  <span className="font-semibold mt-1">Selfie Vidéo Gérant</span>
-                </a>
-
-                {/* Garant */}
-                <a 
-                  href={selectedCompany.guarantor_cip_pdf?.startsWith('http') ? selectedCompany.guarantor_cip_pdf : `${API_URL}/uploads/${selectedCompany.guarantor_cip_pdf}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span className="text-lg">📄</span>
-                  <span className="font-semibold mt-1">CIP Garant (PDF)</span>
-                </a>
-                {selectedCompany.guarantor_ifu_pdf && (
-                  <a 
-                    href={selectedCompany.guarantor_ifu_pdf.startsWith('http') ? selectedCompany.guarantor_ifu_pdf : `${API_URL}/uploads/${selectedCompany.guarantor_ifu_pdf}`} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                  >
-                    <span className="text-lg">📄</span>
-                    <span className="font-semibold mt-1">IFU Garant (PDF)</span>
-                  </a>
-                )}
-                <a 
-                  href={selectedCompany.guarantor_selfie?.startsWith('http') ? selectedCompany.guarantor_selfie : `${API_URL}/uploads/${selectedCompany.guarantor_selfie}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="p-3 rounded bg-surface-custom hover:bg-zinc-800 border border-border-custom/50 flex flex-col items-center justify-center text-center text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span className="text-lg">📹</span>
-                  <span className="font-semibold mt-1">Selfie Vidéo Garant</span>
-                </a>
               </div>
+
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end mt-6 border-t border-zinc-900 pt-4">
+            <div className="flex justify-end mt-6 border-t border-zinc-900 pt-4 gap-2">
+              
+              {/* Direct Approve/Reject buttons inside detail modal */}
+              {selectedCompany.kyc_status === 'PENDING' && (
+                <div className="mr-auto flex gap-2">
+                  <button 
+                    onClick={async () => {
+                      await handleUpdateKyc(selectedCompany.id, 'APPROVED');
+                      setSelectedCompany(prev => ({ ...prev, kyc_status: 'APPROVED' }));
+                    }}
+                    disabled={actionLoading}
+                    className="px-4 py-2 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold cursor-pointer transition-colors shadow-md shadow-emerald-950/20"
+                  >
+                    ✓ Approuver le client
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      await handleUpdateKyc(selectedCompany.id, 'REJECTED');
+                      setSelectedCompany(prev => ({ ...prev, kyc_status: 'REJECTED' }));
+                    }}
+                    disabled={actionLoading}
+                    className="px-4 py-2 rounded bg-red-950/50 hover:bg-red-900/60 text-red-400 border border-red-900/50 text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    ✗ Rejeter le dossier
+                  </button>
+                </div>
+              )}
+
               {selectedCompany.kyc_status === 'DEACTIVATED' && (
                 <button 
                   onClick={async () => {
@@ -2163,15 +2214,16 @@ function DashboardAdmin() {
                   Réactiver le compte (48h)
                 </button>
               )}
+
               <button 
                 onClick={() => handleDeleteCompany(selectedCompany.id)}
-                className="mr-3 px-5 py-2 rounded bg-red-800/30 hover:bg-red-900 text-red-400 text-xs font-semibold cursor-pointer transition-colors"
+                className="px-4 py-2 rounded bg-red-900/20 hover:bg-red-900/40 text-red-400 text-xs font-semibold cursor-pointer transition-colors"
               >
                 Supprimer l'entreprise
               </button>
               <button 
                 onClick={() => setSelectedCompany(null)}
-                className="px-5 py-2 rounded bg-surface-custom hover:bg-zinc-800 text-white text-xs font-semibold cursor-pointer transition-colors"
+                className="px-4 py-2 rounded bg-surface-custom hover:bg-zinc-800 text-white text-xs font-semibold cursor-pointer transition-colors"
               >
                 Fermer
               </button>

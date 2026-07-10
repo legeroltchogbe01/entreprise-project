@@ -12,6 +12,8 @@ function Register() {
   const [showSubmitCurtain, setShowSubmitCurtain] = useState(false);
   const [submitProgress, setSubmitProgress] = useState(0);
   const [submitMessage, setSubmitMessage] = useState('');
+  const [direction, setDirection] = useState('forward');
+  const [isCurtainTransitioning, setIsCurtainTransitioning] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -268,12 +270,26 @@ function Register() {
       }
     }
     setError('');
-    setStep(step + 1);
+    setDirection('forward');
+    setIsCurtainTransitioning(true);
+    setTimeout(() => {
+      setStep(step + 1);
+    }, 1100);
+    setTimeout(() => {
+      setIsCurtainTransitioning(false);
+    }, 2500);
   };
 
   const handlePrev = () => {
     setError('');
-    setStep(step - 1);
+    setDirection('backward');
+    setIsCurtainTransitioning(true);
+    setTimeout(() => {
+      setStep(step - 1);
+    }, 1100);
+    setTimeout(() => {
+      setIsCurtainTransitioning(false);
+    }, 2500);
   };
 
   const handleSubmit = async (e) => {
@@ -441,7 +457,17 @@ function Register() {
     <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-12 bg-bg-main relative">
       <div className="absolute max-w-[400px] w-[60vw] h-[60vw] max-h-[400px] rounded-full bg-primary-custom/5 blur-[120px] top-1/4 left-1/4"></div>
 
-      <div className="w-full max-w-3xl glass-panel p-4 sm:p-8 rounded-lg border border-border-custom relative z-10">
+      <div className="w-full max-w-3xl glass-panel p-4 sm:p-8 rounded-lg border border-border-custom relative z-10 overflow-hidden">
+        
+        {/* Step Transition Curtain Slide */}
+        {isCurtainTransitioning && (
+          <div className="absolute inset-0 bg-[#0c0a09]/98 border border-red-950 z-50 curtain-overlay-slide flex flex-col items-center justify-center gap-3">
+            <div className="w-12 h-12 rounded-full border-2 border-t-red-500 border-red-500/20 animate-spin"></div>
+            <span className="text-white font-extrabold tracking-widest text-xs uppercase animate-pulse">
+              GMD B2B • Chargement de l'étape suivante...
+            </span>
+          </div>
+        )}
         
         {/* Step Indicator */}
         {step < 4 && (
@@ -473,7 +499,7 @@ function Register() {
 
         {/* Step 1: Company Info */}
         {step === 1 && (
-          <div key={1} className="space-y-6 fade-up">
+          <div key={1} className={`space-y-6 ${direction === 'forward' ? 'slide-step-forward' : 'slide-step-backward'}`}>
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">01. Informations de l'Entreprise</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -591,7 +617,7 @@ function Register() {
 
         {/* Step 2: Manager Info */}
         {step === 2 && (
-          <div key={2} className="space-y-6 fade-up">
+          <div key={2} className={`space-y-6 ${direction === 'forward' ? 'slide-step-forward' : 'slide-step-backward'}`}>
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">02. Informations du Gérant</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -719,7 +745,7 @@ function Register() {
 
         {/* Step 3: Guarantor Info */}
         {step === 3 && (
-          <form key={3} onSubmit={handleSubmit} className="space-y-6 fade-up">
+          <form key={3} onSubmit={handleSubmit} className={`space-y-6 ${direction === 'forward' ? 'slide-step-forward' : 'slide-step-backward'}`}>
             <h3 className="text-lg font-bold text-white tracking-wide border-b border-border-custom pb-2">03. Informations de l'Avaliseur (Garant)</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -844,7 +870,7 @@ function Register() {
 
         {/* Step 4: Success Message (Félicitations Popup/Card) */}
         {step === 4 && (
-          <div key={4} className="text-center py-8 space-y-6 fade-up">
+          <div key={4} className={`text-center py-8 space-y-6 ${direction === 'forward' ? 'slide-step-forward' : 'slide-step-backward'}`}>
             <div className="w-20 h-20 bg-emerald-950/30 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-lg shadow-emerald-950/50 animate-bounce">
               <CheckCircle size={40} />
             </div>
