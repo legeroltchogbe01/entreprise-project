@@ -30,6 +30,7 @@ const productRoutes = require('./routes/product');
 const orderRoutes = require('./routes/order');
 const specialRoutes = require('./routes/special');
 const adminRoutes = require('./routes/admin');
+const profileUpdateRoutes = require('./routes/profileUpdate');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/wallets', walletRoutes);
@@ -37,6 +38,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/special-requests', specialRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/profile-update-requests', profileUpdateRoutes);
 
 // Base route
 app.get('/', (req, res) => {

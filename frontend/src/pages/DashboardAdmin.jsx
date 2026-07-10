@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon, Edit3, Tag, FileText, Video } from 'lucide-react';
+import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon, Edit3, Tag, FileText, Video, Clock, Check } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardAdmin() {
@@ -80,6 +80,11 @@ function DashboardAdmin() {
   const [isEditingSubaccount23, setIsEditingSubaccount23] = useState(false);
   const [walletLoading, setWalletLoading] = useState(false);
 
+  // Profile update requests
+  const [profileUpdateRequests, setProfileUpdateRequests] = useState([]);
+  const [profileUpdateActionLoading, setProfileUpdateActionLoading] = useState(false);
+  const [adminNoteMap, setAdminNoteMap] = useState({});
+
   // Bulk product selection
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
@@ -141,6 +146,13 @@ function DashboardAdmin() {
         setPurchaseEligibilityPeriod(setData.purchaseEligibilityPeriod || 4);
         setKkiapaySubaccount13(setData.kkiapaySubaccount13 || '');
         setKkiapaySubaccount23(setData.kkiapaySubaccount23 || '');
+      }
+
+      // Fetch Profile Update Requests
+      const purRes = await fetch(`${API_URL}/api/profile-update-requests/admin/all`);
+      if (purRes.ok) {
+        const purData = await purRes.json();
+        setProfileUpdateRequests(purData);
       }
 
     } catch (err) {
@@ -236,6 +248,45 @@ function DashboardAdmin() {
       alert(err.message);
     } finally {
       setContractLoading(false);
+    }
+  };
+
+  // Profile update request handlers
+  const handleApproveProfileUpdate = async (requestId) => {
+    setProfileUpdateActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/profile-update-requests/admin/${requestId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_note: adminNoteMap[requestId] || '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      alert('Profil mis à jour avec succès.');
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setProfileUpdateActionLoading(false);
+    }
+  };
+
+  const handleRejectProfileUpdate = async (requestId) => {
+    setProfileUpdateActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/profile-update-requests/admin/${requestId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_note: adminNoteMap[requestId] || '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      alert('Demande rejetée.');
+      await fetchAdminData();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setProfileUpdateActionLoading(false);
     }
   };
 
@@ -783,6 +834,7 @@ function DashboardAdmin() {
           { id: 'devis', label: '⚡ Chiffrage Devis', badge: pendingQuotesCount },
           { id: 'contracts', label: '📜 Édition Contrats', badge: pendingContractsCount },
           { id: 'risk', label: '📊 Risque & Créances', badge: unpaidSchedulesCount },
+          { id: 'profile_updates', label: '✏️ Modifications Profil', badge: profileUpdateRequests.filter(r => r.status === 'PENDING').length },
           { id: 'products', label: '📦 Catalogue Produits' },
           { id: 'settings', label: '⚙️ Paramètres' }
         ].map(tab => (
@@ -1729,6 +1781,97 @@ function DashboardAdmin() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* PROFILE UPDATES PANEL */}
+      {activeTab === 'profile_updates' && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Edit3 size={18} className="text-zinc-400" />
+            <h3 className="font-bold text-white text-lg">Demandes de Modification de Profil</h3>
+          </div>
+
+          {profileUpdateRequests.length === 0 ? (
+            <div className="p-8 rounded-lg bg-bg-deepest border border-border-custom text-center text-zinc-500 text-sm">
+              Aucune demande de modification pour le moment.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {profileUpdateRequests.map(req => (
+                <div key={req.id} className={`p-5 rounded-xl border space-y-4 ${
+                  req.status === 'PENDING' ? 'bg-amber-950/10 border-amber-900/40' :
+                  req.status === 'APPROVED' ? 'bg-emerald-950/10 border-emerald-900/40' :
+                  'bg-zinc-950 border-zinc-800'
+                }`}>
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">{req.company?.denomination_sociale}</p>
+                      <p className="text-[11px] text-zinc-500">{req.company?.email}</p>
+                      <p className="text-[10px] text-zinc-600 mt-0.5">
+                        Soumise le {new Date(req.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                      req.status === 'PENDING' ? 'bg-amber-950/40 text-amber-400 border border-amber-800/50' :
+                      req.status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50' :
+                      'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                    }`}>
+                      {req.status === 'PENDING' ? '⏳ En attente' : req.status === 'APPROVED' ? '✓ Approuvée' : '✗ Rejetée'}
+                    </span>
+                  </div>
+
+                  {/* Proposed changes */}
+                  <div className="bg-zinc-900/60 rounded-lg p-3 space-y-1.5">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Modifications demandées :</p>
+                    {Object.entries(req.changes).map(([key, value]) => (
+                      <div key={key} className="flex items-center gap-2 text-xs">
+                        <span className="text-zinc-500 font-mono w-40 shrink-0">{key}</span>
+                        <span className="text-white font-semibold">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Admin note if exists */}
+                  {req.admin_note && (
+                    <div className="text-[11px] text-zinc-400 bg-zinc-900/40 rounded p-2.5 border border-zinc-800/50">
+                      <span className="font-bold text-zinc-500">Note admin : </span>{req.admin_note}
+                    </div>
+                  )}
+
+                  {/* Actions for PENDING requests */}
+                  {req.status === 'PENDING' && (
+                    <div className="space-y-2 pt-2 border-t border-zinc-800/50">
+                      <input
+                        type="text"
+                        placeholder="Note admin (optionnel)..."
+                        value={adminNoteMap[req.id] || ''}
+                        onChange={e => setAdminNoteMap(prev => ({ ...prev, [req.id]: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleApproveProfileUpdate(req.id)}
+                          disabled={profileUpdateActionLoading}
+                          className="flex-1 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+                        >
+                          <Check size={13} /> Approuver & Appliquer
+                        </button>
+                        <button
+                          onClick={() => handleRejectProfileUpdate(req.id)}
+                          disabled={profileUpdateActionLoading}
+                          className="flex-1 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors border border-red-900/40 disabled:opacity-50"
+                        >
+                          <X size={13} /> Rejeter
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* SETTINGS PANEL */}

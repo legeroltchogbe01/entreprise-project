@@ -75,6 +75,7 @@ model Company {
   wallet                Wallet?
   orders                Order[]
   special_requests      SpecialRequest[]
+  profile_update_requests ProfileUpdateRequest[]
 }
 
 model Wallet {
@@ -157,4 +158,21 @@ model SpecialRequest {
   quote_notes     String?
   contract_content String?
   created_at      DateTime      @default(now())
+}
+
+enum ProfileUpdateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProfileUpdateRequest {
+  id          String              @id @default(uuid())
+  company_id  String
+  company     Company             @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  changes     Json                // JSON object with the proposed field changes
+  status      ProfileUpdateStatus @default(PENDING)
+  admin_note  String?             // Optional note from admin when rejecting/approving
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @updatedAt
 }
