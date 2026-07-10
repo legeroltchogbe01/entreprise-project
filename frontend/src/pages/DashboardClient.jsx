@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye } from 'lucide-react';
+import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye, EyeOff } from 'lucide-react';
 import { API_URL, KKIAPAY_PUBLIC_KEY } from '../config';
 
 // ─── MINUTERIE DÉS-ACTIVATION 48H ──────────────────────────────────────────
@@ -77,6 +77,7 @@ function DashboardClient({ user }) {
 
   // Payment State
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [showBalances, setShowBalances] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
@@ -370,9 +371,11 @@ function DashboardClient({ user }) {
                 {/* Left Side: Blue circular button with eye icon */}
                 <button
                   type="button"
+                  onClick={() => setShowBalances(!showBalances)}
                   className="w-10 h-10 rounded-full bg-[#0082f4] hover:bg-blue-600 text-white flex items-center justify-center shrink-0 cursor-pointer shadow-md transition-colors"
+                  title={showBalances ? "Masquer les soldes" : "Afficher les soldes"}
                 >
-                  <Eye size={20} />
+                  {showBalances ? <Eye size={20} /> : <EyeOff size={20} />}
                 </button>
 
                 {/* Middle: White card */}
@@ -380,7 +383,7 @@ function DashboardClient({ user }) {
                   <div className="bg-white rounded-xl px-6 py-2.5 shadow-md text-center min-w-[185px]">
                     <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest text-center">ÉCHÉANCE MENSUELLE GLOBALE</p>
                     <p className="text-lg font-black text-black mt-0.5 text-center font-mono">
-                      {nextMonthlyDue ? `${Number(nextMonthlyDue.amount).toLocaleString('fr-FR')} FCFA` : '0 FCFA'}
+                      {showBalances ? (nextMonthlyDue ? `${Number(nextMonthlyDue.amount).toLocaleString('fr-FR')} FCFA` : '0 FCFA') : '•••••• FCFA'}
                     </p>
                   </div>
                   {/* Calendar Pill below the white card */}
@@ -419,10 +422,10 @@ function DashboardClient({ user }) {
                       <Wallet2 size={12} className="text-[#0082f4]" /> Acompte Disponible (Champ_Dispo_Admin)
                     </p>
                     <h3 className="font-bold text-white text-lg font-mono">
-                      {wallet.activated_at ? Number(wallet.acompte_restant).toLocaleString('fr-FR') : '0'} <span className="text-[10px] text-zinc-400">FCFA</span>
+                      {wallet.activated_at ? (showBalances ? `${Number(wallet.acompte_restant).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                     <p className="text-[10px] text-zinc-500 leading-none">
-                      Limite de départ : {wallet.activated_at ? Number(wallet.acompte_initial).toLocaleString('fr-FR') : '0'} FCFA
+                      Limite de départ : {wallet.activated_at ? (showBalances ? `${Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </p>
                   </div>
 
@@ -433,10 +436,10 @@ function DashboardClient({ user }) {
                       <Wallet2 size={12} className="text-emerald-500" /> Crédit Disponible (Champ_Dispo_Credit)
                     </p>
                     <h3 className="font-bold text-white text-lg font-mono">
-                      {wallet.activated_at ? (Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR') : '0'} <span className="text-[10px] text-zinc-400">FCFA</span>
+                      {wallet.activated_at ? (showBalances ? `${(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                     <p className="text-[10px] text-zinc-500 leading-none">
-                      Limite de départ : {wallet.activated_at ? Number(wallet.credit_initial).toLocaleString('fr-FR') : '0'} FCFA
+                      Limite de départ : {wallet.activated_at ? (showBalances ? `${Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </p>
                   </div>
                 </div>
@@ -449,7 +452,7 @@ function DashboardClient({ user }) {
                       <Wallet2 size={12} className="text-zinc-600" /> Acompte Consommé (Champ_Conso_Admin)
                     </p>
                     <h3 className="font-bold text-white text-lg font-mono">
-                      {wallet.activated_at ? (Number(wallet.acompte_initial) - Number(wallet.acompte_restant)).toLocaleString('fr-FR') : '0'} <span className="text-[10px] text-zinc-400">FCFA</span>
+                      {wallet.activated_at ? (showBalances ? `${(Number(wallet.acompte_initial) - Number(wallet.acompte_restant)).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                   </div>
 
@@ -459,7 +462,7 @@ function DashboardClient({ user }) {
                       <Wallet2 size={12} className="text-red-500" /> Crédit Consommé (Champ_Conso_Credit)
                     </p>
                     <h3 className="font-bold text-white text-lg font-mono">
-                      {wallet.activated_at ? Number(wallet.credit_utilise).toLocaleString('fr-FR') : '0'} <span className="text-[10px] text-zinc-400">FCFA</span>
+                      {wallet.activated_at ? (showBalances ? `${Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                   </div>
                 </div>
@@ -807,7 +810,7 @@ function DashboardClient({ user }) {
                   <span className="text-[10px] bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-0.5 rounded font-bold">CRÉDIT ACTIF</span>
                 </div>
                 <h3 className="text-2xl font-black text-white font-mono">
-                  {Number(wallet.credit_utilise).toLocaleString('fr-FR')} <span className="text-xs text-zinc-400">FCFA</span>
+                  {showBalances ? `${Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA'}
                 </h3>
                 <div className="space-y-1.5">
                   <div className="w-full h-2 bg-surface-custom rounded-full overflow-hidden">
@@ -817,8 +820,8 @@ function DashboardClient({ user }) {
                     ></div>
                   </div>
                   <div className="flex justify-between text-[10px] text-zinc-500 font-semibold uppercase">
-                    <span>Limite autorisée: {Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA</span>
-                    <span>Disponible: {(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} FCFA</span>
+                    <span>Limite autorisée: {showBalances ? `${Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA'}</span>
+                    <span>Disponible: {showBalances ? `${(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA'}</span>
                   </div>
                 </div>
               </div>
@@ -850,7 +853,7 @@ function DashboardClient({ user }) {
                           <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
                           <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
                           <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
-                          <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')} FCFA</td>
+                          <td className="p-3 font-bold font-mono text-white text-[10px]">{showBalances ? `${Number(mat.amount).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA'}</td>
                           <td className="p-3 text-right">
                             <button
                               onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
