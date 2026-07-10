@@ -685,6 +685,16 @@ function DashboardAdmin() {
     );
   }
 
+  const pendingKycCount = companies.filter(c => c.kyc_status === 'PENDING').length;
+  const pendingQuotesCount = specialRequests.filter(r => r.status === 'PENDING').length;
+  const pendingContractsCount = specialRequests.filter(r => r.status === 'QUOTED').length;
+  const unpaidSchedulesCount = schedules.filter(s => !s.paid).length;
+
+  const getFileUrl = (path) => {
+    if (!path) return '#';
+    return path.startsWith('http') ? path : `${API_URL}/uploads/${path}`;
+  };
+
   return (
     <div className="flex-1 p-6 md:p-8 space-y-8 bg-bg-main">
       
@@ -761,23 +771,28 @@ function DashboardAdmin() {
       <div className="flex flex-wrap gap-2 border-b border-border-custom pb-4 overflow-x-auto">
         {[
           { id: 'directory', label: '🗂️ Annuaire Client B2B' },
-          { id: 'kyc', label: '🛡️ Dossiers KYC' },
-          { id: 'devis', label: '⚡ Chiffrage Devis' },
-          { id: 'contracts', label: '📜 Édition Contrats' },
-          { id: 'risk', label: '📊 Risque & Créances' },
+          { id: 'kyc', label: '🛡️ Dossiers KYC', badge: pendingKycCount },
+          { id: 'devis', label: '⚡ Chiffrage Devis', badge: pendingQuotesCount },
+          { id: 'contracts', label: '📜 Édition Contrats', badge: pendingContractsCount },
+          { id: 'risk', label: '📊 Risque & Créances', badge: unpaidSchedulesCount },
           { id: 'products', label: '📦 Catalogue Produits' },
           { id: 'settings', label: '⚙️ Paramètres' }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors border ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors border flex items-center gap-1.5 relative ${
               activeTab === tab.id
-                ? 'bg-red-950/30 border-red-800/70 text-red-400'
+                ? 'bg-red-950/30 border-red-800/70 text-red-400 font-bold'
                 : 'border-zinc-900/50 bg-zinc-950/30 text-zinc-400 hover:text-white hover:border-zinc-700'
             }`}
           >
             {tab.label}
+            {tab.badge > 0 && (
+              <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white badge-pulse">
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -914,26 +929,56 @@ function DashboardAdmin() {
                   </div>
 
                   {/* Documents List */}
-                  <div className="p-3 rounded bg-surface-custom/30 border border-border-custom/40 space-y-2 text-xs">
-                    <p className="font-semibold text-zinc-300">Pièces d'identité & Selfies :</p>
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <a href={`${API_URL}/uploads/${company.manager_cip_pdf}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
-                        📄 CIP Gérant (PDF)
+                  <div className="p-4 rounded bg-surface-custom/30 border border-border-custom/40 space-y-3 text-xs">
+                    <p className="font-semibold text-zinc-350">Pièces justificatives du dossier B2B :</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
+                      <a href={getFileUrl(company.company_rccm_pdf)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                        <FileText size={12} className="text-red-400 shrink-0" />
+                        <span>RCCM Entreprise (PDF)</span>
                       </a>
-                      <a href={`${API_URL}/uploads/${company.manager_selfie}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
-                        🖼️ Selfie Gérant (Photo)
+                      <a href={getFileUrl(company.company_ifu_pdf)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                        <FileText size={12} className="text-red-400 shrink-0" />
+                        <span>IFU Entreprise (PDF)</span>
                       </a>
-                      <a href={`${API_URL}/uploads/${company.guarantor_cip_pdf}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
-                        📄 CIP Garant (PDF)
+                      <a href={getFileUrl(company.manager_cip_pdf)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                        <FileText size={12} className="text-red-400 shrink-0" />
+                        <span>CIP Gérant (PDF)</span>
                       </a>
-                      <a href={`${API_URL}/uploads/${company.guarantor_selfie}`} target="_blank" rel="noreferrer" className="text-red-400 hover:underline">
-                        🖼️ Selfie Garant (Photo)
+                      {company.manager_ifu_pdf && (
+                        <a href={getFileUrl(company.manager_ifu_pdf)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                          <FileText size={12} className="text-red-400 shrink-0" />
+                          <span>IFU Gérant (PDF)</span>
+                        </a>
+                      )}
+                      <a href={getFileUrl(company.manager_selfie)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                        <Video size={12} className="text-red-400 shrink-0" />
+                        <span>Selfie Vidéo Gérant</span>
+                      </a>
+                      <a href={getFileUrl(company.guarantor_cip_pdf)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                        <FileText size={12} className="text-red-400 shrink-0" />
+                        <span>CIP Garant (PDF)</span>
+                      </a>
+                      {company.guarantor_ifu_pdf && (
+                        <a href={getFileUrl(company.guarantor_ifu_pdf)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                          <FileText size={12} className="text-red-400 shrink-0" />
+                          <span>IFU Garant (PDF)</span>
+                        </a>
+                      )}
+                      <a href={getFileUrl(company.guarantor_selfie)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 p-2 rounded bg-bg-deepest border border-border-custom/40 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors">
+                        <Video size={12} className="text-red-400 shrink-0" />
+                        <span>Selfie Vidéo Garant</span>
                       </a>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 justify-end">
+                  <div className="flex gap-3 justify-end items-center">
+                    <button
+                      onClick={() => setSelectedCompany(company)}
+                      className="mr-auto text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      🔍 Consulter le dossier complet
+                    </button>
                     <button
                       onClick={() => handleUpdateKyc(company.id, 'REJECTED')}
                       disabled={actionLoading}
