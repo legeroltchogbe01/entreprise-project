@@ -658,11 +658,11 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <p className="text-zinc-600 mb-0.5">Acompte restant</p>
-                    <p className="font-black text-white">{fmt(wallet?.balance ?? 5000000)} FCFA</p>
+                    <p className="font-black text-white">{fmt(wallet?.acompte_restant ?? 0)} FCFA</p>
                   </div>
                   <div>
                     <p className="text-zinc-600 mb-0.5">Crédit restant</p>
-                    <p className="font-black text-white">{fmt(wallet?.credit_limit ?? 10000000)} FCFA</p>
+                    <p className="font-black text-white">{fmt(wallet ? (Number(wallet.credit_initial) - Number(wallet.credit_utilise)) : 0)} FCFA</p>
                   </div>
                 </div>
                 <div className="text-[10px] text-zinc-600 border-t border-zinc-800 pt-2">
