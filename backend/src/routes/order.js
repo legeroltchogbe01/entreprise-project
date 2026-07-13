@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma');
 const { sendOrderConfirmedEmail, sendInstallmentPaidEmail, sendAdminNewOrderEmail, sendAdminInstallmentPaidEmail } = require('../utils/emailService');
 
 // Get order history for a company

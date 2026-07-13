@@ -1,6 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const { sendPaymentReminderEmail } = require('./emailService');
-const prisma = new PrismaClient();
 
 /**
  * Daily job that sends email reminders for:

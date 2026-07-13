@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma');
 const { checkAndDeactivateCompany } = require('../utils/autoDeactivate');
 const { sendAccountCreatedEmail, sendAdminNewRegistrationEmail } = require('../utils/emailService');
 

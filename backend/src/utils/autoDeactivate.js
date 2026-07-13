@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('./prisma');
 
 /**
  * Checks a specific company and deactivates it if it has been approved for more than 48 hours
