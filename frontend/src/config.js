@@ -3,7 +3,7 @@ const getBackendURL = () => {
     return import.meta.env.VITE_API_URL;
   }
   if (typeof window !== 'undefined' && window.location) {
-    if (window.location.hostname.includes('gmdpremiun.com') || window.location.hostname.includes('gmdpremium.com')) {
+    if (window.location.hostname.includes('gmdpremiun.com')) {
       return 'https://api.galassymeubledecor.shop';
     }
     if (window.location.hostname.includes('galassymeubledecor.shop')) {
