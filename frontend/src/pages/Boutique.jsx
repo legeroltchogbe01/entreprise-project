@@ -168,11 +168,22 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
   const fetchProducts = async () => {
     try {
       const res = await fetch(`${API_URL}/api/products`);
-      const data = await res.json();
-      setProducts(data);
-      setFilteredProducts(data);
+      const text = await res.text();
+      let data = [];
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = [];
+        }
+      }
+      const productsArray = Array.isArray(data) ? data : [];
+      setProducts(productsArray);
+      setFilteredProducts(productsArray);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching products:', err);
+      setProducts([]);
+      setFilteredProducts([]);
     } finally {
       setLoading(false);
     }
@@ -181,16 +192,27 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
   const fetchCategories = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/categories`);
-      const data = await res.json();
-      if (res.ok) setCategories(data);
+      const text = await res.text();
+      let data = [];
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = [];
+        }
+      }
+      if (res.ok) setCategories(Array.isArray(data) ? data : []);
+      else setCategories([]);
     } catch (err) {
       console.error('Error fetching categories:', err);
+      setCategories([]);
     }
   };
 
   // Appliquer filtres catégorie, recherche et prix
   useEffect(() => {
-    let result = products;
+    const safeProducts = Array.isArray(products) ? products : [];
+    let result = safeProducts;
 
     if (selectedCategory && selectedCategory !== 'Tous les produits' && selectedCategory !== 'search') {
       const catLower = selectedCategory.trim().toLowerCase();
@@ -199,8 +221,8 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
 
     if (searchQuery.trim()) {
       result = result.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }

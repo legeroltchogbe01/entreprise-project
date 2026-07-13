@@ -3,8 +3,11 @@ const getBackendURL = () => {
     return import.meta.env.VITE_API_URL;
   }
   if (typeof window !== 'undefined' && window.location) {
-    if (window.location.hostname.includes('gmdpremiun.com')) {
-      return 'https://api.gmdpremiun.com';
+    if (window.location.hostname.includes('gmdpremiun.com') || window.location.hostname.includes('gmdpremium.com')) {
+      return 'https://api.galassymeubledecor.shop';
+    }
+    if (window.location.hostname.includes('galassymeubledecor.shop')) {
+      return 'https://api.galassymeubledecor.shop';
     }
     // Automatic fallback for Render deployments
     if (window.location.hostname.includes('onrender.com')) {
@@ -16,4 +19,4 @@ const getBackendURL = () => {
 
 export const API_URL = getBackendURL();
 export const KKIAPAY_PUBLIC_KEY = import.meta.env.VITE_KKIAPAY_PUBLIC_KEY || 'pk_sandbox_XXXXXXXXX';
-export const KKIAPAY_SANDBOX = KKIAPAY_PUBLIC_KEY.includes('sandbox') || KKIAPAY_PUBLIC_KEY.includes('test');
+export const KKIAPAY_SANDBOX = true;

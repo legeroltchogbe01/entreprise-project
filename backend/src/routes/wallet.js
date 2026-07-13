@@ -208,7 +208,9 @@ router.post('/activate-client', async (req, res) => {
 
     let verifiedAmount = requiredDeposit;
 
-    if (transactionId && transactionId !== 'sandbox_bypass') {
+    const isSandboxBypass = process.env.KKIAPAY_SANDBOX === 'true' && (!transactionId || transactionId === 'sandbox_bypass' || transactionId.startsWith('test_'));
+
+    if (transactionId && transactionId !== 'sandbox_bypass' && !isSandboxBypass) {
       // Verify transaction via Kkiapay SDK
       const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
       const k = kkiapay({

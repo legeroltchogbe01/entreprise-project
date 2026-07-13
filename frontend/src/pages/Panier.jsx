@@ -282,18 +282,37 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   }, [user?.company?.id]);
 
   const handleOpenActivationPayment = () => {
-    if (typeof window.openKkiapayWidget !== 'undefined') {
-      window.openKkiapayWidget({
-        amount: minActivationDeposit,
-        position: "right",
-        callback: "",
-        data: "activation",
-        key: KKIAPAY_PUBLIC_KEY,
-        sandbox: KKIAPAY_SANDBOX,
-        ...(kkiapaySubaccount13 ? { partnerId: kkiapaySubaccount13 } : {})
-      });
-    } else {
-      alert("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");
+    console.log('Opening Kkiapay widget with:', {
+      key: KKIAPAY_PUBLIC_KEY,
+      sandbox: KKIAPAY_SANDBOX,
+      amount: minActivationDeposit,
+      partnerId: kkiapaySubaccount13 || null,
+      windowOpenKkiapayWidget: typeof window.openKkiapayWidget,
+      hasScript: typeof window !== 'undefined' && !!window.openKkiapayWidget
+    });
+
+    const openWidget = () => {
+      if (typeof window.openKkiapayWidget === 'function') {
+        window.openKkiapayWidget({
+          amount: minActivationDeposit,
+          position: "right",
+          callback: "",
+          data: "activation",
+          key: KKIAPAY_PUBLIC_KEY,
+          sandbox: KKIAPAY_SANDBOX,
+          ...(kkiapaySubaccount13 ? { partnerId: kkiapaySubaccount13 } : {})
+        });
+        return true;
+      }
+      return false;
+    };
+
+    if (!openWidget()) {
+      setTimeout(() => {
+        if (!openWidget()) {
+          alert("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");
+        }
+      }, 1000);
     }
   };
 

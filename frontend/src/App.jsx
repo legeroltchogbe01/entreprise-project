@@ -300,7 +300,13 @@ export default function App() {
 
   useEffect(() => {
     const saved = localStorage.getItem('gmd_user');
-    if (saved) setUser(JSON.parse(saved));
+    if (saved) {
+      try {
+        setUser(JSON.parse(saved));
+      } catch {
+        localStorage.removeItem('gmd_user');
+      }
+    }
   }, []);
 
   return (
