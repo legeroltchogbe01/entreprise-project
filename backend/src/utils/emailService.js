@@ -12,6 +12,7 @@ const transporter = nodemailer.createTransport({
 
 const FROM_NAME = process.env.FROM_NAME || 'GMD Créance';
 const FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER;
+const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || FROM_EMAIL;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://gmd-creance-frontend.onrender.com';
 const from = `"${FROM_NAME}" <${FROM_EMAIL}>`;
 
@@ -280,7 +281,7 @@ async function sendAdminNewRegistrationEmail({ company }) {
       <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Accéder à la Console Admin GMD →</a>
     </div>
   ` + footer();
-  return send(FROM_EMAIL, `📢 GMD B2B : Inscription de ${company.denomination_sociale} en attente`, html);
+  return send(ADMIN_EMAIL, `📢 GMD B2B : Inscription de ${company.denomination_sociale} en attente`, html);
 }
 
 async function sendAdminNewOrderEmail({ company, orderRef, totalAmount }) {
@@ -299,7 +300,7 @@ async function sendAdminNewOrderEmail({ company, orderRef, totalAmount }) {
       <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Consulter la commande →</a>
     </div>
   ` + footer();
-  return send(FROM_EMAIL, `🛒 GMD B2B : Nouvelle commande de ${company.denomination_sociale}`, html);
+  return send(ADMIN_EMAIL, `🛒 GMD B2B : Nouvelle commande de ${company.denomination_sociale}`, html);
 }
 
 async function sendAdminWalletActivatedEmail({ company, depositAmount, creditLimit }) {
@@ -315,7 +316,7 @@ async function sendAdminWalletActivatedEmail({ company, depositAmount, creditLim
       </table>
     </div>
   ` + footer();
-  return send(FROM_EMAIL, `💳 GMD B2B : Portefeuille activé pour ${company.denomination_sociale}`, html);
+  return send(ADMIN_EMAIL, `💳 GMD B2B : Portefeuille activé pour ${company.denomination_sociale}`, html);
 }
 
 async function sendAdminInstallmentPaidEmail({ company, amount, orderRef, installmentNumber }) {
@@ -333,7 +334,7 @@ async function sendAdminInstallmentPaidEmail({ company, amount, orderRef, instal
       </table>
     </div>
   ` + footer();
-  return send(FROM_EMAIL, `💰 GMD B2B : Mensualité réglée par ${company.denomination_sociale}`, html);
+  return send(ADMIN_EMAIL, `💰 GMD B2B : Mensualité réglée par ${company.denomination_sociale}`, html);
 }
 
 async function sendAdminProfileUpdateSubmittedEmail({ company, changes }) {
@@ -356,7 +357,7 @@ async function sendAdminProfileUpdateSubmittedEmail({ company, changes }) {
       <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Traiter la demande sur la console admin →</a>
     </div>
   ` + footer();
-  return send(FROM_EMAIL, `✏️ GMD B2B : Demande de modification de profil - ${company.denomination_sociale}`, html);
+  return send(ADMIN_EMAIL, `✏️ GMD B2B : Demande de modification de profil - ${company.denomination_sociale}`, html);
 }
 
 module.exports = {
