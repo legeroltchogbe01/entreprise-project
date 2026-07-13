@@ -191,17 +191,7 @@ function DashboardClient({ user }) {
             if (!res.ok) throw new Error(data.error);
             alert(data.message);
           } else {
-            const res = await fetch(`${API_URL}/api/wallets/activate-client`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                companyId: user.company.id,
-                transactionId: response.transactionId
-              })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            alert(data.message);
+            console.warn("Transaction reçue sans échéance active.");
           }
           await fetchDashboardData();
         } catch (err) {
