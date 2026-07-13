@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { sendProfileUpdateApprovedEmail, sendProfileUpdateRejectedEmail } = require('../utils/emailService');
+const { sendProfileUpdateApprovedEmail, sendProfileUpdateRejectedEmail, sendAdminProfileUpdateSubmittedEmail } = require('../utils/emailService');
 
 // Fields that the client is allowed to request changes for
 const ALLOWED_FIELDS = [
@@ -185,8 +185,16 @@ router.post('/:companyId', async (req, res) => {
       data: {
         company_id: companyId,
         changes: sanitized,
-      }
+      },
+      include: { company: true }
     });
+
+    // ── Email notification admin pour demande de modification de profil ──
+    sendAdminProfileUpdateSubmittedEmail({
+      company: request.company,
+      changes: sanitized
+    }).catch(err => console.error('[PROFILE_UPDATE] Erreur email notification admin:', err.message));
+    // ─────────────────────────────────────────────────────────────────────
 
     res.status(201).json(request);
   } catch (error) {

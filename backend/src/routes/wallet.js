@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { sendWalletActivatedEmail } = require('../utils/emailService');
+const { sendWalletActivatedEmail, sendAdminWalletActivatedEmail } = require('../utils/emailService');
 
 // Get wallet status
 router.get('/:companyId', async (req, res) => {
@@ -280,6 +280,13 @@ router.post('/activate-client', async (req, res) => {
       depositAmount: acompte,
       creditLimit: credit
     }).catch(err => console.error('[WALLET] Erreur email activation:', err.message));
+
+    // ── Email notification admin pour activation portefeuille ────────────────
+    sendAdminWalletActivatedEmail({
+      company,
+      depositAmount: acompte,
+      creditLimit: credit
+    }).catch(err => console.error('[WALLET] Erreur email notification admin activation:', err.message));
     // ──────────────────────────────────────────────────────────────────────
 
     res.json({

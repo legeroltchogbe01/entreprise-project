@@ -259,6 +259,106 @@ async function sendProfileUpdateRejectedEmail({ to, denominationSociale, adminNo
   return send(to, '❌ Demande de modification rejetée — GMD Créance', html);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ── Admin Notifications ──────────────────────────────────────────────────────
+async function sendAdminNewRegistrationEmail({ company }) {
+  const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
+    <h2 style="color: #fbbf24; font-size: 18px;">📢 Nouveau dossier d'inscription reçu</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      Une nouvelle entreprise vient de soumettre ses pièces justificatives sur la plateforme B2B.
+    </p>
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; margin: 20px 0;">
+      <table style="width: 100%; font-size: 13px; color: #d4d4d8;">
+        <tr><td style="padding: 4px 0; color: #71717a;">Entreprise</td><td style="text-align:right; color: #fff; font-weight: 700;">${company.denomination_sociale}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Email</td><td style="text-align:right; color: #fff;">${company.email}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Téléphone</td><td style="text-align:right; color: #fff;">${company.phone}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">IFU</td><td style="text-align:right; color: #fbbf24;">${company.ifu_number}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">RCCM</td><td style="text-align:right; color: #fbbf24;">${company.rccm_number}</td></tr>
+      </table>
+    </div>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Accéder à la Console Admin GMD →</a>
+    </div>
+  ` + footer();
+  return send(FROM_EMAIL, `📢 GMD B2B : Inscription de ${company.denomination_sociale} en attente`, html);
+}
+
+async function sendAdminNewOrderEmail({ company, orderRef, totalAmount }) {
+  const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
+    <h2 style="color: #fbbf24; font-size: 18px;">🛒 Nouvelle commande reçue</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      L'entreprise <strong>${company.denomination_sociale}</strong> a validé une nouvelle commande à crédit.
+    </p>
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; margin: 20px 0;">
+      <table style="width: 100%; font-size: 13px; color: #d4d4d8;">
+        <tr><td style="padding: 4px 0; color: #71717a;">Référence</td><td style="text-align:right; color: #fff; font-weight: 700;">${orderRef}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Montant Total</td><td style="text-align:right; color: #fbbf24; font-weight: 700;">${fmt(totalAmount)} FCFA</td></tr>
+      </table>
+    </div>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Consulter la commande →</a>
+    </div>
+  ` + footer();
+  return send(FROM_EMAIL, `🛒 GMD B2B : Nouvelle commande de ${company.denomination_sociale}`, html);
+}
+
+async function sendAdminWalletActivatedEmail({ company, depositAmount, creditLimit }) {
+  const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
+    <h2 style="color: #fbbf24; font-size: 18px;">💳 Activation de portefeuille confirmée</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      Le portefeuille de l'entreprise <strong>${company.denomination_sociale}</strong> a été activé avec succès.
+    </p>
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; margin: 20px 0;">
+      <table style="width: 100%; font-size: 13px; color: #d4d4d8;">
+        <tr><td style="padding: 4px 0; color: #71717a;">Dépôt initial</td><td style="text-align:right; color: #4ade80; font-weight: 700;">${fmt(depositAmount)} FCFA</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Ligne de crédit débloquée</td><td style="text-align:right; color: #fbbf24; font-weight: 700;">${fmt(creditLimit)} FCFA</td></tr>
+      </table>
+    </div>
+  ` + footer();
+  return send(FROM_EMAIL, `💳 GMD B2B : Portefeuille activé pour ${company.denomination_sociale}`, html);
+}
+
+async function sendAdminInstallmentPaidEmail({ company, amount, orderRef, installmentNumber }) {
+  const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
+    <h2 style="color: #fbbf24; font-size: 18px;">💰 Remboursement de mensualité reçu</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      Un paiement a été effectué pour une échéance de crédit.
+    </p>
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; margin: 20px 0;">
+      <table style="width: 100%; font-size: 13px; color: #d4d4d8;">
+        <tr><td style="padding: 4px 0; color: #71717a;">Entreprise</td><td style="text-align:right; color: #fff;">${company.denomination_sociale}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Commande</td><td style="text-align:right; color: #fff;">${orderRef}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Mensualité N°</td><td style="text-align:right; color: #fff;">${installmentNumber}</td></tr>
+        <tr><td style="padding: 4px 0; color: #71717a;">Montant remboursé</td><td style="text-align:right; color: #4ade80; font-weight: 700;">${fmt(amount)} FCFA</td></tr>
+      </table>
+    </div>
+  ` + footer();
+  return send(FROM_EMAIL, `💰 GMD B2B : Mensualité réglée par ${company.denomination_sociale}`, html);
+}
+
+async function sendAdminProfileUpdateSubmittedEmail({ company, changes }) {
+  const changesHtml = Object.entries(changes).map(([key, value]) => `
+    <tr>
+      <td style="padding: 5px 8px; color: #71717a; font-size: 12px;">${key}</td>
+      <td style="padding: 5px 8px; color: #fff; font-size: 12px; font-weight: 600;">${value}</td>
+    </tr>
+  `).join('');
+  const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
+    <h2 style="color: #fbbf24; font-size: 18px;">✏️ Nouvelle demande de modification de profil</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      L'entreprise <strong>${company.denomination_sociale}</strong> a soumis une demande de modification de ses informations de profil.
+    </p>
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+      <p style="margin: 0; padding: 10px 12px; color: #d4d4d8; font-size: 12px; font-weight: 700; background: #111; border-bottom: 1px solid #2a2a2a;">Modifications demandées :</p>
+      <table style="width: 100%; border-collapse: collapse;">${changesHtml}</table>
+    </div>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Traiter la demande sur la console admin →</a>
+    </div>
+  ` + footer();
+  return send(FROM_EMAIL, `✏️ GMD B2B : Demande de modification de profil - ${company.denomination_sociale}`, html);
+}
+
 module.exports = {
   sendAccountCreatedEmail,
   sendKycApprovedEmail,
@@ -270,4 +370,9 @@ module.exports = {
   sendQuoteReadyEmail,
   sendProfileUpdateApprovedEmail,
   sendProfileUpdateRejectedEmail,
+  sendAdminNewRegistrationEmail,
+  sendAdminNewOrderEmail,
+  sendAdminWalletActivatedEmail,
+  sendAdminInstallmentPaidEmail,
+  sendAdminProfileUpdateSubmittedEmail,
 };

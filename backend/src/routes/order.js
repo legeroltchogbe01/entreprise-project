@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { sendOrderConfirmedEmail, sendInstallmentPaidEmail } = require('../utils/emailService');
+const { sendOrderConfirmedEmail, sendInstallmentPaidEmail, sendAdminNewOrderEmail, sendAdminInstallmentPaidEmail } = require('../utils/emailService');
 
 // Get order history for a company
 router.get('/company/:companyId', async (req, res) => {
@@ -201,6 +201,13 @@ router.post('/', async (req, res) => {
       paymentMode: 'echelonne',
       acompte: acomptePortion
     }).catch(err => console.error('[ORDER] Erreur email confirmation commande:', err.message));
+
+    // ── Email notification admin pour nouvelle commande ────────────────────
+    sendAdminNewOrderEmail({
+      company,
+      orderRef: orderNumber,
+      totalAmount
+    }).catch(err => console.error('[ORDER] Erreur email notification admin commande:', err.message));
     // ─────────────────────────────────────────────────────────────────────
 
     res.status(201).json({
@@ -310,6 +317,14 @@ router.post('/:orderId/pay-installment', async (req, res) => {
       dueDate: targetInstallment.due_date,
       remaining: remainingCredit
     }).catch(err => console.error('[INSTALLMENT] Erreur email paiement:', err.message));
+
+    // ── Email notification admin pour paiement mensualité ──────────────────
+    sendAdminInstallmentPaidEmail({
+      company,
+      amount: amountPaid,
+      orderRef: order.order_number,
+      installmentNumber: targetInstallment.installment_number
+    }).catch(err => console.error('[INSTALLMENT] Erreur email notification admin paiement:', err.message));
     // ─────────────────────────────────────────────────────────────────────
 
     res.json({

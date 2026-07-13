@@ -5,7 +5,7 @@ const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { checkAndDeactivateCompany } = require('../utils/autoDeactivate');
-const { sendAccountCreatedEmail } = require('../utils/emailService');
+const { sendAccountCreatedEmail, sendAdminNewRegistrationEmail } = require('../utils/emailService');
 
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -242,6 +242,11 @@ router.post('/register', uploadFields, async (req, res) => {
     sendAccountCreatedEmail({ to: recipients, denominationSociale: denomination_sociale })
       .then(() => console.log(`[REGISTER] Email de confirmation envoyé à : ${recipients}`))
       .catch(err => console.error('[REGISTER] Erreur email confirmation:', err.message));
+
+    // ── Email notification administrateur GMD ──────────────────────────────────
+    sendAdminNewRegistrationEmail({ company })
+      .then(() => console.log(`[REGISTER] Email notification admin envoyé`))
+      .catch(err => console.error('[REGISTER] Erreur email notification admin:', err.message));
     // ──────────────────────────────────────────────────────────────────────────
 
     res.status(201).json({
