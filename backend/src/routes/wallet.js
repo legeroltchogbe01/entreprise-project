@@ -219,6 +219,14 @@ router.post('/activate-client', async (req, res) => {
         sandbox: process.env.KKIAPAY_SANDBOX === 'true'
       });
 
+      console.log('[KKIAPAY] Verifying transaction:', transactionId);
+      console.log('[KKIAPAY] Config:', {
+        privatekey: process.env.KKIAPAY_PRIVATE_KEY ? (process.env.KKIAPAY_PRIVATE_KEY.substring(0, 10) + '...') : null,
+        publickey: process.env.KKIAPAY_PUBLIC_KEY,
+        secretkey: process.env.KKIAPAY_SECRET_KEY ? (process.env.KKIAPAY_SECRET_KEY.substring(0, 10) + '...') : null,
+        sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+      });
+
       let verifyResponse;
       try {
         verifyResponse = await k.verify(transactionId);

@@ -249,14 +249,22 @@ router.post('/:orderId/pay-installment', async (req, res) => {
     const amountToPay = targetInstallment.amount;
     let verifiedAmount = amountToPay;
 
-    if (transactionId && transactionId !== 'sandbox_bypass') {
+    const isSandboxMode = process.env.KKIAPAY_SANDBOX === 'true';
+    const isSandboxBypass = isSandboxMode && (!transactionId || transactionId === 'sandbox_bypass');
+
+    if (!isSandboxBypass) {
+      // Live mode: transactionId is MANDATORY
+      if (!transactionId) {
+        return res.status(400).json({ error: 'Un identifiant de transaction Kkiapay est obligatoire pour valider ce paiement.' });
+      }
+
       // Verify transaction via Kkiapay SDK
       const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
       const k = kkiapay({
         privatekey: process.env.KKIAPAY_PRIVATE_KEY,
         publickey: process.env.KKIAPAY_PUBLIC_KEY,
         secretkey: process.env.KKIAPAY_SECRET_KEY,
-        sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+        sandbox: isSandboxMode
       });
 
       let verifyResponse;
@@ -392,14 +400,24 @@ router.post('/pay-monthly-due', async (req, res) => {
 
     let verifiedAmount = totalRequired;
 
-    if (transactionId && transactionId !== 'sandbox_bypass') {
+    const isSandboxMode = process.env.KKIAPAY_SANDBOX === 'true';
+    const isSandboxBypass = isSandboxMode && (!transactionId || transactionId === 'sandbox_bypass');
+
+    if (!isSandboxBypass) {
+      // Live mode: transactionId is MANDATORY
+      if (!transactionId) {
+        return res.status(400).json({ error: 'Un identifiant de transaction Kkiapay est obligatoire pour valider ce paiement.' });
+      }
+
       const { kkiapay } = require("@kkiapay-org/nodejs-sdk");
       const k = kkiapay({
         privatekey: process.env.KKIAPAY_PRIVATE_KEY,
         publickey: process.env.KKIAPAY_PUBLIC_KEY,
         secretkey: process.env.KKIAPAY_SECRET_KEY,
-        sandbox: process.env.KKIAPAY_SANDBOX === 'true'
+        sandbox: isSandboxMode
       });
+
+      console.log('[KKIAPAY] Verifying installment transaction:', transactionId);
 
       let verifyResponse;
       try {

@@ -738,7 +738,7 @@ function DashboardClient({ user }) {
                               <td className="p-3 text-right">
                                 {!mat.paid && (
                                   <button
-                                    onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
+                                    onClick={() => handleOpenMonthlyDuePayment({ amount: mat.amount, dueDate: mat.due_date, installments: [{ order_id: mat.order_id, installment_number: mat.installment_number }] })}
                                     disabled={paymentLoading}
                                     className="px-2.5 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
                                   >
@@ -925,7 +925,7 @@ function DashboardClient({ user }) {
                           <td className="p-3 font-bold font-mono text-white text-[10px]">{showBalances ? `${Number(mat.amount).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA'}</td>
                           <td className="p-3 text-right">
                             <button
-                              onClick={() => handlePayInstallment(mat.order_id, mat.installment_number)}
+                              onClick={() => handleOpenMonthlyDuePayment({ amount: mat.amount, dueDate: mat.due_date, installments: [{ order_id: mat.order_id, installment_number: mat.installment_number }] })}
                               disabled={paymentLoading}
                               className="px-3 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
                             >
