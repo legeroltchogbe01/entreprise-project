@@ -87,6 +87,8 @@ function DashboardClient({ user }) {
   const [profileUpdateError, setProfileUpdateError] = useState('');
   const [profileUpdateSuccess, setProfileUpdateSuccess] = useState('');
   const [pendingUpdateRequest, setPendingUpdateRequest] = useState(null);
+  // Point 10: accordion infos entreprise
+  const [showCompanyDetails, setShowCompanyDetails] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -530,107 +532,99 @@ function DashboardClient({ user }) {
               
               {/* Total remaining field */}
               <div className="w-full text-center py-3 px-4 rounded-xl bg-black/60 border border-zinc-850 text-sm text-zinc-350 font-medium">
-                Total restant du: <span className="font-bold text-white font-mono">{totalRemaining.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA</span>
+                Total restant dû: <span className="font-bold text-white font-mono">{totalRemaining.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} FCFA</span>
               </div>
             </div>
 
-            {/* ── IDENTITY SECTION : ENTREPRISE ── */}
-            <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                <Briefcase size={13} /> Identité Entreprise
-              </h3>
+            {/* Point 10 : Accordéon masquant infos entreprise/gérant par défaut */}
+            <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
+              <button
+                onClick={() => setShowCompanyDetails(!showCompanyDetails)}
+                className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-surface-custom/30 transition-colors"
+              >
+                <span className="text-xs font-bold text-zinc-300 flex items-center gap-2">
+                  <Briefcase size={13} className="text-zinc-400" /> Informations entreprise &amp; gérant
+                </span>
+                <span className={`text-zinc-400 transition-transform duration-300 ${showCompanyDetails ? 'rotate-180' : ''}`}>▼</span>
+              </button>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Dénomination Sociale</label>
-                  <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                    {c.denomination_sociale}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email Entreprise</label>
-                  <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
-                    {c.email}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Téléphone</label>
-                  <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                    {c.phone}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">N° RCCM</label>
-                    <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 font-mono truncate">
-                      {c.rccm_number}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">N° IFU</label>
-                    <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 font-mono truncate">
-                      {c.ifu_number}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Ville</label>
-                  <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                    {c.city}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Adresse</label>
-                  <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                    {c.district}, {c.house} — Carré {c.square}
-                  </div>
-                </div>
-              </div>
-            </div>
+              {showCompanyDetails && (
+                <div className="px-5 pb-5 space-y-4 border-t border-border-custom pt-4">
 
-            {/* ── IDENTITY SECTION : GÉRANT ── */}
-            <div className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
-              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                <User size={13} /> Gérant Responsable
-              </h3>
+                  {/* Identité Entreprise */}
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Briefcase size={11} /> Identité Entreprise
+                    </h3>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Dénomination Sociale</label>
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">{c.denomination_sociale}</div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email Entreprise</label>
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">{c.email}</div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Téléphone</label>
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">{c.phone}</div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">N° RCCM</label>
+                        <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 font-mono truncate">{c.rccm_number}</div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">N° IFU</label>
+                        <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 font-mono truncate">{c.ifu_number}</div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Ville</label>
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">{c.city}</div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Adresse</label>
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">{c.district}, {c.house} — Carré {c.square}</div>
+                    </div>
+                  </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Nom et Prénom</label>
-                  <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">
-                    {c.manager_name}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Téléphone</label>
-                    <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
-                      {c.manager_phone}
+                  {/* Gérant */}
+                  <div className="space-y-3 pt-2 border-t border-border-custom">
+                    <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <User size={11} /> Gérant Responsable
+                    </h3>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Nom et Prénom</label>
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200">{c.manager_name}</div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Téléphone</label>
+                        <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">{c.manager_phone}</div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email</label>
+                        <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">{c.manager_email}</div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Statut KYC</label>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 ${
+                          c.kyc_status === 'APPROVED'
+                            ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/50'
+                            : c.kyc_status === 'REJECTED'
+                            ? 'bg-red-950/40 text-red-400 border border-red-900/50'
+                            : 'bg-amber-950/40 text-amber-400 border border-amber-900/50'
+                        }`}>
+                          <ShieldCheck size={13} />
+                          {c.kyc_status === 'APPROVED' ? 'Conformité KYC Approuvée' : c.kyc_status === 'REJECTED' ? 'KYC Rejeté' : "KYC en Attente d'Audit"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Email</label>
-                    <div className="w-full px-4 py-2.5 rounded-lg bg-surface-custom/50 border border-border-custom text-sm text-zinc-200 truncate">
-                      {c.manager_email}
-                    </div>
-                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Statut KYC</label>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 ${
-                      c.kyc_status === 'APPROVED'
-                        ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/50'
-                        : c.kyc_status === 'REJECTED'
-                        ? 'bg-red-950/40 text-red-400 border border-red-900/50'
-                        : 'bg-amber-950/40 text-amber-400 border border-amber-900/50'
-                    }`}>
-                      <ShieldCheck size={13} />
-                      {c.kyc_status === 'APPROVED' ? 'Conformité KYC Approuvée' : c.kyc_status === 'REJECTED' ? 'KYC Rejeté' : 'KYC en Attente d\'Audit'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* ── CONTACT & ACTION BUTTONS ── */}
