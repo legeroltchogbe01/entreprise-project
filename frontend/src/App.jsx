@@ -6,7 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import DashboardClient from './pages/DashboardClient';
 import DashboardAdmin from './pages/DashboardAdmin';
-import { LogOut, ShoppingCart, LogIn } from 'lucide-react';
+import { LogOut, ShoppingCart, LogIn, Home, Package, User, TrendingDown, CreditCard, Truck, FileText } from 'lucide-react';
 import { API_URL } from './config';
 
 console.log("=== GMD CREANCE API URL CONFIGURATION ===");
@@ -69,7 +69,7 @@ function AppLayout({ user, setUser, cart, setCart }) {
 
   /* Nav tab helper */
   const tabClass = (active) =>
-    `nav-tab px-4 py-1.5 rounded border text-xs font-semibold cursor-pointer transition-colors ${
+    `nav-tab flex items-center gap-1 px-2.5 py-1.5 rounded border text-[11px] font-semibold cursor-pointer transition-colors ${
       active
         ? 'active bg-red-950/30 border-red-800/70 text-red-400'
         : 'border-zinc-900/50 bg-zinc-950/30 text-zinc-400 hover:text-white hover:border-zinc-700'
@@ -120,66 +120,63 @@ function AppLayout({ user, setUser, cart, setCart }) {
             </div>
           </div>
 
-          {/* Row 2: Nav Tabs — scrollable horizontally on mobile, never wraps */}
-          <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-0.5" style={{scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch'}}>
+          {/* Row 2: Nav Tabs — wrap on small screens, no scroll */}
+          <div className="flex flex-wrap items-center gap-1.5">
 
             {/* Accueil */}
             <Link
               to="/"
               onClick={() => setForceShowProducts(false)}
-              className={tabClass(path === '/' && !forceShowProducts) + ' shrink-0'}
+              className={tabClass(path === '/' && !forceShowProducts)}
             >
-              Accueil
+              <Home size={12} /> Accueil
             </Link>
 
             {/* Panier */}
             <Link
               to="/panier"
-              className={tabClass(path === '/panier') + ' shrink-0'}
+              className={tabClass(path === '/panier')}
             >
-              Panier {cartCount > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-red-900/50 text-red-400 text-[9px] font-black">{cartCount}</span>}
+              <Package size={12} /> Panier {cartCount > 0 && <span className="ml-0.5 px-1 py-0.5 rounded-full bg-red-900/50 text-red-400 text-[9px] font-black">{cartCount}</span>}
             </Link>
 
             {/* Profil */}
             {user ? (
               <Link
                 to={user.role === 'ADMIN' ? '/admin' : '/dashboard?tab=profil'}
-                className={tabClass(path === '/admin' || (path === '/dashboard' && activeTab === 'profil')) + ' shrink-0'}
+                className={tabClass(path === '/admin' || (path === '/dashboard' && activeTab === 'profil'))}
               >
-                Profil
+                <User size={12} /> Profil
               </Link>
             ) : (
               <Link
                 to="/login"
-                className={tabClass(path === '/login' || path === '/register') + ' shrink-0'}
+                className={tabClass(path === '/login' || path === '/register')}
               >
-                Profil
+                <User size={12} /> Profil
               </Link>
             )}
 
             {/* Tabs Client connecté */}
             {user?.role === 'CLIENT' && (
               <>
-                {['Créances', 'Paiements', 'Livraisons', 'Devis'].map(tab => {
-                  const tabId = tab.toLowerCase()
-                    .replace('é', 'e')
-                    .replace('è', 'e')
-                    .replace('î', 'i')
-                    .replace('ê', 'e');
-                  return (
-                    <Link
-                      key={tab}
-                      to={`/dashboard?tab=${tabId}`}
-                      className={tabClass(path === '/dashboard' && activeTab === tabId) + ' shrink-0'}
-                    >
-                      {tab}
-                      {/* Badge if pending quotes */}
-                      {tab === 'Devis' && wallet && (
-                        <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-amber-900/50 text-amber-400 text-[9px] font-black">!</span>
-                      )}
-                    </Link>
-                  );
-                })}
+                {[
+                  { label: 'Créances', id: 'creances', icon: <TrendingDown size={12} /> },
+                  { label: 'Paiements', id: 'paiements', icon: <CreditCard size={12} /> },
+                  { label: 'Livraisons', id: 'livraisons', icon: <Truck size={12} /> },
+                  { label: 'Devis', id: 'devis', icon: <FileText size={12} /> },
+                ].map(({ label, id, icon }) => (
+                  <Link
+                    key={id}
+                    to={`/dashboard?tab=${id}`}
+                    className={tabClass(path === '/dashboard' && activeTab === id)}
+                  >
+                    {icon} {label}
+                    {label === 'Devis' && wallet && (
+                      <span className="ml-0.5 px-1 py-0.5 rounded-full bg-amber-900/50 text-amber-400 text-[9px] font-black">!</span>
+                    )}
+                  </Link>
+                ))}
               </>
             )}
           </div>

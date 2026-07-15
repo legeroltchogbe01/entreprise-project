@@ -145,6 +145,7 @@ router.post('/', async (req, res) => {
     for (let i = 0; i < remainingMonths; i++) {
       const dueDate = new Date(activatedAt);
       dueDate.setMonth(activatedAt.getMonth() + monthsDiff + i + 1); // Next month and onwards
+      dueDate.setDate(10); // ← Point 07 : Échéance fixée au 10 de chaque mois
       
       paymentSchedule.push({
         installment_number: i + 1,

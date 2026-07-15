@@ -453,55 +453,57 @@ function DashboardClient({ user }) {
             {/* Wallet Cards — showing the 4 fields of solde */}
             {wallet && (
               <div className="space-y-4">
-                {/* Available Limits (Bloc A) */}
+                {/* Row 1 — Available (GREEN) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Champ_Dispo_Admin */}
-                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-custom/5 blur-[30px] rounded-full"></div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-[#0082f4]" /> Acompte Disponible (Champ_Dispo_Admin)
+                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-emerald-900/40 space-y-3 relative overflow-hidden shadow-md">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-900/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-emerald-500" /> Acompte Disponible
                     </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
+                    <h3 className="font-bold text-emerald-400 text-lg font-mono">
                       {wallet.activated_at ? (showBalances ? `${Number(wallet.acompte_restant).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                     <p className="text-[10px] text-zinc-500 leading-none">
-                      Limite de départ : {wallet.activated_at ? (showBalances ? `${Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
+                      Limite : {wallet.activated_at ? (showBalances ? `${Number(wallet.acompte_initial).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </p>
                   </div>
 
                   {/* Champ_Dispo_Credit */}
-                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-glow/5 blur-[30px] rounded-full"></div>
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-emerald-500" /> Crédit Disponible (Champ_Dispo_Credit)
+                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-emerald-900/40 space-y-3 relative overflow-hidden shadow-md">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-900/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-emerald-500" /> Crédit Disponible
                     </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
+                    <h3 className="font-bold text-emerald-400 text-lg font-mono">
                       {wallet.activated_at ? (showBalances ? `${(Number(wallet.credit_initial) - Number(wallet.credit_utilise)).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                     <p className="text-[10px] text-zinc-500 leading-none">
-                      Limite de départ : {wallet.activated_at ? (showBalances ? `${Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
+                      Limite : {wallet.activated_at ? (showBalances ? `${Number(wallet.credit_initial).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </p>
                   </div>
                 </div>
 
-                {/* Consumed Limits (Bloc B) */}
+                {/* Row 2 — Consumed (RED) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Champ_Conso_Admin */}
-                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-zinc-600" /> Acompte Consommé (Champ_Conso_Admin)
+                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-red-900/40 space-y-3 relative overflow-hidden shadow-md">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-900/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-red-600 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-red-500" /> Acompte Consommé
                     </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
+                    <h3 className="font-bold text-red-400 text-lg font-mono">
                       {wallet.activated_at ? (showBalances ? `${(Number(wallet.acompte_initial) - Number(wallet.acompte_restant)).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                   </div>
 
                   {/* Champ_Conso_Credit */}
-                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-border-custom space-y-3 relative overflow-hidden shadow-md">
-                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
-                      <Wallet2 size={12} className="text-red-500" /> Crédit Consommé (Champ_Conso_Credit)
+                  <div className="p-4 rounded-xl bg-[#0f0f11] border border-red-900/40 space-y-3 relative overflow-hidden shadow-md">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-900/5 blur-[30px] rounded-full"></div>
+                    <p className="text-[10px] font-semibold text-red-600 uppercase tracking-widest flex items-center gap-1.5">
+                      <Wallet2 size={12} className="text-red-500" /> Crédit Consommé
                     </p>
-                    <h3 className="font-bold text-white text-lg font-mono">
+                    <h3 className="font-bold text-red-400 text-lg font-mono">
                       {wallet.activated_at ? (showBalances ? `${Number(wallet.credit_utilise).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA') : '0 FCFA'}
                     </h3>
                   </div>
@@ -691,69 +693,25 @@ function DashboardClient({ user }) {
               </a>
             </div>
 
+            <div className="border-t border-border-custom pt-5 space-y-5">
 
-            <div className="border-t border-border-custom pt-6 space-y-6">
-
-              {/* Échéancier */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-zinc-400" />
-                  <h3 className="font-bold text-white text-sm">Échéancier de Remboursement</h3>
-                </div>
-
-                <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left text-xs">
-                      <thead>
-                        <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
-                          <th className="p-3">N° Cmd</th>
-                          <th className="p-3">Échéance</th>
-                          <th className="p-3">Date</th>
-                          <th className="p-3">Montant</th>
-                          <th className="p-3">Statut</th>
-                          <th className="p-3 text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                        {getClientMaturities().length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="p-6 text-center text-zinc-500 text-xs">
-                              Aucun échéancier de créance actif.
-                            </td>
-                          </tr>
-                        ) : (
-                          getClientMaturities().map((mat, i) => (
-                            <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
-                              <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
-                              <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
-                              <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
-                              <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')}</td>
-                              <td className="p-3">
-                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                  mat.paid ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400 border border-red-900/40'
-                                }`}>
-                                  {mat.paid ? 'PAYÉ' : 'IMPAYÉ'}
-                                </span>
-                              </td>
-                              <td className="p-3 text-right">
-                                {!mat.paid && (
-                                  <button
-                                    onClick={() => handleOpenMonthlyDuePayment({ amount: mat.amount, dueDate: mat.due_date, installments: [{ order_id: mat.order_id, installment_number: mat.installment_number }] })}
-                                    disabled={paymentLoading}
-                                    className="px-2.5 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
-                                  >
-                                    Régler
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+              {/* Point 11 : Résumé mensualités impayées avec lien vers l'onglet Créances */}
+              {getClientMaturities().filter(m => !m.paid).length > 0 && (
+                <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-900/40 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold text-amber-400">⚠️ Mensualités en attente</p>
+                    <p className="text-[11px] text-zinc-400 mt-0.5">
+                      Vous avez <strong className="text-white">{getClientMaturities().filter(m => !m.paid).length} mensualité(s)</strong> impayée(s).
+                    </p>
                   </div>
+                  <Link
+                    to="/dashboard?tab=creances"
+                    className="px-3 py-1.5 rounded-lg bg-amber-900/50 border border-amber-800/50 text-amber-300 text-[10px] font-bold shrink-0 hover:bg-amber-900/70 transition-colors"
+                  >
+                    Voir les créances →
+                  </Link>
                 </div>
-              </div>
+              )}
 
               {/* Special Request */}
               <div className="space-y-4">

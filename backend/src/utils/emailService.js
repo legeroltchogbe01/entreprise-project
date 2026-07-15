@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const FROM_NAME = process.env.FROM_NAME || 'GMD Créance';
+const FROM_NAME = process.env.FROM_NAME || 'Galassy Meuble Décor';
 const FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER;
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || FROM_EMAIL;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://gmd-creance-frontend.onrender.com';
@@ -21,7 +21,7 @@ const fmt = (n) => Number(n).toLocaleString('fr-FR');
 const header = (bgColor, accentColor, subtitle = 'Plateforme B2B Officielle') => `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #0a0a0a; color: #e0e0e0; border-radius: 12px; overflow: hidden; border: 1px solid #2a2a2a;">
     <div style="background: linear-gradient(135deg, ${bgColor}); padding: 28px 24px; text-align: center;">
-      <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 800; letter-spacing: 1px;">GMD Créance</h1>
+      <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 800; letter-spacing: 1px;">Galassy Meuble Décor</h1>
       <p style="margin: 6px 0 0; color: ${accentColor}; font-size: 13px;">${subtitle}</p>
     </div>
     <div style="padding: 28px 28px;">
@@ -95,7 +95,7 @@ async function sendOrderConfirmedEmail({ to, denominationSociale, orderRef, tota
   const html = header('#1e3a5f, #1d4ed8', '#93c5fd') + `
     <h2 style="color: #60a5fa; font-size: 18px;">📦 Commande confirmée !</h2>
     <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Bonjour, représentant de <strong style="color: #fff;">${denominationSociale}</strong>,</p>
-    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Votre commande a été enregistrée avec succès sur la plateforme GMD Créance.</p>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Votre commande a été enregistrée avec succès sur la plateforme Galassy Meuble Décor.</p>
     <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; margin: 20px 0;">
       <table style="width: 100%; font-size: 13px; color: #d4d4d8;">
         <tr><td style="padding: 4px 0; color: #71717a;">Référence commande</td><td style="text-align:right; color: #fff; font-weight: 700;">${orderRef}</td></tr>
@@ -106,7 +106,7 @@ async function sendOrderConfirmedEmail({ to, denominationSociale, orderRef, tota
     </div>
     <p style="color: #a1a1aa; font-size: 13px;">Notre équipe prendra contact avec vous pour organiser la livraison dans les meilleurs délais.</p>
   ` + footer();
-  return send(to, `📦 Confirmation de commande — GMD Créance`, html);
+  return send(to, `📦 Confirmation de commande — Galassy Meuble Décor`, html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ async function sendInstallmentPaidEmail({ to, denominationSociale, amount, dueDa
     </div>
     <p style="color: #71717a; font-size: 12px;">Merci pour votre régularité. Contact : <a href="mailto:${FROM_EMAIL}" style="color: #4ade80;">${FROM_EMAIL}</a></p>
   ` + footer();
-  return send(to, '✅ Paiement mensualité reçu — GMD Créance', html);
+  return send(to, '✅ Paiement mensualité reçu — Galassy Meuble Décor', html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ async function sendPaymentReminderEmail({ to, denominationSociale, amount, dueDa
     </div>
     <p style="color: #71717a; font-size: 12px;">Contact : <a href="mailto:${FROM_EMAIL}" style="color: ${titleColor};">${FROM_EMAIL}</a></p>
   ` + footer();
-  return send(to, isOverdue ? '⚠️ URGENT — Mensualité en retard GMD' : '🔔 Rappel échéance GMD Créance', html);
+  return send(to, isOverdue ? '⚠️ URGENT — Mensualité en retard — Galassy Meuble Décor' : '🔔 Rappel échéance — Galassy Meuble Décor', html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ async function sendProfileUpdateApprovedEmail({ to, denominationSociale, changes
     ${adminNote ? `<div style="background: #1e3a5f20; border: 1px solid #1d4ed840; border-radius: 8px; padding: 14px; margin-bottom: 20px;"><p style="margin: 0; color: #93c5fd; font-size: 13px;"><strong>Note de l'admin :</strong> ${adminNote}</p></div>` : ''}
     <p style="color: #71717a; font-size: 12px;">Contact : <a href="mailto:${FROM_EMAIL}" style="color: #4ade80;">${FROM_EMAIL}</a></p>
   ` + footer();
-  return send(to, '✅ Modification de profil approuvée — GMD Créance', html);
+  return send(to, '✅ Modification de profil approuvée — Galassy Meuble Décor', html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -257,7 +257,7 @@ async function sendProfileUpdateRejectedEmail({ to, denominationSociale, adminNo
     <p style="color: #a1a1aa; font-size: 13px;">Vous pouvez soumettre une nouvelle demande depuis votre espace profil.</p>
     <p style="color: #71717a; font-size: 12px;">Contact : <a href="mailto:${FROM_EMAIL}" style="color: #f87171;">${FROM_EMAIL}</a></p>
   ` + footer();
-  return send(to, '❌ Demande de modification rejetée — GMD Créance', html);
+  return send(to, '❌ Demande de modification rejetée — Galassy Meuble Décor', html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
