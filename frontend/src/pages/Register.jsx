@@ -236,36 +236,95 @@ function Register() {
   };
 
   const handleNext = () => {
+    setError('');
     if (step === 1) {
-      if (!formData.denomination_sociale || !formData.rccm_number || !formData.ifu_number || !formData.phone || !formData.email || !formData.city || !formData.district || !formData.house) {
-        setError('Veuillez remplir toutes les informations d\'entreprise (y compris l\'adresse complète).');
+      if (!formData.denomination_sociale || formData.denomination_sociale.trim() === '') {
+        setError("Veuillez renseigner la Dénomination Sociale de l'entreprise.");
         return;
       }
-      if (formData.ifu_number.trim().length !== 13) {
-        setError("Le numéro IFU de l'entreprise doit contenir exactement 13 caractères.");
+      if (!formData.rccm_number || formData.rccm_number.trim() === '') {
+        setError("Le numéro RCCM de l'entreprise est obligatoire.");
         return;
       }
-      const rccmLength = formData.rccm_number.trim().length;
-      if (rccmLength < 12 || rccmLength > 15) {
-        setError("Le numéro RCCM de l'entreprise doit contenir entre 12 et 15 caractères.");
+      if (!isValidRCCM(formData.rccm_number) || formData.rccm_number.trim().length < 12 || formData.rccm_number.trim().length > 15) {
+        setError("Le numéro RCCM de l'entreprise doit être valide et contenir entre 12 et 15 caractères.");
         return;
       }
-      if (!files.company_ifu_pdf || !files.company_rccm_pdf) {
-        setError('Veuillez importer le document IFU et le document RCCM de l\'entreprise.');
+      if (!formData.ifu_number || formData.ifu_number.trim() === '') {
+        setError("Le numéro IFU de l'entreprise est obligatoire.");
+        return;
+      }
+      if (!isDigitsOnly(formData.ifu_number) || formData.ifu_number.trim().length !== 13) {
+        setError("Le numéro IFU de l'entreprise doit contenir exactement 13 chiffres.");
+        return;
+      }
+      if (!formData.phone || formData.phone.trim() === '' || !isValidPhone(formData.phone)) {
+        setError("Veuillez renseigner un numéro de téléphone valide pour l'entreprise (10 chiffres).");
+        return;
+      }
+      if (!formData.email || formData.email.trim() === '' || !isValidEmail(formData.email)) {
+        setError("Veuillez renseigner une adresse e-mail valide pour l'entreprise.");
+        return;
+      }
+      if (!formData.city || formData.city.trim() === '' || !isLettersOnly(formData.city)) {
+        setError("La Ville de l'entreprise est obligatoire et ne doit contenir que des lettres.");
+        return;
+      }
+      if (!formData.district || formData.district.trim() === '' || !isLettersOnly(formData.district)) {
+        setError("Le Quartier de l'entreprise est obligatoire et ne doit contenir que des lettres.");
+        return;
+      }
+      if (!formData.house || formData.house.trim() === '') {
+        setError("L'adresse Maison/Carré de l'entreprise est obligatoire.");
+        return;
+      }
+      if (!files.company_ifu_pdf) {
+        setError("Veuillez importer la pièce justificative IFU (PDF) de l'entreprise.");
+        return;
+      }
+      if (!files.company_rccm_pdf) {
+        setError("Veuillez importer la pièce justificative RCCM (PDF) de l'entreprise.");
         return;
       }
     } else if (step === 2) {
-      // Validation Gérant
-      if (!formData.manager_name || !formData.manager_ifu || !formData.manager_phone || !formData.manager_email || !formData.manager_city || !formData.manager_district || !formData.manager_house) {
-        setError('Veuillez remplir toutes les informations obligatoires du Gérant.');
+      if (!formData.manager_name || formData.manager_name.trim() === '' || !isLettersOnly(formData.manager_name)) {
+        setError("Le Nom et Prénom du gérant est obligatoire et ne doit contenir que des lettres.");
         return;
       }
-      if (formData.manager_ifu.trim().length !== 13) {
-        setError("Le numéro IFU du gérant doit contenir exactement 13 caractères.");
+      if (!formData.manager_ifu || formData.manager_ifu.trim() === '' || !isDigitsOnly(formData.manager_ifu) || formData.manager_ifu.trim().length !== 13) {
+        setError("Le numéro IFU du gérant doit contenir exactement 13 chiffres.");
         return;
       }
-      if (!files.manager_cip_pdf || !files.manager_selfie || !files.manager_ifu_pdf) {
-        setError('Veuillez fournir la copie de la CIP, le document IFU et effectuer la vérification vidéo KYC pour le Gérant.');
+      if (!formData.manager_phone || formData.manager_phone.trim() === '' || !isValidPhone(formData.manager_phone)) {
+        setError("Veuillez renseigner un numéro de téléphone valide pour le gérant (10 chiffres).");
+        return;
+      }
+      if (!formData.manager_email || formData.manager_email.trim() === '' || !isValidEmail(formData.manager_email)) {
+        setError("Veuillez renseigner une adresse e-mail valide pour le gérant.");
+        return;
+      }
+      if (!formData.manager_city || formData.manager_city.trim() === '' || !isLettersOnly(formData.manager_city)) {
+        setError("La Ville du gérant est obligatoire et ne doit contenir que des lettres.");
+        return;
+      }
+      if (!formData.manager_district || formData.manager_district.trim() === '' || !isLettersOnly(formData.manager_district)) {
+        setError("Le Quartier du gérant est obligatoire et ne doit contenir que des lettres.");
+        return;
+      }
+      if (!formData.manager_house || formData.manager_house.trim() === '') {
+        setError("L'adresse de la Maison/Carré du gérant est obligatoire.");
+        return;
+      }
+      if (!files.manager_cip_pdf) {
+        setError("Veuillez importer la copie de la carte CIP (PDF) du gérant.");
+        return;
+      }
+      if (!files.manager_ifu_pdf) {
+        setError("Veuillez importer le document IFU (PDF) du gérant.");
+        return;
+      }
+      if (!files.manager_selfie) {
+        setError("Veuillez effectuer la vérification vidéo KYC pour le gérant.");
         return;
       }
     }
@@ -297,27 +356,44 @@ function Register() {
     setError('');
 
     // Final validation - guarantor fields
-    if (!formData.guarantor_name || !formData.guarantor_ifu || !formData.guarantor_phone || !formData.guarantor_email || !formData.guarantor_city || !formData.guarantor_district || !formData.guarantor_house) {
-      setError('Veuillez remplir toutes les informations obligatoires de l\'Avaliseur (Garant).');
+    if (!formData.guarantor_name || formData.guarantor_name.trim() === '' || !isLettersOnly(formData.guarantor_name)) {
+      setError("Le Nom et Prénom de l'avaliseur (garant) est obligatoire et ne doit contenir que des lettres.");
       return;
     }
-    if (formData.guarantor_ifu.trim().length !== 13) {
-      setError("Le numéro IFU du garant doit contenir exactement 13 caractères.");
+    if (!formData.guarantor_ifu || formData.guarantor_ifu.trim() === '' || !isDigitsOnly(formData.guarantor_ifu) || formData.guarantor_ifu.trim().length !== 13) {
+      setError("Le numéro IFU de l'avaliseur doit contenir exactement 13 chiffres.");
       return;
     }
-
-    // Final validation - files
-    if (
-      !files.company_ifu_pdf ||
-      !files.company_rccm_pdf ||
-      !files.manager_cip_pdf ||
-      !files.manager_selfie ||
-      !files.manager_ifu_pdf ||
-      !files.guarantor_cip_pdf ||
-      !files.guarantor_selfie ||
-      !files.guarantor_ifu_pdf
-    ) {
-      setError('Veuillez importer toutes les pièces justificatives requises (RCCM, IFU, CIP et Selfie vidéo KYC pour le gérant et le garant).');
+    if (!formData.guarantor_phone || formData.guarantor_phone.trim() === '' || !isValidPhone(formData.guarantor_phone)) {
+      setError("Veuillez renseigner un numéro de téléphone valide pour l'avaliseur (10 chiffres).");
+      return;
+    }
+    if (!formData.guarantor_email || formData.guarantor_email.trim() === '' || !isValidEmail(formData.guarantor_email)) {
+      setError("Veuillez renseigner une adresse e-mail valide pour l'avaliseur.");
+      return;
+    }
+    if (!formData.guarantor_city || formData.guarantor_city.trim() === '' || !isLettersOnly(formData.guarantor_city)) {
+      setError("La Ville de l'avaliseur est obligatoire et ne doit contenir que des lettres.");
+      return;
+    }
+    if (!formData.guarantor_district || formData.guarantor_district.trim() === '' || !isLettersOnly(formData.guarantor_district)) {
+      setError("Le Quartier de l'avaliseur est obligatoire et ne doit contenir que des lettres.");
+      return;
+    }
+    if (!formData.guarantor_house || formData.guarantor_house.trim() === '') {
+      setError("L'adresse de la Maison/Carré de l'avaliseur est obligatoire.");
+      return;
+    }
+    if (!files.guarantor_cip_pdf) {
+      setError("Veuillez importer la copie de la carte CIP (PDF) de l'avaliseur.");
+      return;
+    }
+    if (!files.guarantor_ifu_pdf) {
+      setError("Veuillez importer le document IFU (PDF) de l'avaliseur.");
+      return;
+    }
+    if (!files.guarantor_selfie) {
+      setError("Veuillez effectuer la vérification vidéo KYC pour l'avaliseur.");
       return;
     }
 
@@ -606,8 +682,7 @@ function Register() {
             <div className="flex justify-end pt-4">
               <button 
                 type="button" onClick={handleNext}
-                disabled={!isStep1Valid()}
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
+                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
               >
                 Continuer <ArrowRight size={16} />
               </button>
@@ -734,8 +809,7 @@ function Register() {
               </button>
               <button 
                 type="button" onClick={handleNext}
-                disabled={!isStep2Valid()}
-                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
+                className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
               >
                 Continuer <ArrowRight size={16} />
               </button>
@@ -859,7 +933,7 @@ function Register() {
                 <ArrowLeft size={16} /> Retour
               </button>
               <button 
-                type="submit" disabled={loading || !isStep3Valid()}
+                type="submit" disabled={loading}
                 className="px-6 py-3 rounded bg-red-800 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:shadow-none text-white text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-red-950/20"
               >
                 {loading ? 'Soumission en cours...' : 'Soumettre le dossier'} <ShieldCheck size={16} />

@@ -708,71 +708,78 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
 
       {/* Conditions modal */}
       {showConditions && (
-        <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm" onClick={() => setShowConditions(false)}>
+        <div className="fixed inset-0 bg-black/85 z-[200] flex items-center justify-center p-4 sm:p-6 backdrop-blur-sm" onClick={() => setShowConditions(false)}>
           <div 
-            className="modal-scale relative max-w-2xl w-full rounded-2xl border border-zinc-800 bg-[#111111] p-6 text-zinc-300 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto"
+            className="modal-scale relative max-w-2xl w-full rounded-2xl border border-zinc-800/80 bg-[#09090b] p-6 text-zinc-300 space-y-5 shadow-2xl max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h2 className="text-lg font-black text-white flex items-center gap-2">
-                <Info className="text-red-500" size={20} /> Conditions de Versement
+            <div className="flex items-center justify-between border-b border-zinc-850 pb-3.5">
+              <h2 className="text-base font-extrabold text-white flex items-center gap-2.5">
+                <Info className="text-red-500" size={18} /> Conditions Particulières de Vente &amp; Crédit
               </h2>
               <button 
                 onClick={() => setShowConditions(false)} 
-                className="icon-btn w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer"
+                className="icon-btn w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
             {/* Content */}
             <div className="space-y-4 text-xs leading-relaxed">
-              <p className="font-semibold text-zinc-200">
-                La validation de votre commande sur la plateforme GMD Créance est régie par les clauses contractuelles suivantes de Galassy Meuble Décor :
+              <p className="font-semibold text-zinc-300">
+                La validation de votre commande sur la plateforme B2B de <strong className="text-white">Galassy Meuble Décor</strong> est régie par les clauses contractuelles suivantes :
               </p>
 
               <div className="space-y-3">
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
-                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">1. Règle de Financement Hybride (1/3 - 2/3)</h4>
-                  <p>
-                    Toute commande validée sur le catalogue est obligatoirement ventilée selon un ratio fixe :
+                <div className="rounded-xl border border-zinc-850 bg-zinc-950/60 p-4 space-y-2 hover:border-zinc-800 transition-colors">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wider text-red-500 flex items-center gap-1.5">
+                    <span>1. Règle de Financement Hybride (1/3 - 2/3)</span>
+                  </h4>
+                  <p className="text-zinc-400">
+                    Toute commande validée sur le catalogue est ventilée selon un ratio fixe :
                   </p>
-                  <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-zinc-400">
-                    <li><strong>1/3 du montant</strong> est automatiquement imputé et débité de votre <strong>Acompte de Démarrage</strong>.</li>
-                    <li><strong>2/3 du montant</strong> sont imputés sur votre <strong>Ligne de Crédit</strong> et font l'objet d'un échéancier de remboursement mensuel.</li>
+                  <ul className="list-disc pl-4 space-y-1 text-[11px] text-zinc-400">
+                    <li><strong className="text-zinc-300">1/3 du montant total</strong> est automatiquement imputé et débité de votre <strong className="text-white">Acompte de Démarrage</strong> disponible.</li>
+                    <li><strong className="text-zinc-300">2/3 du montant total</strong> sont imputés sur votre <strong className="text-white">Ligne de Crédit</strong> et font l'objet d'un échéancier linéaire.</li>
                   </ul>
                 </div>
 
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
-                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">2. Échéances de Remboursement et Cycle de Crédit</h4>
-                  <p>
-                    Les fonds prélevés sur la ligne de crédit sont amortis de façon linéaire sur la <strong>durée résiduelle</strong> du cycle contractuel de <strong>12 mois</strong> (calculé à partir de la date d'activation initiale du portefeuille).
+                <div className="rounded-xl border border-zinc-850 bg-zinc-950/60 p-4 space-y-2 hover:border-zinc-800 transition-colors">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wider text-red-500 flex items-center gap-1.5">
+                    <span>2. Échéances Fixes et Cycle de Crédit</span>
+                  </h4>
+                  <p className="text-zinc-400">
+                    Les mensualités sont amorties sur la durée résiduelle de votre cycle contractuel de 12 mois. <strong className="text-emerald-400">Chaque mensualité due doit impérativement être réglée au plus tard le 10 de chaque mois</strong> (contrairement à la date limite précédente du 15).
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
-                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">3. Le Garde-fou des 8 mois</h4>
-                  <p>
-                    Dès le début du 5ème mois suivant l'activation du portefeuille (soit lorsqu'il reste <strong>moins de 8 mois</strong> avant l'expiration du cycle annuel de 12 mois), le tunnel d'achat est <strong>systématiquement bloqué</strong> pour toute nouvelle commande. L'entreprise doit régulariser et solder ses échéances en cours.
+                <div className="rounded-xl border border-zinc-850 bg-zinc-950/60 p-4 space-y-2 hover:border-zinc-800 transition-colors">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wider text-red-500 flex items-center gap-1.5">
+                    <span>3. Le Garde-fou de Fin de Cycle (8 mois restants)</span>
+                  </h4>
+                  <p className="text-zinc-400">
+                    Dès le début du 5ème mois suivant l'activation du portefeuille (lorsqu'il reste <strong className="text-white">moins de 8 mois</strong> avant l'expiration du cycle de 12 mois), le tunnel d'achat est <strong className="text-amber-400">systématiquement bloqué</strong> pour toute nouvelle commande. L'entreprise doit régulariser et solder ses échéances en cours.
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-1">
-                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wide text-red-500">4. Pénalités de Retard et Réquisition</h4>
-                  <p>
-                    Tout retard de paiement de vos mensualités entraîne des frais de pénalité de <strong>5 % journaliers</strong>. En cas de non-respect de l'accord initial persistant au-delà du 5e jour de retard, la rupture officielle du contrat sans recours est prononcée, entraînant la réquisition immédiate des meubles livrés.
+                <div className="rounded-xl border border-zinc-850 bg-zinc-950/60 p-4 space-y-2 hover:border-zinc-800 transition-colors">
+                  <h4 className="font-bold text-white text-[11px] uppercase tracking-wider text-red-500 flex items-center gap-1.5">
+                    <span>4. Pénalités de Retard et Clause de Réquisition</span>
+                  </h4>
+                  <p className="text-zinc-400">
+                    Tout retard de paiement de vos mensualités après le 10 du mois entraîne des frais de pénalité de <strong className="text-red-400">5 % par jour de retard</strong>. En cas de non-respect de l'accord persistant au-delà du 5e jour de retard, la rupture du contrat est prononcée, entraînant la réquisition immédiate des biens livrés.
                   </p>
                 </div>
               </div>
 
-              <div className="pt-2 text-zinc-400 text-[10px]">
-                En cliquant sur "J'accepte et je ferme" ou en cochant la case d'acceptation, vous reconnaissez avoir pris connaissance de ces dispositions et vous engagez à les respecter conformément à l'accord initial de conformité B2B.
+              <div className="pt-2 text-zinc-500 text-[10px] text-center border-t border-zinc-850 mt-4 leading-normal">
+                En cliquant sur "J'accepte et je ferme" ou en validant votre panier, vous reconnaissez avoir pris connaissance de ces dispositions et vous engagez à les respecter conformément à l'accord initial de conformité B2B.
               </div>
             </div>
-
             {/* Footer Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800/80">
               <button 
                 onClick={() => setShowConditions(false)} 
                 className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:text-white text-zinc-400 text-xs font-semibold cursor-pointer transition-colors"
@@ -796,7 +803,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
       {/* ── POPUP D'ACTIVATION REQUIS (BLOQUANT) ── */}
       {showActivationPopup && (
         <div className="fixed inset-0 bg-black/85 z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="modal-scale max-w-md w-full rounded-2xl border border-zinc-800 bg-[#0f0f11] p-6 text-center space-y-6 shadow-2xl">
+          <div className="modal-scale max-w-sm w-full rounded-2xl border border-zinc-800 bg-[#0f0f11] p-6 text-center space-y-6 shadow-2xl">
             <div className="w-14 h-14 bg-red-950/30 border border-red-800/50 rounded-full flex items-center justify-center mx-auto text-red-500 animate-pulse">
               <Wallet size={24} />
             </div>
@@ -830,7 +837,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
       {/* ── POPUP SEUIL MAXIMUM DÉPASSÉ (BLOQUANT) ── */}
       {showSeuilPopup && (
         <div className="fixed inset-0 bg-black/85 z-[300] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="modal-scale max-w-md w-full rounded-2xl border border-zinc-800 bg-[#0f0f11] p-6 text-center space-y-6 shadow-2xl">
+          <div className="modal-scale max-w-sm w-full rounded-2xl border border-zinc-800 bg-[#0f0f11] p-6 text-center space-y-6 shadow-2xl">
             <div className="w-14 h-14 bg-amber-950/30 border border-amber-800/50 rounded-full flex items-center justify-center mx-auto text-amber-500">
               <AlertCircle size={24} />
             </div>

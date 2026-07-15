@@ -818,9 +818,18 @@ function DashboardClient({ user }) {
         {/* ── ONGLET CREANCES : DESSIN DÉDIÉ ET ÉPURÉ ── */}
         {activeTab === 'creances' && (
           <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Wallet2 size={16} className="text-zinc-400" />
-              <h3 className="font-bold text-white text-sm">Suivi des Créances et En-cours</h3>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <Wallet2 size={16} className="text-zinc-400" />
+                <h3 className="font-bold text-white text-sm">Suivi des Créances et En-cours</h3>
+              </div>
+              <button
+                onClick={fetchDashboardData}
+                className="p-1.5 rounded-lg bg-surface-custom border border-border-custom hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-all"
+                title="Rafraîchir les créances"
+              >
+                <RefreshCw size={13} />
+              </button>
             </div>
             
             {wallet && (
@@ -856,7 +865,7 @@ function DashboardClient({ user }) {
                     <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
                       <th className="p-3">N° Cmd</th>
                       <th className="p-3">Échéance</th>
-                      <th className="p-3">Date Limite</th>
+                      <th className="p-3">📅 Date (10/mois)</th>
                       <th className="p-3">Montant</th>
                       <th className="p-3 text-right">Action</th>
                     </tr>
@@ -909,7 +918,13 @@ function DashboardClient({ user }) {
                   {getClientMaturities().filter(m => m.paid).reduce((sum, m) => sum + Number(m.amount), 0).toLocaleString('fr-FR')} <span className="text-xs text-zinc-400">FCFA</span>
                 </h3>
               </div>
-              <span className="text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 px-2 py-0.5 rounded font-bold">À JOUR</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                getClientMaturities().filter(m => !m.paid).length === 0
+                  ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40'
+                  : 'bg-amber-950/40 text-amber-400 border border-amber-900/40'
+              }`}>
+                {getClientMaturities().filter(m => !m.paid).length === 0 ? 'À JOUR' : `${getClientMaturities().filter(m => !m.paid).length} EN ATTENTE`}
+              </span>
             </div>
 
             <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
