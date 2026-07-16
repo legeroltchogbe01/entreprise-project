@@ -285,7 +285,10 @@ router.post('/activate-client', async (req, res) => {
       to: emailRecipients,
       denominationSociale: company.denomination_sociale,
       depositAmount: acompte,
-      creditLimit: credit
+      creditLimit: credit,
+      managerName: company.manager_name,
+      ifu: company.ifu_number,
+      transactionId: transactionId || 'SANDBOX_BYPASS'
     }).catch(err => console.error('[WALLET] Erreur email activation:', err.message));
 
     // ── Email notification admin pour activation portefeuille ────────────────

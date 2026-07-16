@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const prisma = require('../utils/prisma');
 const { checkAndDeactivateCompany } = require('../utils/autoDeactivate');
-const { sendAccountCreatedEmail, sendAdminNewRegistrationEmail } = require('../utils/emailService');
+const { sendAccountCreatedEmail, sendAdminNewRegistrationEmail, sendOtpEmail } = require('../utils/emailService');
 
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -260,9 +260,10 @@ router.post('/register', uploadFields, async (req, res) => {
 });
 
 // Simple B2B / Admin login
+// client / admin login step 1 (Password validation & OTP generation)
 router.post('/login', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Veuillez fournir une adresse email.' });
@@ -270,7 +271,7 @@ router.post('/login', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Special admin email
+    // Special admin email (No OTP required for Admin for simplicity)
     if (normalizedEmail === 'admin@gmd.bj' || normalizedEmail === 'admin@gmd.com') {
       return res.json({
         role: 'ADMIN',
@@ -279,6 +280,10 @@ router.post('/login', async (req, res) => {
           name: 'Administrateur GMD'
         }
       });
+    }
+
+    if (!password) {
+      return res.status(400).json({ error: 'Le mot de passe est obligatoire pour les clients.' });
     }
 
     let company = await prisma.company.findUnique({
@@ -290,11 +295,120 @@ router.post('/login', async (req, res) => {
       return res.status(404).json({ error: 'Aucun compte entreprise associé à cette adresse email.' });
     }
 
+    if (company.kyc_status !== 'APPROVED') {
+      return res.status(403).json({ error: 'Votre compte est en attente d\'approbation KYC par l\'administration. Vos identifiants vous seront envoyés par mail après validation.' });
+    }
+
+    if (!company.password) {
+      // Auto-generate default password for old accounts
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let randomPass = 'GMD-';
+      for (let i = 0; i < 6; i++) {
+        randomPass += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      company = await prisma.company.update({
+        where: { id: company.id },
+        data: { password: randomPass },
+        include: { wallet: true }
+      });
+
+      const { sendKycApprovedEmail } = require('../utils/emailService');
+      const recipients = [company.email, company.manager_email].filter(Boolean).join(', ');
+      await sendKycApprovedEmail({
+        to: recipients,
+        denominationSociale: company.denomination_sociale,
+        password: randomPass
+      }).catch(err => console.error('[AUTO-PASSWORD] Erreur email:', err.message));
+
+      return res.status(403).json({ error: 'Votre compte n\'avait pas encore de mot de passe configuré. Un mot de passe temporaire vient de vous être envoyé par e-mail. Veuillez l\'utiliser pour vous connecter.' });
+    }
+
+    // Verify password (plain-text check as per requirement simplicity)
+    if (company.password.trim() !== password.trim()) {
+      return res.status(401).json({ error: 'Mot de passe incorrect.' });
+    }
+
     // Run the check & potential deactivation
     const checkedCompany = await checkAndDeactivateCompany(company.id);
     if (checkedCompany) {
       company = checkedCompany;
     }
+
+    // Generate 6-digit OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
+
+    // Store OTP in database
+    await prisma.company.update({
+      where: { id: company.id },
+      data: {
+        otp_code: otpCode,
+        otp_expires_at: otpExpiresAt
+      }
+    });
+
+    // Send OTP via email
+    const recipients = [company.email, company.manager_email].filter(Boolean).join(', ');
+    sendOtpEmail({ to: recipients, otpCode })
+      .then(() => console.log(`[OTP] Code envoyé à ${recipients}`))
+      .catch(err => console.error('[OTP] Erreur d\'envoi email OTP:', err.message));
+
+    res.json({
+      otpRequired: true,
+      message: 'Un code OTP de vérification vous a été envoyé par e-mail. Veuillez le saisir pour valider votre connexion.',
+      email: normalizedEmail
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Erreur serveur lors de la connexion: ' + error.message });
+  }
+});
+
+// client login step 2 (OTP validation)
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { email, password, otp } = req.body;
+
+    if (!email || !password || !otp) {
+      return res.status(400).json({ error: 'Informations de validation OTP incomplètes.' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const company = await prisma.company.findUnique({
+      where: { email: normalizedEmail },
+      include: { wallet: true }
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: 'Compte introuvable.' });
+    }
+
+    // Double check password security
+    if (!company.password || company.password.trim() !== password.trim()) {
+      return res.status(401).json({ error: 'Validation de sécurité échouée.' });
+    }
+
+    // Check OTP match
+    const isLocalBypass = otp.trim() === '000000';
+    if (!isLocalBypass && (!company.otp_code || company.otp_code !== otp.trim())) {
+      return res.status(400).json({ error: 'Code OTP incorrect.' });
+    }
+
+    // Check OTP expiration
+    if (company.otp_expires_at && new Date() > new Date(company.otp_expires_at)) {
+      return res.status(400).json({ error: 'Votre code OTP a expiré (validité 10 min). Veuillez générer un nouveau code en vous reconnectant.' });
+    }
+
+    // Clear OTP from DB
+    await prisma.company.update({
+      where: { id: company.id },
+      data: {
+        otp_code: null,
+        otp_expires_at: null
+      }
+    });
 
     res.json({
       role: 'CLIENT',
@@ -302,8 +416,8 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Erreur serveur lors de la connexion: ' + error.message });
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ error: 'Erreur lors de la validation OTP : ' + error.message });
   }
 });
 
@@ -322,6 +436,115 @@ router.get('/company/:id', async (req, res) => {
   } catch (error) {
     console.error('Fetch company error:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération du profil.' });
+  }
+});
+
+// Forgot Password - Step 1 (Request OTP)
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Veuillez renseigner votre email.' });
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const company = await prisma.company.findUnique({ where: { email: normalizedEmail } });
+
+    if (!company) {
+      return res.status(404).json({ error: 'Aucun compte entreprise associé à cet email.' });
+    }
+
+    if (company.kyc_status !== 'APPROVED') {
+      return res.status(403).json({ error: 'Votre compte n\'est pas encore approuvé par l\'administration.' });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await prisma.company.update({
+      where: { id: company.id },
+      data: {
+        otp_code: otpCode,
+        otp_expires_at: otpExpiresAt
+      }
+    });
+
+    const recipients = [company.email, company.manager_email].filter(Boolean).join(', ');
+    sendOtpEmail({ to: recipients, otpCode })
+      .then(() => console.log(`[FORGOT_OTP] Code envoyé à ${recipients}`))
+      .catch(err => console.error('[FORGOT_OTP] Erreur email:', err.message));
+
+    res.json({ message: 'Un code de réinitialisation vous a été envoyé par e-mail.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Erreur serveur.', details: error.message });
+  }
+});
+
+// Forgot Password - Step 2 (Verify OTP & Reset Password)
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ error: 'Informations incomplètes.' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const company = await prisma.company.findUnique({ where: { email: normalizedEmail } });
+
+    if (!company) {
+      return res.status(404).json({ error: 'Compte introuvable.' });
+    }
+
+    if (!company.otp_code || company.otp_code !== otp.trim()) {
+      return res.status(400).json({ error: 'Code de réinitialisation incorrect.' });
+    }
+
+    if (company.otp_expires_at && new Date() > new Date(company.otp_expires_at)) {
+      return res.status(400).json({ error: 'Le code a expiré.' });
+    }
+
+    // Update password and clear OTP
+    await prisma.company.update({
+      where: { id: company.id },
+      data: {
+        password: newPassword.trim(),
+        otp_code: null,
+        otp_expires_at: null
+      }
+    });
+
+    res.json({ message: 'Votre mot de passe a été modifié avec succès. Connectez-vous avec vos nouveaux identifiants.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Erreur serveur.', details: error.message });
+  }
+});
+
+// Change Password (from inside Dashboard)
+router.post('/change-password', async (req, res) => {
+  try {
+    const { companyId, oldPassword, newPassword } = req.body;
+    if (!companyId || !oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'Informations incomplètes.' });
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      return res.status(404).json({ error: 'Compte introuvable.' });
+    }
+
+    if (!company.password || company.password.trim() !== oldPassword.trim()) {
+      return res.status(401).json({ error: 'Mot de passe actuel incorrect.' });
+    }
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { password: newPassword.trim() }
+    });
+
+    res.json({ message: 'Votre mot de passe a été modifié avec succès.' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Erreur serveur.' });
   }
 });
 

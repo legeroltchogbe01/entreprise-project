@@ -6,6 +6,7 @@ datasource db {
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
+  binaryTargets   = ["native", "debian-openssl-1.1.x"]
 }
 
 enum KYCStatus {
@@ -72,6 +73,9 @@ model Company {
 
   kyc_status            KYCStatus        @default(PENDING)
   activated_at          DateTime?
+  password              String?
+  otp_code              String?
+  otp_expires_at        DateTime?
   created_at            DateTime         @default(now())
   wallet                Wallet?
   orders                Order[]
@@ -144,6 +148,7 @@ model OrderItem {
   product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
   quantity   Int
   price      Decimal  @db.Decimal(15, 2)
+  motif      String?
 }
 
 model SpecialRequest {

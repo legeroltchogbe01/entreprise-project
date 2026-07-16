@@ -36,6 +36,7 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [detailQty, setDetailQty] = useState(1);
+  const [selectedMotif, setSelectedMotif] = useState('Standard');
 
   // Filtre Prix
   const [maxPrice, setMaxPrice] = useState(3000000);
@@ -241,11 +242,22 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
     }
   };
 
-  const addToCart = (product, quantity = 1) => {
-    const existing = cart.find(i => i.id === product.id);
+  const handleSelectProduct = (product) => {
+    setSelectedProduct(product);
+    setDetailQty(1);
+    const motifs = (product.custom_data && product.custom_data.motifs) || [];
+    if (motifs.length > 0) {
+      setSelectedMotif(motifs[0].name);
+    } else {
+      setSelectedMotif('Standard');
+    }
+  };
+
+  const addToCart = (product, quantity = 1, motif = 'Standard') => {
+    const existing = cart.find(i => i.id === product.id && i.motif === motif);
     setCart(existing
-      ? cart.map(i => i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i)
-      : [...cart, { ...product, quantity }]
+      ? cart.map(i => i.id === product.id && i.motif === motif ? { ...i, quantity: i.quantity + quantity } : i)
+      : [...cart, { ...product, quantity, motif }]
     );
   };
 
@@ -448,10 +460,36 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                     {selectedProduct.description}
                   </p>
                   {selectedProduct.custom_data && (
-                    <div className="mt-3 text-xs text-zinc-300 space-y-1">
-                      {Object.entries(selectedProduct.custom_data).map(([k, v]) => (
-                        <div key={k}><span className="text-zinc-500 mr-2 font-mono">{k}:</span> <span className="text-white">{String(v)}</span></div>
-                      ))}
+                    <div className="mt-3 text-xs text-zinc-350 space-y-1">
+                      {Object.entries(selectedProduct.custom_data)
+                        .filter(([k]) => k !== 'motifs')
+                        .map(([k, v]) => (
+                          <div key={k}><span className="text-zinc-500 mr-2 font-mono">{k}:</span> <span className="text-white">{String(v)}</span></div>
+                        ))}
+                    </div>
+                  )}
+
+                  {/* Motif selector */}
+                  {selectedProduct.custom_data && selectedProduct.custom_data.motifs && selectedProduct.custom_data.motifs.length > 0 && (
+                    <div className="space-y-2.5 pt-4 border-t border-zinc-850">
+                      <span className="block text-[10px] font-bold text-zinc-450 uppercase tracking-widest">Finition / Motif</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {selectedProduct.custom_data.motifs.map((motif) => (
+                          <button
+                            key={motif.id}
+                            type="button"
+                            onClick={() => setSelectedMotif(motif.name)}
+                            className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                              selectedMotif === motif.name
+                                ? 'bg-red-950/20 border-[#cc0000] text-white shadow-lg shadow-red-950/20'
+                                : 'bg-zinc-900 border-zinc-850 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                            }`}
+                          >
+                            <img src={motif.image_url} alt={motif.name} className="w-12 h-12 rounded object-cover" />
+                            <span className="text-[10px] font-bold truncate w-full px-1">{motif.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -489,7 +527,7 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
 
                 <button
                   onClick={() => {
-                    addToCart(selectedProduct, detailQty);
+                    addToCart(selectedProduct, detailQty, selectedMotif);
                     setSelectedProduct(null);
                     navigate('/panier');
                   }}
@@ -599,7 +637,7 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                   {filteredProducts.map((product) => (
                     <div
                       key={product.id}
-                      onClick={() => { setSelectedProduct(product); setDetailQty(1); }}
+                      onClick={() => handleSelectProduct(product)}
                       className="card-hover rounded-2xl bg-[#111111] border border-zinc-800 overflow-hidden cursor-pointer shadow-md"
                     >
                       <div className="img-zoom h-48 bg-zinc-900 relative">
@@ -614,15 +652,24 @@ function Boutique({ user, cart, setCart, wallet, forceShowProducts, setForceShow
                         <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed h-8">{product.description}</p>
                         {product.custom_data && (
                           <div className="text-[10px] text-zinc-500 mt-1 flex gap-2 flex-wrap">
-                            {Object.entries(product.custom_data).slice(0,3).map(([k,v]) => (
-                              <span key={k} className="px-2 py-0.5 rounded bg-zinc-900/60">{k}: {String(v)}</span>
-                            ))}
+                            {Object.entries(product.custom_data)
+                              .filter(([k]) => k !== 'motifs')
+                              .slice(0,3)
+                              .map(([k,v]) => (
+                                <span key={k} className="px-2 py-0.5 rounded bg-zinc-900/60">{k}: {String(v)}</span>
+                              ))}
                           </div>
                         )}
                         <div className="flex items-center justify-between pt-3 border-t border-zinc-850">
                           <p className="font-bold text-white text-base">{Number(product.price).toLocaleString('fr-FR')} <span className="text-zinc-550 text-[10px]">FCFA</span></p>
                           <button
-                            onClick={(e) => { e.stopPropagation(); addToCart(product); navigate('/panier'); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const motifs = (product.custom_data && product.custom_data.motifs) || [];
+                              const defMotif = motifs.length > 0 ? motifs[0].name : 'Standard';
+                              addToCart(product, 1, defMotif);
+                              navigate('/panier');
+                            }}
                             className="btn-glow px-3.5 py-2 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-xs font-bold cursor-pointer flex items-center gap-1"
                           >
                             <Plus size={12} /> Ajouter

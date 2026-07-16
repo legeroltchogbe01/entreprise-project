@@ -8,12 +8,43 @@ console.log('[DOTENV DEBUG] Result:', dotenvResult);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS
-app.use(cors());
+// Enable CORS manually to ensure headers are always present
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'https://gmdpremiun.com',
+    'https://www.gmdpremiun.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  const origin = req.headers.origin;
+  
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Global anti-cache middleware for API routes to prevent mobile/desktop browser caching
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 // Ensure uploads folder exists
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -47,8 +78,23 @@ app.get('/', (req, res) => {
 });
 
 // Version diagnostic route
-app.get('/version', (req, res) => {
-  res.json({ version: 'f8bc624', routes: ['admin/companies', 'admin/product-fields', 'admin/product-fields/:id'] });
+app.get('/version', async (req, res) => {
+  const prisma = require('./utils/prisma');
+  let dbStatus = 'UNKNOWN';
+  let dbError = null;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbStatus = 'CONNECTED';
+  } catch (err) {
+    dbStatus = 'FAILED';
+    dbError = err.message;
+  }
+  res.json({ 
+    version: '15-07-2026-v3', 
+    dbStatus,
+    dbError,
+    routes: ['admin/companies', 'admin/orders', 'admin/reports', 'admin/product-fields'] 
+  });
 });
 
 // Global error handler

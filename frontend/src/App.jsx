@@ -293,7 +293,13 @@ function AppLayout({ user, setUser, cart, setCart }) {
 export default function App() {
   const [user, setUser]   = useState(null);
   /* ── Cart state lifted here so Boutique & Panier share it ── */
-  const [cart, setCart]   = useState([]);
+  const [cart, setCart]   = useState(() => {
+    const savedCart = localStorage.getItem('gmd_cart');
+    if (savedCart) {
+      try { return JSON.parse(savedCart); } catch { return []; }
+    }
+    return [];
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem('gmd_user');
@@ -305,6 +311,36 @@ export default function App() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('gmd_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Point 19: Déconnexion automatique après 30 minutes d'inactivité
+  useEffect(() => {
+    if (!user) return;
+
+    let timeoutId;
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        localStorage.removeItem('gmd_user');
+        setUser(null);
+        alert("Votre session a expiré après 30 minutes d'inactivité pour des raisons de sécurité. Veuillez vous reconnecter.");
+      }, 30 * 60 * 1000); // 30 min
+    };
+
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    
+    resetTimer();
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [user]);
 
   return (
     <Router>

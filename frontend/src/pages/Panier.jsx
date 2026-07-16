@@ -248,6 +248,30 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
       if (response && response.transactionId) {
         setOrderLoading(true);
         try {
+          // Case 1: Direct Order Payment (Cash or Acompte 50%)
+          if (window.pendingDirectOrder) {
+            const pending = window.pendingDirectOrder;
+            window.pendingDirectOrder = null;
+
+            const orderRes = await fetch(`${API_URL}/api/orders`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                companyId: user.company.id,
+                items: pending.items,
+                paymentMode: pending.paymentMode,
+                transactionId: response.transactionId
+              })
+            });
+            const orderData = await orderRes.json();
+            if (!orderRes.ok) throw new Error(orderData.error);
+
+            setOrderSuccess(orderData.message || 'Votre commande a été validée avec succès après votre paiement en ligne !');
+            setCart([]);
+            return;
+          }
+
+          // Case 2: Standard Account Activation Deposit Flow
           const res = await fetch(`${API_URL}/api/wallets/activate-client`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -259,11 +283,25 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
 
-          alert(data.message);
-          window.location.reload();
+          // Valider directement la commande en cours (Paiement échelonné)
+          const orderRes = await fetch(`${API_URL}/api/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyId: user.company.id,
+              items: cart.map(i => ({ productId: i.id, quantity: i.quantity, motif: i.motif || 'Standard' })),
+              paymentMode: 'echelonne'
+            })
+          });
+          const orderData = await orderRes.json();
+          if (!orderRes.ok) throw new Error(orderData.error);
+
+          setOrderSuccess(orderData.message || 'Votre commande a été validée avec succès après activation de votre compte !');
+          setCart([]);
         } catch (err) {
           console.error(err);
-          alert(err.message || "Erreur lors de l'activation du portefeuille.");
+          setOrderError(err.message || "Erreur lors du traitement du paiement Kkiapay.");
+          alert(err.message || "Erreur de traitement.");
         } finally {
           setOrderLoading(false);
         }
@@ -279,7 +317,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
         window.removeKkiapayListener('success', handleKkiapaySuccess);
       }
     };
-  }, [user?.company?.id]);
+  }, [user?.company?.id, cart]);
 
   const handleOpenActivationPayment = () => {
     console.log('Opening Kkiapay widget with:', {
@@ -300,6 +338,9 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
           data: "activation",
           key: KKIAPAY_PUBLIC_KEY,
           sandbox: KKIAPAY_SANDBOX,
+          email: user?.company?.manager_email || user?.email || "",
+          phone: user?.company?.manager_phone || user?.phone || "",
+          name: user?.company?.manager_name || "",
           ...(kkiapaySubaccount13 ? { partnerId: kkiapaySubaccount13 } : {})
         });
         return true;
@@ -351,8 +392,8 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   /* block if < 8 months remain */
   const canOrder     = !walletActive || remaining >= 8;
 
-  const updateQty  = (id, d) => setCart(cart.map(i => i.id === id ? { ...i, quantity: Math.max(1, i.quantity + d) } : i));
-  const removeItem = id => setCart(cart.filter(i => i.id !== id));
+  const updateQty  = (id, motif, d) => setCart(cart.map(i => i.id === id && i.motif === motif ? { ...i, quantity: Math.max(1, i.quantity + d) } : i));
+  const removeItem = (id, motif) => setCart(cart.filter(i => !(i.id === id && i.motif === motif)));
   const clearCart  = () => setCart([]);
 
   const rawTotal = cart.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
@@ -360,6 +401,51 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
   const handleOrder = async () => {
     if (!paymentMode || !accepted) return;
     setOrderLoading(true); setOrderError('');
+
+    // If Cash or Acompte 50% : trigger Kkiapay widget first
+    if (paymentMode === 'cash' || paymentMode === 'acompte') {
+      const discountedTotal = rawTotal * 0.95;
+      const targetAmount = paymentMode === 'cash' 
+        ? discountedTotal 
+        : discountedTotal / 2.0;
+
+      window.pendingDirectOrder = {
+        items: cart.map(i => ({ productId: i.id, quantity: i.quantity, motif: i.motif || 'Standard' })),
+        paymentMode
+      };
+
+      const openWidget = () => {
+        if (typeof window.openKkiapayWidget === 'function') {
+          window.openKkiapayWidget({
+            amount: Math.round(targetAmount),
+            position: "right",
+            callback: "",
+            data: `direct_order_${paymentMode}`,
+            key: KKIAPAY_PUBLIC_KEY,
+            sandbox: KKIAPAY_SANDBOX,
+            email: user?.company?.manager_email || user?.email || "",
+            phone: user?.company?.manager_phone || user?.phone || "",
+            name: user?.company?.manager_name || "",
+            ...(kkiapaySubaccount13 ? { partnerId: kkiapaySubaccount13 } : {})
+          });
+          return true;
+        }
+        return false;
+      };
+
+      if (!openWidget()) {
+        setTimeout(() => {
+          if (!openWidget()) {
+            setOrderError("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");
+            setOrderLoading(false);
+          }
+        }, 1000);
+      } else {
+        // Stop here, order creation will be finalized inside Kkiapay success callback
+        setOrderLoading(false);
+      }
+      return;
+    }
 
     // Pre-checks for B2B paymentMode === 'echelonne'
     if (paymentMode === 'echelonne') {
@@ -397,7 +483,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
       const res  = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId: user?.company?.id, items: cart.map(i => ({ productId: i.id, quantity: i.quantity })), paymentMode })
+        body: JSON.stringify({ companyId: user?.company?.id, items: cart.map(i => ({ productId: i.id, quantity: i.quantity, motif: i.motif || 'Standard' })), paymentMode })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -514,13 +600,13 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
               {cart.map(item => {
                 const itemTotal = Number(item.price) * item.quantity;
                 return (
-                  <div key={item.id} className="rounded-2xl border border-zinc-800 bg-[#0f0f0f] overflow-hidden">
+                  <div key={`${item.id}-${item.motif || 'Standard'}`} className="rounded-2xl border border-zinc-800 bg-[#0f0f0f] overflow-hidden">
 
                     {/* Qty row */}
                     <div className="flex items-center gap-3 px-5 py-3 border-b border-zinc-900/80">
-                      <button onClick={() => updateQty(item.id, -1)} className="icon-btn w-7 h-7 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-300 cursor-pointer text-sm font-bold">-</button>
+                      <button onClick={() => updateQty(item.id, item.motif || 'Standard', -1)} className="icon-btn w-7 h-7 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-300 cursor-pointer text-sm font-bold">-</button>
                       <span className="font-bold text-white text-sm w-6 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQty(item.id, 1)} className="icon-btn w-7 h-7 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-300 cursor-pointer text-sm font-bold">+</button>
+                      <button onClick={() => updateQty(item.id, item.motif || 'Standard', 1)} className="icon-btn w-7 h-7 rounded border border-zinc-700 bg-zinc-900 flex items-center justify-center text-zinc-300 cursor-pointer text-sm font-bold">+</button>
                     </div>
 
                     {/* Product content */}
@@ -541,7 +627,7 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
                             <Info size={11} /> Description
                           </button>
                           <button
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeItem(item.id, item.motif || 'Standard')}
                             className="icon-btn w-8 h-8 rounded-lg border border-red-900/50 bg-red-950/20 text-red-500 flex items-center justify-center cursor-pointer"
                           >
                             <Trash2 size={13} />
@@ -581,18 +667,36 @@ export default function Panier({ cart, setCart, user, wallet, onGoShop }) {
                         </div>
                       </div>
 
-                      {/* Motif thumbnails + button */}
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          {[item.image_url, item.image_url].map((src, i) => (
-                            <div key={i} className="img-zoom w-12 h-12 rounded-lg overflow-hidden border border-zinc-700 cursor-pointer">
-                              <img src={src} alt="motif" className="w-full h-full object-cover opacity-70 hover:opacity-100" />
-                            </div>
-                          ))}
+                      {/* Choix motif / finition configuré */}
+                      <div className="space-y-1.5 pt-2.5 border-t border-zinc-900/60 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Motif / Finition :</p>
+                          <p className="text-xs font-bold text-white mt-0.5">{item.motif || 'Standard'}</p>
                         </div>
-                        <button className="btn-glow w-full py-2.5 rounded-xl bg-[#cc0000] text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-red-950/30">
-                          <Image size={13} /> Choisir le motif
-                        </button>
+
+                        {/* Si le produit a d'autres motifs configurés, on affiche un sélecteur rapide de bulles */}
+                        {item.custom_data && item.custom_data.motifs && item.custom_data.motifs.length > 0 && (
+                          <div className="flex gap-1.5 items-center">
+                            {item.custom_data.motifs.map((mot) => {
+                              const isSelected = item.motif === mot.name;
+                              return (
+                                <button
+                                  key={mot.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCart(cart.map(c => c.id === item.id && c.motif === item.motif ? { ...c, motif: mot.name } : c));
+                                  }}
+                                  className={`w-7 h-7 rounded-full border overflow-hidden transition-all cursor-pointer ${
+                                    isSelected ? 'border-[#cc0000] scale-110 shadow' : 'border-zinc-800 hover:border-zinc-650'
+                                  }`}
+                                  title={mot.name}
+                                >
+                                  <img src={mot.image_url} alt={mot.name} className="w-full h-full object-cover" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

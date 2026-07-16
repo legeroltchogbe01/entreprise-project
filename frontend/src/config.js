@@ -1,18 +1,21 @@
 const getBackendURL = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
   if (typeof window !== 'undefined' && window.location) {
-    if (window.location.hostname.includes('gmdpremiun.com')) {
+    // 1. Prioritize online production domains
+    if (
+      window.location.hostname.includes('gmdpremiun.com') || 
+      window.location.hostname.includes('galassymeubledecor.shop')
+    ) {
       return 'https://api.galassymeubledecor.shop';
     }
-    if (window.location.hostname.includes('galassymeubledecor.shop')) {
-      return 'https://api.galassymeubledecor.shop';
-    }
-    // Automatic fallback for Render deployments
+    // 2. Fallback for Render deployments
     if (window.location.hostname.includes('onrender.com')) {
       return 'https://gmd-creance-backend.onrender.com';
     }
+  }
+  
+  // 3. Fallback to local environment variable or localhost
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
   return 'http://localhost:5000';
 };

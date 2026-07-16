@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const { sendQuoteReadyEmail } = require('../utils/emailService');
+const { sendQuoteReadyEmail, sendAdminNewSpecialRequestEmail } = require('../utils/emailService');
 
 // Configure Cloudinary
 if (!process.env.CLOUDINARY_URL) {
@@ -114,6 +114,22 @@ router.post('/', upload.single('image'), async (req, res) => {
         status: 'SUBMITTED'
       }
     });
+
+    // Notify admin
+    try {
+      const company = await prisma.company.findUnique({
+        where: { id: companyId }
+      });
+      if (company) {
+        sendAdminNewSpecialRequestEmail({
+          company,
+          requestDescription: description,
+          quantity: qty
+        }).catch(err => console.error('[ADMIN_SPECIAL] Erreur email notification:', err.message));
+      }
+    } catch (e) {
+      console.error('[ADMIN_SPECIAL] Erreur de récupération entreprise:', e);
+    }
 
     res.status(201).json({
       message: 'Demande spéciale soumise avec succès. L\'administration GMD émettra un devis sous 48h.',

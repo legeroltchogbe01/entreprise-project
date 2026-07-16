@@ -99,11 +99,22 @@ router.post('/companies/:id/kyc', async (req, res) => {
       return res.status(400).json({ error: 'Statut KYC invalide. Utilisez "APPROVED", "REJECTED" ou "DEACTIVATED".' });
     }
 
+    let password = null;
+    if (status === 'APPROVED') {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let randomPass = 'GMD-';
+      for (let i = 0; i < 6; i++) {
+        randomPass += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      password = randomPass;
+    }
+
     const company = await prisma.company.update({
       where: { id },
       data: { 
         kyc_status: status,
-        activated_at: status === 'APPROVED' ? new Date() : undefined
+        activated_at: status === 'APPROVED' ? new Date() : undefined,
+        password: password || undefined
       }
     });
 
@@ -111,7 +122,11 @@ router.post('/companies/:id/kyc', async (req, res) => {
     const recipients = [company.email, company.manager_email].filter(Boolean).join(', ');
 
     if (status === 'APPROVED' && recipients) {
-      sendKycApprovedEmail({ to: recipients, denominationSociale: company.denomination_sociale })
+      sendKycApprovedEmail({ 
+        to: recipients, 
+        denominationSociale: company.denomination_sociale,
+        password: password
+      })
         .then(() => console.log(`[KYC] Email APPROVED envoyé à : ${recipients}`))
         .catch(err => console.error('[KYC] Erreur email APPROVED:', err.message));
     } else if (status === 'REJECTED' && recipients) {
@@ -134,37 +149,68 @@ router.post('/companies/:id/kyc', async (req, res) => {
 
 // Get global maturities matrix (all orders and schedules)
 router.get('/schedules', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   try {
-    const orders = await prisma.order.findMany({
+    const companies = await prisma.company.findMany({
       include: {
-        company: {
-          select: {
-            denomination_sociale: true,
-            email: true,
-            phone: true
-          }
-        }
-      },
-      orderBy: { created_at: 'desc' }
+        wallet: true,
+        orders: true
+      }
     });
 
     const matrix = [];
-    orders.forEach(order => {
-      const schedule = JSON.parse(JSON.stringify(order.payment_schedule));
-      schedule.forEach(installment => {
-        matrix.push({
-          order_id: order.id,
-          order_number: order.order_number,
-          company_id: order.company_id,
-          company_name: order.company.denomination_sociale,
-          company_phone: order.company.phone,
-          installment_number: installment.installment_number,
-          due_date: installment.due_date,
-          amount: installment.amount,
-          paid: installment.paid,
-          paid_at: installment.paid_at
+
+    companies.forEach(company => {
+      if (!company.wallet || !company.wallet.activated_at) return;
+
+      const activatedAt = new Date(company.wallet.activated_at);
+
+      for (let m = 1; m <= 12; m++) {
+        const dueDate = new Date(activatedAt);
+        dueDate.setMonth(activatedAt.getMonth() + m);
+        dueDate.setDate(10);
+
+        const dueDateString = dueDate.toISOString().split('T')[0];
+
+        const matchingInstallments = [];
+        company.orders.forEach(order => {
+          const schedule = JSON.parse(JSON.stringify(order.payment_schedule || []));
+          schedule.forEach(inst => {
+            const instDate = new Date(inst.due_date);
+            if (instDate.getFullYear() === dueDate.getFullYear() && instDate.getMonth() === dueDate.getMonth()) {
+              matchingInstallments.push({
+                order_id: order.id,
+                order_number: order.order_number,
+                installment_number: inst.installment_number,
+                amount: inst.amount,
+                paid: inst.paid,
+                paid_at: inst.paid_at
+              });
+            }
+          });
         });
-      });
+
+        const totalAmount = matchingInstallments.reduce((sum, inst) => sum + Number(inst.amount), 0);
+        const allPaid = matchingInstallments.length > 0 ? matchingInstallments.every(inst => inst.paid) : true;
+        const latestPaidAt = matchingInstallments.length > 0 ? matchingInstallments.map(inst => inst.paid_at).filter(Boolean).sort().pop() : null;
+
+        if (totalAmount > 0) {
+          matrix.push({
+            order_number: [...new Set(matchingInstallments.map(i => i.order_number))].join(', '),
+            company_id: company.id,
+            company_name: company.denomination_sociale,
+            company_phone: company.phone,
+            installment_number: m,
+            due_date: dueDateString,
+            amount: totalAmount,
+            paid: allPaid,
+            paid_at: latestPaidAt,
+            installments: matchingInstallments
+          });
+        }
+      }
     });
 
     // Sort by due date
@@ -539,3 +585,228 @@ router.post('/settings', async (req, res) => {
 });
 
 module.exports = router;
+
+// ── Admin Orders (All orders with full detail) ───────────────────────────────
+router.get('/orders', async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        company: {
+          select: {
+            denomination_sociale: true,
+            email: true,
+            manager_name: true,
+            manager_phone: true,
+            ifu_number: true
+          }
+        },
+        order_items: {
+          include: { product: true }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+    res.json(orders);
+  } catch (error) {
+    console.error('Admin fetch orders error:', error);
+    res.status(500).json({ error: 'Erreur lors du chargement des commandes.' });
+  }
+});
+
+// ── Admin Reports ─────────────────────────────────────────────────────────────
+// GET /api/admin/reports?type=daily|weekly|monthly|annual
+router.get('/reports', async (req, res) => {
+  try {
+    const { type = 'monthly' } = req.query;
+    const now = new Date();
+    let startDate;
+
+    switch (type) {
+      case 'daily':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        break;
+      case 'weekly':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'annual':
+        startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        break;
+      case 'monthly':
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        break;
+    }
+
+    // Orders in period
+    const orders = await prisma.order.findMany({
+      where: { created_at: { gte: startDate } },
+      include: {
+        company: { select: { denomination_sociale: true, email: true } },
+        order_items: { include: { product: true } }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    // New activated wallets in period
+    const newActivations = await prisma.wallet.findMany({
+      where: { activated_at: { gte: startDate } },
+      include: { company: { select: { denomination_sociale: true, email: true } } }
+    });
+
+    // Compute totals
+    const totalOrderAmount = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const totalAcomptePercu = totalOrderAmount / 3;
+    const totalCreditAccorde = (totalOrderAmount * 2) / 3;
+
+    // Installments paid in period (scan all orders)
+    const allOrders = await prisma.order.findMany({
+      select: { payment_schedule: true, company: { select: { denomination_sociale: true } } }
+    });
+    let installmentsPaidInPeriod = [];
+    let installmentsPending = [];
+    for (const order of allOrders) {
+      const schedule = order.payment_schedule || [];
+      for (const inst of schedule) {
+        if (inst.paid && inst.paid_at) {
+          const paidAt = new Date(inst.paid_at);
+          if (paidAt >= startDate) {
+            installmentsPaidInPeriod.push(inst);
+          }
+        } else if (!inst.paid) {
+          installmentsPending.push(inst);
+        }
+      }
+    }
+
+    const totalInstallmentsPaid = installmentsPaidInPeriod.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+    // Activation deposits total
+    const totalActivationDeposits = newActivations.reduce((sum, w) => sum + Number(w.acompte_initial || 0), 0);
+
+    const totalEncaisse = totalAcomptePercu + totalInstallmentsPaid + totalActivationDeposits;
+
+    res.json({
+      period: type,
+      startDate: startDate.toISOString(),
+      endDate: now.toISOString(),
+      summary: {
+        totalOrders: orders.length,
+        totalOrderAmount,
+        totalAcomptePercu,
+        totalCreditAccorde,
+        totalEncaisse,
+        totalInstallmentsPaid,
+        installmentsPaidCount: installmentsPaidInPeriod.length,
+        installmentsPendingCount: installmentsPending.length,
+        newActivations: newActivations.length,
+        totalActivationDeposits
+      },
+      orders,
+      activations: newActivations
+    });
+  } catch (error) {
+    console.error('Admin reports error:', error);
+    res.status(500).json({ error: 'Erreur lors de la génération du rapport.' });
+  }
+});
+
+// GET /api/admin/reports/pdf?type=daily|weekly|monthly|annual
+router.get('/reports/pdf', async (req, res) => {
+  try {
+    const { type = 'monthly' } = req.query;
+    const now = new Date();
+    let startDate;
+
+    switch (type) {
+      case 'daily':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        break;
+      case 'weekly':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay());
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'annual':
+        startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        break;
+      case 'monthly':
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        break;
+    }
+
+    // Orders in period
+    const orders = await prisma.order.findMany({
+      where: { created_at: { gte: startDate } },
+      include: {
+        company: { select: { denomination_sociale: true, email: true } },
+        order_items: { include: { product: true } }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+
+    // New activated wallets in period
+    const newActivations = await prisma.wallet.findMany({
+      where: { activated_at: { gte: startDate } },
+      include: { company: { select: { denomination_sociale: true, email: true } } }
+    });
+
+    const totalOrderAmount = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const totalAcomptePercu = totalOrderAmount / 3;
+    const totalCreditAccorde = (totalOrderAmount * 2) / 3;
+
+    const allOrders = await prisma.order.findMany({
+      select: { payment_schedule: true, company: { select: { denomination_sociale: true } } }
+    });
+    let installmentsPaidInPeriod = [];
+    let installmentsPending = [];
+    for (const order of allOrders) {
+      const schedule = order.payment_schedule || [];
+      for (const inst of schedule) {
+        if (inst.paid && inst.paid_at) {
+          const paidAt = new Date(inst.paid_at);
+          if (paidAt >= startDate) {
+            installmentsPaidInPeriod.push(inst);
+          }
+        } else if (!inst.paid) {
+          installmentsPending.push(inst);
+        }
+      }
+    }
+
+    const totalInstallmentsPaid = installmentsPaidInPeriod.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    const totalActivationDeposits = newActivations.reduce((sum, w) => sum + Number(w.acompte_initial || 0), 0);
+    const totalEncaisse = totalAcomptePercu + totalInstallmentsPaid + totalActivationDeposits;
+
+    const reportData = {
+      summary: {
+        totalOrders: orders.length,
+        totalOrderAmount,
+        totalAcomptePercu,
+        totalCreditAccorde,
+        totalEncaisse,
+        totalInstallmentsPaid,
+        installmentsPaidCount: installmentsPaidInPeriod.length,
+        installmentsPendingCount: installmentsPending.length,
+        newActivations: newActivations.length,
+        totalActivationDeposits
+      },
+      orders,
+      activations: newActivations
+    };
+
+    const { generateAdminReportPdf } = require('../utils/pdfGenerator');
+    const pdfBuffer = await generateAdminReportPdf({ reportType: type, reportData });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Rapport_${type}_GMD.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Admin reports pdf generation error:', error);
+    res.status(500).json({ error: 'Erreur lors de la génération du rapport PDF.' });
+  }
+});
+
+

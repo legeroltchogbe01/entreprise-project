@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { generateReceiptPdf } = require('./pdfGenerator');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.hostinger.com',
@@ -29,12 +30,12 @@ const header = (bgColor, accentColor, subtitle = 'Plateforme B2B Officielle') =>
 const footer = () => `
     </div>
     <div style="padding: 14px 28px; border-top: 1px solid #1f1f1f; text-align: center;">
-      <p style="margin: 0; color: #52525b; font-size: 11px;">© ${new Date().getFullYear()} GMD - Groupe Multiservices Dahoué. Tous droits réservés.</p>
+      <p style="margin: 0; color: #52525b; font-size: 11px;">© ${new Date().getFullYear()} GMD - GALASSY MEUBLE DECOR. Tous droits réservés.</p>
       <p style="margin: 4px 0 0; color: #52525b; font-size: 11px;"><a href="${FRONTEND_URL}" style="color: #71717a;">Accéder à la plateforme</a></p>
     </div>
   </div>
 `;
-const send = (to, subject, html) => transporter.sendMail({ from, to, subject, html });
+const send = (to, subject, html, attachments = []) => transporter.sendMail({ from, to, subject, html, attachments });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Création de compte
@@ -57,15 +58,20 @@ async function sendAccountCreatedEmail({ to, denominationSociale }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. KYC Approuvé
 // ─────────────────────────────────────────────────────────────────────────────
-async function sendKycApprovedEmail({ to, denominationSociale }) {
+async function sendKycApprovedEmail({ to, denominationSociale, password }) {
   const html = header('#14532d, #166534', '#86efac') + `
     <h2 style="color: #4ade80; font-size: 18px;">🎉 Compte approuvé !</h2>
     <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Bonjour, représentant de <strong style="color: #fff;">${denominationSociale}</strong>,</p>
     <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
-      Votre dossier a été <strong style="color: #4ade80;">approuvé</strong>. Votre compte Gold B2B est désormais actif. Connectez-vous pour effectuer votre premier achat.
+      Votre dossier a été <strong style="color: #4ade80;">approuvé</strong>. Votre compte Gold B2B est désormais actif.
     </p>
+    <div style="background: #111827; border: 1px solid #374151; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
+      <p style="margin: 0; color: #9ca3af; font-size: 13px;">Voici vos identifiants de connexion temporaires :</p>
+      <p style="margin: 8px 0 0; color: #fff; font-size: 14px; font-weight: bold;">Identifiant : <span style="color: #60a5fa; font-family: monospace;">${to.split(',')[0]}</span></p>
+      <p style="margin: 4px 0 0; color: #fff; font-size: 14px; font-weight: bold;">Mot de passe : <span style="color: #34d399; font-family: monospace;">${password}</span></p>
+    </div>
     <div style="text-align: center; margin: 24px 0;">
-      <a href="${FRONTEND_URL}" style="display: inline-block; padding: 12px 28px; background: #166534; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Accéder à ma Boutique GMD →</a>
+      <a href="${FRONTEND_URL}/login" style="display: inline-block; padding: 12px 28px; background: #166534; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Se connecter à ma Boutique GMD →</a>
     </div>
   ` + footer();
   return send(to, '🟢 Compte Gold B2B GMD Approuvé', html);
@@ -112,7 +118,7 @@ async function sendOrderConfirmedEmail({ to, denominationSociale, orderRef, tota
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. Portefeuille activé (dépôt initial reçu)
 // ─────────────────────────────────────────────────────────────────────────────
-async function sendWalletActivatedEmail({ to, denominationSociale, depositAmount, creditLimit }) {
+async function sendWalletActivatedEmail({ to, denominationSociale, depositAmount, creditLimit, managerName, ifu, transactionId }) {
   const html = header('#4c1d95, #6d28d9', '#c4b5fd') + `
     <h2 style="color: #a78bfa; font-size: 18px;">💳 Portefeuille activé !</h2>
     <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Bonjour, représentant de <strong style="color: #fff;">${denominationSociale}</strong>,</p>
@@ -125,18 +131,39 @@ async function sendWalletActivatedEmail({ to, denominationSociale, depositAmount
         <tr><td style="padding: 4px 0; color: #71717a;">Ligne de crédit accordée</td><td style="text-align:right; color: #fbbf24; font-weight: 700;">${fmt(creditLimit)} FCFA</td></tr>
       </table>
     </div>
-    <p style="color: #a1a1aa; font-size: 13px;">Vous pouvez désormais passer des commandes à crédit sur notre boutique.</p>
+    <p style="color: #a1a1aa; font-size: 13px;">Vous trouverez ci-joint votre reçu officiel de paiement au format PDF.</p>
     <div style="text-align: center; margin: 24px 0;">
       <a href="${FRONTEND_URL}" style="display: inline-block; padding: 12px 28px; background: #6d28d9; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Accéder à ma Boutique →</a>
     </div>
   ` + footer();
-  return send(to, '💳 Votre portefeuille GMD est activé', html);
+
+  let attachments = [];
+  try {
+    const pdfBuffer = await generateReceiptPdf({
+      type: 'acompte',
+      denominationSociale,
+      managerName: managerName || 'Gérant',
+      managerEmail: to,
+      ifu: ifu || '—',
+      amount: Number(depositAmount),
+      transactionId: transactionId || 'SANDBOX_TX'
+    });
+    attachments.push({
+      filename: `Recu_Activation_GMD_${transactionId || 'Acompte'}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    });
+  } catch (err) {
+    console.error('Error generating activation PDF:', err);
+  }
+
+  return send(to, '💳 Votre portefeuille GMD est activé', html, attachments);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. Paiement d'une mensualité / créance
 // ─────────────────────────────────────────────────────────────────────────────
-async function sendInstallmentPaidEmail({ to, denominationSociale, amount, dueDate, remaining }) {
+async function sendInstallmentPaidEmail({ to, denominationSociale, amount, dueDate, remaining, managerName, ifu, transactionId, orderNumber, installmentNumber }) {
   const html = header('#14532d, #166534', '#86efac') + `
     <h2 style="color: #4ade80; font-size: 18px;">✅ Paiement de mensualité confirmé</h2>
     <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Bonjour, représentant de <strong style="color: #fff;">${denominationSociale}</strong>,</p>
@@ -148,32 +175,133 @@ async function sendInstallmentPaidEmail({ to, denominationSociale, amount, dueDa
         <tr><td style="padding: 4px 0; color: #71717a;">Solde restant dû</td><td style="text-align:right; color: #fbbf24; font-weight: 700;">${fmt(remaining)} FCFA</td></tr>
       </table>
     </div>
+    <p style="color: #a1a1aa; font-size: 13px;">Vous trouverez ci-joint votre reçu de paiement PDF officiel.</p>
     <p style="color: #71717a; font-size: 12px;">Merci pour votre régularité. Contact : <a href="mailto:${FROM_EMAIL}" style="color: #4ade80;">${FROM_EMAIL}</a></p>
   ` + footer();
-  return send(to, '✅ Paiement mensualité reçu — Galassy Meuble Décor', html);
+
+  let attachments = [];
+  try {
+    const pdfBuffer = await generateReceiptPdf({
+      type: 'mensualite',
+      denominationSociale,
+      managerName: managerName || 'Gérant',
+      managerEmail: to,
+      ifu: ifu || '—',
+      amount: Number(amount),
+      transactionId: transactionId || 'SANDBOX_TX',
+      orderNumber,
+      installmentNumber,
+      dueDate
+    });
+    attachments.push({
+      filename: `Recu_Mensualite_${installmentNumber || ''}_GMD_${transactionId || 'M'}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    });
+  } catch (err) {
+    console.error('Error generating installment PDF:', err);
+  }
+
+  return send(to, '✅ Paiement mensualité reçu — Galassy Meuble Décor', html, attachments);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 7. Rappel échéance manquée / à venir
+// 7. Rappels de Créances (Textes Officiels C001, C002, C003)
 // ─────────────────────────────────────────────────────────────────────────────
-async function sendPaymentReminderEmail({ to, denominationSociale, amount, dueDate, isOverdue = false }) {
-  const bgColor = isOverdue ? '#7f1d1d, #991b1b' : '#78350f, #92400e';
-  const accentColor = isOverdue ? '#fca5a5' : '#fcd34d';
-  const titleColor = isOverdue ? '#f87171' : '#fbbf24';
-  const titleText = isOverdue ? '⚠️ Mensualité en retard — Action urgente requise' : '🔔 Rappel : Échéance à venir';
-  const bodyText = isOverdue
-    ? `Votre mensualité du <strong style="color: #fff;">${dueDate}</strong> d'un montant de <strong style="color: #f87171;">${fmt(amount)} FCFA</strong> n'a pas encore été réglée. Des pénalités de retard de <strong style="color: #f87171;">5% par jour</strong> s'appliquent. Veuillez régulariser immédiatement.`
-    : `Votre prochaine mensualité de <strong style="color: #fbbf24;">${fmt(amount)} FCFA</strong> est due le <strong style="color: #fff;">${dueDate}</strong>. Pensez à effectuer votre virement à temps pour éviter toute pénalité.`;
-  const html = header(bgColor, accentColor) + `
-    <h2 style="color: ${titleColor}; font-size: 18px;">${titleText}</h2>
-    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Bonjour, représentant de <strong style="color: #fff;">${denominationSociale}</strong>,</p>
-    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">${bodyText}</p>
-    <div style="text-align: center; margin: 24px 0;">
-      <a href="${FRONTEND_URL}/dashboard" style="display: inline-block; padding: 12px 28px; background: ${isOverdue ? '#991b1b' : '#92400e'}; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Régler ma mensualité →</a>
+async function sendDebtReminderEmail({ to, managerName, amount, dueDate, type, penaltyAmount = 0, totalDue = 0, soldeDu = 0 }) {
+  let bgColor = '#78350f, #92400e';
+  let titleColor = '#fbbf24';
+  let subject = '🔔 Rappel échéance — Galassy Meuble Décor';
+  let bodyText = '';
+
+  const formattedDueDate = new Date(dueDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  if (type === 'C001') {
+    bgColor = '#78350f, #92400e';
+    titleColor = '#fbbf24';
+    subject = '🔔 Rappel échéance — Galassy Meuble Décor';
+    bodyText = `
+      <p style="color: #fff; font-size: 15px; font-weight: bold; margin-bottom: 12px;">${managerName}, bonjour,</p>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Votre facture de créance du <strong style="color: #fff;">${formattedDueDate}</strong>, d'un montant de <strong style="color: #fbbf24;">${fmt(amount)} FCFA</strong>, sera échue le <strong style="color: #fff;">${formattedDueDate}</strong>.
+      </p>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Nous vous invitons à procéder au paiement en cliquant sur le lien de notre site de paiement <a href="${FRONTEND_URL}" style="color: #fbbf24; text-decoration: underline;">galassymeubledecor.shop</a> afin d'éviter des frais de pénalités de <strong style="color: #fbbf24;">05 % journaliers</strong>, voire la rupture officielle du contrat sans recours dès le 6e jour de retard, entraînant la réquisition des meubles à défaut du solde de tout compte, conformément à l'accord initial.
+      </p>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Rendez-vous en agence pour assistance ou autres préoccupations.
+      </p>
+    `;
+  } else if (type === 'C002') {
+    bgColor = '#7f1d1d, #991b1b';
+    titleColor = '#f87171';
+    subject = '⚠️ Mensualité en retard — Galassy Meuble Décor';
+    bodyText = `
+      <p style="color: #fff; font-size: 15px; font-weight: bold; margin-bottom: 12px;">${managerName}, bonjour,</p>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Votre facture de créance du <strong style="color: #fff;">${formattedDueDate}</strong>, d'un montant de <strong style="color: #f87171;">${fmt(amount)} FCFA</strong>, est échue depuis le <strong style="color: #fff;">${formattedDueDate}</strong>.
+      </p>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Nous vous invitons à procéder au paiement en cliquant sur le lien de notre site de paiement <a href="${FRONTEND_URL}" style="color: #f87171; text-decoration: underline;">galassymeubledecor.shop</a> afin d'éviter des frais de pénalités de <strong style="color: #f87171;">05 % journaliers</strong>, voire la rupture officielle du contrat sans recours dès le 6e jour de retard, entraînant la réquisition des meubles à défaut du solde de tout compte, conformément à l'accord initial.
+      </p>
+      <div style="background: #7f1d1d15; border: 1px solid #7f1d1d50; border-radius: 8px; padding: 14px; margin: 18px 0; color: #fca5a5; font-size: 13px; font-family: monospace;">
+        <strong>Pénalités de retard :</strong> ${fmt(penaltyAmount)} FCFA
+      </div>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Rendez-vous en agence pour assistance ou autres préoccupations.
+      </p>
+    `;
+  } else if (type === 'C003') {
+    bgColor = '#000000, #111111';
+    titleColor = '#f87171';
+    subject = '🚨 Rupture officielle de contrat — Galassy Meuble Décor';
+    bodyText = `
+      <p style="color: #fff; font-size: 15px; font-weight: bold; margin-bottom: 12px;">${managerName}, bonjour,</p>
+      <p style="color: #f87171; line-height: 1.7; font-size: 14px; font-weight: bold;">
+        Par la présente, nous vous informons de la rupture officielle de votre contrat sans recours possible pour manquement contractuel.
+      </p>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Nous vous invitons à procéder au paiement du solde de tout compte sans délai possible en cliquant sur le lien de notre site de paiement <a href="${FRONTEND_URL}" style="color: #f87171; text-decoration: underline;">galassymeubledecor.shop</a> afin d'éviter les frais de pénalités de <strong style="color: #f87171;">05 % journaliers</strong>, voire la réquisition des meubles par nos agents, conformément à l'accord contractuel.
+      </p>
+      <div style="background: #1f1f1f; border: 1px solid #333; border-radius: 8px; padding: 16px; margin: 18px 0; font-size: 13px; font-family: monospace; color: #e4e4e7;">
+        <table style="width: 100%;">
+          <tr><td>Solde dû :</td><td style="text-align: right; color: #fff;">${fmt(soldeDu)} FCFA</td></tr>
+          <tr><td>Pénalités :</td><td style="text-align: right; color: #f87171;">${fmt(penaltyAmount)} FCFA</td></tr>
+          <tr style="border-top: 1px solid #444;"><td style="font-weight: bold; padding-top: 6px;">Total dû :</td><td style="text-align: right; color: #34d399; font-weight: bold; font-size: 15px; padding-top: 6px;">${fmt(totalDue)} FCFA</td></tr>
+        </table>
+      </div>
+      <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+        Rendez-vous en agence pour assistance ou autres préoccupations.
+      </p>
+    `;
+  }
+
+  const html = header(bgColor, titleColor, 'Service Recouvrement') + bodyText + footer();
+  return send(to, subject, html);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7.2 Notification Clôture / Fin de Contrat
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendContractCompletedEmail({ to, denominationSociale, managerName }) {
+  const html = header('#065f46, #047857', '#34d399', 'Félicitations GMD B2B') + `
+    <h2 style="color: #34d399; font-size: 18px;">🎉 Solde de tout compte & Fin de contrat</h2>
+    <p style="color: #fff; font-size: 15px; font-weight: bold; margin-bottom: 12px;">${managerName}, bonjour,</p>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      Nous avons le plaisir de vous informer que votre dernière échéance de créance a été entièrement réglée avec succès.
+    </p>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      Votre ligne de crédit est désormais entièrement soldée et votre contrat de crédit B2B pour cette commande s'est achevé en excellente conformité.
+    </p>
+    <div style="background: #065f4615; border: 1px solid #04785740; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center; color: #34d399; font-weight: bold; font-size: 14px;">
+      ✓ COMPTE EN EXCELLENTE CONFORMITÉ
     </div>
-    <p style="color: #71717a; font-size: 12px;">Contact : <a href="mailto:${FROM_EMAIL}" style="color: ${titleColor};">${FROM_EMAIL}</a></p>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      Toute l'équipe de <strong style="color: #fff;">Galassy Meuble Décor</strong> vous remercie chaleureusement pour votre fidélité et votre régularité exemplaire. Nous serons honorés de vous accompagner sur vos futurs projets d'ameublement professionnel.
+    </p>
+    <p style="color: #71717a; font-size: 12px;">Pour toute nouvelle demande : <a href="mailto:${FROM_EMAIL}" style="color: #34d399;">${FROM_EMAIL}</a></p>
   ` + footer();
-  return send(to, isOverdue ? '⚠️ URGENT — Mensualité en retard — Galassy Meuble Décor' : '🔔 Rappel échéance — Galassy Meuble Décor', html);
+  return send(to, '🎉 Fin de contrat de créance — Galassy Meuble Décor', html);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -284,24 +412,91 @@ async function sendAdminNewRegistrationEmail({ company }) {
   return send(ADMIN_EMAIL, `📢 GMD B2B : Inscription de ${company.denomination_sociale} en attente`, html);
 }
 
-async function sendAdminNewOrderEmail({ company, orderRef, totalAmount }) {
+async function sendAdminNewOrderEmail({ company, orderRef, totalAmount, items }) {
+  const acomptePortion = totalAmount / 3;
+  const creditPortion = (totalAmount * 2) / 3;
+
+  let itemsHtml = '';
+  if (items && Array.isArray(items)) {
+    itemsHtml = items.map(item => {
+      const name = item.product ? item.product.name : (item.name || 'Produit');
+      const qty = item.quantity;
+      const price = Number(item.price);
+      const motif = item.motif || 'Standard';
+      const imageUrl = item.product ? item.product.image_url : null;
+      return `
+        <tr style="border-bottom: 1px solid #2a2a2a; vertical-align: top;">
+          <td style="padding: 12px 8px 12px 0; width: 64px;">
+            ${imageUrl
+              ? `<img src="${imageUrl}" alt="${name}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #333;" />`
+              : `<div style="width:60px;height:60px;background:#1a1a1a;border-radius:8px;border:1px solid #333;display:flex;align-items:center;justify-content:center;color:#555;font-size:10px;text-align:center;">Pas de<br/>photo</div>`
+            }
+          </td>
+          <td style="padding: 12px 8px; color: #fff; font-size: 13px;">
+            <strong>${name}</strong><br/>
+            <span style="font-size: 11px; color: #a78bfa; background: #1a1028; border-radius:4px; padding: 2px 6px; display:inline-block; margin-top:4px;">🎨 Motif : ${motif}</span><br/>
+            <span style="font-size: 11px; color: #71717a; margin-top:4px; display:inline-block;">Prix unitaire : ${fmt(price)} FCFA</span>
+          </td>
+          <td style="padding: 12px 4px; text-align: center; color: #d4d4d8; font-size: 13px; white-space:nowrap;">${qty} unité${qty > 1 ? 's' : ''}</td>
+          <td style="padding: 12px 0 12px 8px; text-align: right; color: #fbbf24; font-weight: 700; font-size: 13px; white-space:nowrap;">${fmt(price * qty)} FCFA</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
   const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
-    <h2 style="color: #fbbf24; font-size: 18px;">🛒 Nouvelle commande reçue</h2>
-    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
-      L'entreprise <strong>${company.denomination_sociale}</strong> a validé une nouvelle commande à crédit.
+    <h2 style="color: #fbbf24; font-size: 20px; margin: 0 0 8px 0;">🛒 Nouvelle commande reçue</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px; margin: 0 0 20px 0;">
+      Une nouvelle commande à crédit a été validée. Référence : <strong style="color:#fff;">${orderRef}</strong>
     </p>
-    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; margin: 20px 0;">
-      <table style="width: 100%; font-size: 13px; color: #d4d4d8;">
-        <tr><td style="padding: 4px 0; color: #71717a;">Référence</td><td style="text-align:right; color: #fff; font-weight: 700;">${orderRef}</td></tr>
-        <tr><td style="padding: 4px 0; color: #71717a;">Montant Total</td><td style="text-align:right; color: #fbbf24; font-weight: 700;">${fmt(totalAmount)} FCFA</td></tr>
+
+    <!-- Infos Client -->
+    <div style="background: #0f172a; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px; margin: 0 0 20px 0;">
+      <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 700; color: #60a5fa; text-transform: uppercase; letter-spacing: 1px;">👤 Client</p>
+      <table style="width: 100%; font-size: 12px; color: #d4d4d8; border-collapse: collapse;">
+        <tr><td style="padding: 3px 0; color: #71717a; width: 40%;">Entreprise</td><td style="font-weight:700; color:#fff;">${company.denomination_sociale}</td></tr>
+        <tr><td style="padding: 3px 0; color: #71717a;">Responsable</td><td>${company.manager_name || '—'}</td></tr>
+        <tr><td style="padding: 3px 0; color: #71717a;">Téléphone</td><td>${company.manager_phone || '—'}</td></tr>
+        <tr><td style="padding: 3px 0; color: #71717a;">Email</td><td>${company.email || '—'}</td></tr>
+        <tr><td style="padding: 3px 0; color: #71717a;">N° IFU</td><td>${company.ifu_number || '—'}</td></tr>
       </table>
     </div>
+
+    <!-- Articles commandés -->
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 18px; margin: 0 0 20px 0;">
+      <p style="margin: 0 0 14px 0; font-size: 12px; font-weight: 700; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px;">🛍️ Articles commandés</p>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 1px solid #333; color: #71717a; text-align: left; font-size: 11px; text-transform: uppercase;">
+            <th style="padding-bottom: 8px; width: 64px;"></th>
+            <th style="padding-bottom: 8px;">Désignation / Motif</th>
+            <th style="padding-bottom: 8px; text-align: center;">Qté</th>
+            <th style="padding-bottom: 8px; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml || '<tr><td colspan="4" style="padding: 12px 0; text-align: center; color: #71717a;">Aucun article</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Récapitulatif financier -->
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 18px; margin: 0 0 24px 0;">
+      <p style="margin: 0 0 14px 0; font-size: 12px; font-weight: 700; color: #4ade80; text-transform: uppercase; letter-spacing: 1px;">💰 Récapitulatif Financier</p>
+      <table style="width: 100%; font-size: 13px; color: #d4d4d8; border-collapse: collapse;">
+        <tr><td style="padding: 5px 0; color: #71717a;">Montant total de la commande</td><td style="text-align:right; color: #fbbf24; font-weight: 700; font-size: 15px;">${fmt(totalAmount)} FCFA</td></tr>
+        <tr><td style="padding: 5px 0; color: #71717a;">Acompte versé (1/3)</td><td style="text-align:right; color: #4ade80; font-weight: 700;">${fmt(acomptePortion)} FCFA</td></tr>
+        <tr><td style="padding: 5px 0; color: #71717a;">Crédit accordé (2/3)</td><td style="text-align:right; color: #a78bfa; font-weight: 700;">${fmt(creditPortion)} FCFA</td></tr>
+      </table>
+    </div>
+
     <div style="text-align: center; margin: 24px 0;">
-      <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Consulter la commande →</a>
+      <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #374151, #1f2937); color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px; border: 1px solid #4b5563;">Consulter sur l'administration →</a>
     </div>
   ` + footer();
-  return send(ADMIN_EMAIL, `🛒 GMD B2B : Nouvelle commande de ${company.denomination_sociale}`, html);
+  return send(ADMIN_EMAIL, `🛒 GMD B2B : Nouvelle commande de ${company.denomination_sociale} — ${orderRef}`, html);
 }
+
 
 async function sendAdminWalletActivatedEmail({ company, depositAmount, creditLimit }) {
   const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
@@ -360,6 +555,42 @@ async function sendAdminProfileUpdateSubmittedEmail({ company, changes }) {
   return send(ADMIN_EMAIL, `✏️ GMD B2B : Demande de modification de profil - ${company.denomination_sociale}`, html);
 }
 
+async function sendAdminNewSpecialRequestEmail({ company, requestDescription, quantity }) {
+  const html = header('#4b5563, #374151', '#9ca3af', 'Notification Administrateur') + `
+    <h2 style="color: #fbbf24; font-size: 18px;">📋 Nouvelle demande de devis sur-mesure</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      L'entreprise <strong>${company.denomination_sociale}</strong> vient de soumettre une nouvelle demande de devis sur-mesure.
+    </p>
+    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px; margin: 20px 0; color: #d4d4d8; font-size: 13px;">
+      <p style="margin: 0 0 10px 0;"><strong>Description du besoin :</strong></p>
+      <p style="color: #fff; font-style: italic; margin: 0 0 16px 0;">"${requestDescription}"</p>
+      <p style="margin: 0;"><strong>Quantité demandée :</strong> ${quantity} article(s)</p>
+    </div>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${FRONTEND_URL}/admin" style="display: inline-block; padding: 12px 28px; background: #374151; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">Accéder à la console pour estimer le devis →</a>
+    </div>
+  ` + footer();
+  return send(ADMIN_EMAIL, `📋 GMD B2B : Nouvelle demande de devis de ${company.denomination_sociale}`, html);
+}
+
+async function sendOtpEmail({ to, otpCode }) {
+  const html = header('#1e3b5f, #1d4ed8', '#93c5fd', 'Sécurité de Connexion') + `
+    <h2 style="color: #60a5fa; font-size: 18px;">🔑 Votre code de vérification (OTP)</h2>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">Bonjour,</p>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 14px;">
+      Pour finaliser votre connexion à la plateforme B2B Galassy Meuble Décor, veuillez saisir le code de vérification suivant :
+    </p>
+    <div style="background: #111827; border: 1px solid #374151; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+      <span style="color: #34d399; font-size: 28px; font-weight: 900; font-family: monospace; letter-spacing: 6px;">${otpCode}</span>
+    </div>
+    <p style="color: #a1a1aa; line-height: 1.7; font-size: 13px;">
+      Ce code est confidentiel et expirera dans <strong style="color: #fff;">10 minutes</strong>. Ne le partagez jamais.
+    </p>
+    <p style="color: #71717a; font-size: 12px;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.</p>
+  ` + footer();
+  return send(to, '🔑 Votre code OTP de connexion — Galassy Meuble Décor', html);
+}
+
 module.exports = {
   sendAccountCreatedEmail,
   sendKycApprovedEmail,
@@ -367,7 +598,8 @@ module.exports = {
   sendOrderConfirmedEmail,
   sendWalletActivatedEmail,
   sendInstallmentPaidEmail,
-  sendPaymentReminderEmail,
+  sendDebtReminderEmail,
+  sendContractCompletedEmail,
   sendQuoteReadyEmail,
   sendProfileUpdateApprovedEmail,
   sendProfileUpdateRejectedEmail,
@@ -376,4 +608,6 @@ module.exports = {
   sendAdminWalletActivatedEmail,
   sendAdminInstallmentPaidEmail,
   sendAdminProfileUpdateSubmittedEmail,
+  sendAdminNewSpecialRequestEmail,
+  sendOtpEmail,
 };

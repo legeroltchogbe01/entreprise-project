@@ -1,24 +1,42 @@
+/**
+ * Prisma Client - Production Hostinger/CloudLinux Safe Version
+ *
+ * Problème connu : Le moteur Rust de Prisma (library engine / binary engine)
+ * panique sur Hostinger CloudLinux ("timer has gone away").
+ *
+ * Solution : Utiliser @prisma/adapter-pg qui bypasse totalement le moteur Rust
+ * et utilise le driver TCP standard node-postgres (pg) pour communiquer avec Neon.
+ * Compatible avec toutes les plateformes (Hostinger, VPS, local, etc.)
+ *
+ * Prérequis schema.prisma :
+ *   previewFeatures = ["driverAdapters"]
+ */
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
 const { PrismaClient } = require('@prisma/client');
+const { Pool } = require('pg');
+const { PrismaPg } = require('@prisma/adapter-pg');
 
-let prisma;
+const connectionString = process.env.DATABASE_URL;
 
-// Always use Neon Serverless Driver Adapter (both in local dev and prod) to bypass port 5432 blocking
-console.log('[PRISMA] Using Neon Serverless Driver Adapter (WebSocket)...');
-const { Pool, neonConfig } = require('@neondatabase/serverless');
-const { PrismaNeon } = require('@prisma/adapter-neon');
-const ws = require('ws');
-
-// Configure WebSocket constructor for Neon serverless driver
-neonConfig.webSocketConstructor = ws;
-
-console.log('[PRISMA DEBUG] process.env.DATABASE_URL:', process.env.DATABASE_URL ? (process.env.DATABASE_URL.substring(0, 30) + '...') : 'UNDEFINED');
-let connectionString = process.env.DATABASE_URL;
-if (connectionString && connectionString.startsWith('"') && connectionString.endsWith('"')) {
-  connectionString = connectionString.substring(1, connectionString.length - 1);
+if (!connectionString) {
+  throw new Error('[PRISMA] DATABASE_URL manquant dans les variables d\'environnement.');
 }
-const pool = new Pool({ connectionString });
-const adapter = new PrismaNeon(pool);
 
-prisma = new PrismaClient({ adapter });
+// Pool TCP standard (node-postgres) - fonctionne partout, aucun moteur Rust nécessaire
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false }, // Neon exige SSL, on accepte son certificat auto-signé
+  max: 2,                             // Limite Neon free tier
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
+
+console.log('[PRISMA] Client initialisé avec @prisma/adapter-pg (driver TCP, moteur Rust bypassé).');
 
 module.exports = prisma;

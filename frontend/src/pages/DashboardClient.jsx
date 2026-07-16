@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye, EyeOff, Edit3, X, Clock } from 'lucide-react';
+import { Wallet2, Calendar, FileText, Send, Check, AlertCircle, RefreshCw, Building2, Phone, Mail, MapPin, CreditCard, LogOut, ShieldCheck, User, Briefcase, Package, Eye, EyeOff, Edit3, X, Clock, Key, ChevronDown, ChevronUp } from 'lucide-react';
 import { API_URL, KKIAPAY_PUBLIC_KEY, KKIAPAY_SANDBOX } from '../config';
 
 // ─── MINUTERIE DÉS-ACTIVATION 48H ──────────────────────────────────────────
@@ -57,8 +57,12 @@ function KYCDeactivationTimer({ company, wallet }) {
 
 function DashboardClient({ user }) {
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const activeTab = searchParams.get('tab') || 'profil';
+  const [activeTab, setActiveTab] = useState('profil');
+
+  useEffect(() => {
+    const tab = new URLSearchParams(location.search).get('tab') || 'profil';
+    setActiveTab(tab);
+  }, [location.search]);
 
   const [wallet, setWallet] = useState(null);
   const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
@@ -67,6 +71,15 @@ function DashboardClient({ user }) {
   const [specialRequests, setSpecialRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const [expandedOrders, setExpandedOrders] = useState({});
+
+  const toggleOrder = (orderId) => {
+    setExpandedOrders(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
+  };
 
   // Special Request Form State
   const [description, setDescription] = useState('');
@@ -90,6 +103,16 @@ function DashboardClient({ user }) {
   // Point 10: accordion infos entreprise
   const [showCompanyDetails, setShowCompanyDetails] = useState(false);
 
+  // Change Password States
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [oldPasswordState, setOldPasswordState] = useState('');
+  const [newPasswordState, setNewPasswordState] = useState('');
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -99,17 +122,17 @@ function DashboardClient({ user }) {
       setLoading(true);
       setError('');
 
-      const wRes = await fetch(`${API_URL}/api/wallets/${user.company.id}`);
+      const wRes = await fetch(`${API_URL}/api/wallets/${user.company.id}?t=${Date.now()}`);
       const wData = await wRes.json();
       if (!wRes.ok) throw new Error(wData.error);
       setWallet(wData);
 
-      const oRes = await fetch(`${API_URL}/api/orders/company/${user.company.id}`);
+      const oRes = await fetch(`${API_URL}/api/orders/company/${user.company.id}?t=${Date.now()}`);
       const oData = await oRes.json();
       if (!oRes.ok) throw new Error(oData.error);
       setOrders(oData);
 
-      const sRes = await fetch(`${API_URL}/api/special-requests/company/${user.company.id}`);
+      const sRes = await fetch(`${API_URL}/api/special-requests/company/${user.company.id}?t=${Date.now()}`);
       const sData = await sRes.json();
       if (!sRes.ok) throw new Error(sData.error);
       setSpecialRequests(sData);
@@ -190,7 +213,10 @@ function DashboardClient({ user }) {
               })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            if (!res.ok) {
+              const errMsg = data.error + (data.details ? `\n(Détails techniques: ${data.details})` : '');
+              throw new Error(errMsg);
+            }
             alert(data.message);
           } else {
             console.warn("Transaction reçue sans échéance active.");
@@ -226,10 +252,49 @@ function DashboardClient({ user }) {
         data: "monthly_due",
         key: KKIAPAY_PUBLIC_KEY,
         sandbox: KKIAPAY_SANDBOX,
+        email: user?.company?.manager_email || user?.email || "",
+        phone: user?.company?.manager_phone || user?.phone || "",
+        name: user?.company?.manager_name || "",
         ...(kkiapaySubaccount23 ? { partnerId: kkiapaySubaccount23 } : {})
       });
     } else {
       alert("La passerelle de paiement Kkiapay n'est pas chargée. Veuillez rafraîchir la page.");
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!oldPasswordState || !newPasswordState) return;
+
+    setPasswordChangeLoading(true);
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: user.company.id,
+          oldPassword: oldPasswordState,
+          newPassword: newPasswordState
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setPasswordChangeSuccess(data.message || 'Mot de passe modifié !');
+      setOldPasswordState('');
+      setNewPasswordState('');
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setPasswordChangeSuccess('');
+      }, 2000);
+    } catch (err) {
+      setPasswordChangeError(err.message);
+    } finally {
+      setPasswordChangeLoading(false);
     }
   };
 
@@ -243,7 +308,10 @@ function DashboardClient({ user }) {
         body: JSON.stringify({ installmentNumber })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const errMsg = data.error + (data.details ? `\n(Détails techniques: ${data.details})` : '');
+        throw new Error(errMsg);
+      }
       alert(data.message);
       await fetchDashboardData();
     } catch (err) {
@@ -314,22 +382,77 @@ function DashboardClient({ user }) {
   };
 
   const getClientMaturities = () => {
-    const list = [];
-    orders.forEach(order => {
-      const schedule = JSON.parse(JSON.stringify(order.payment_schedule));
-      schedule.forEach(inst => {
-        list.push({
-          order_id: order.id,
-          order_number: order.order_number,
-          installment_number: inst.installment_number,
-          due_date: inst.due_date,
-          amount: inst.amount,
-          paid: inst.paid,
-          paid_at: inst.paid_at
+    if (!wallet || !wallet.activated_at) return [];
+
+    const activatedAt = new Date(wallet.activated_at);
+    const globalMaturities = [];
+
+    // Générer les 12 mois d'échéances globales
+    for (let m = 1; m <= 12; m++) {
+      const dueDate = new Date(activatedAt);
+      dueDate.setMonth(activatedAt.getMonth() + m);
+      dueDate.setDate(10); // Le 10 de chaque mois
+      
+      const dueDateString = dueDate.toISOString().split('T')[0];
+
+      // Trouver toutes les échéances individuelles de toutes les commandes
+      // qui tombent sur le même mois
+      const matchingInstallments = [];
+      orders.forEach(order => {
+        const schedule = JSON.parse(JSON.stringify(order.payment_schedule || []));
+        schedule.forEach(inst => {
+          const instDate = new Date(inst.due_date);
+          if (instDate.getFullYear() === dueDate.getFullYear() && instDate.getMonth() === dueDate.getMonth()) {
+            matchingInstallments.push({
+              order_id: order.id,
+              order_number: order.order_number,
+              installment_number: inst.installment_number,
+              amount: inst.amount,
+              paid: inst.paid,
+              paid_at: inst.paid_at
+            });
+          }
         });
       });
+
+      const totalAmount = matchingInstallments.reduce((sum, inst) => sum + Number(inst.amount), 0);
+      const unpaidAmount = matchingInstallments.filter(inst => !inst.paid).reduce((sum, inst) => sum + Number(inst.amount), 0);
+      const paidAmount = matchingInstallments.filter(inst => inst.paid).reduce((sum, inst) => sum + Number(inst.amount), 0);
+      const allPaid = matchingInstallments.length > 0 ? matchingInstallments.every(inst => inst.paid) : true;
+      const latestPaidAt = matchingInstallments.length > 0 ? matchingInstallments.map(inst => inst.paid_at).filter(Boolean).sort().pop() : null;
+
+      globalMaturities.push({
+        installment_number: m,
+        due_date: dueDateString,
+        amount: totalAmount,
+        unpaidAmount: unpaidAmount,
+        paidAmount: paidAmount,
+        paid: allPaid,
+        paid_at: latestPaidAt,
+        installments: matchingInstallments
+      });
+    }
+
+    return globalMaturities;
+  };
+  const getPaidInstallments = () => {
+    const paidInsts = [];
+    orders.forEach(order => {
+      const schedule = JSON.parse(JSON.stringify(order.payment_schedule || []));
+      schedule.forEach(inst => {
+        if (inst.paid) {
+          paidInsts.push({
+            order_id: order.id,
+            order_number: order.order_number,
+            installment_number: inst.installment_number,
+            paid_at: inst.paid_at,
+            amount: inst.amount
+          });
+        }
+      });
     });
-    return list.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+    // Trier par date de paiement du plus récent au plus ancien
+    return paidInsts.sort((a, b) => new Date(b.paid_at) - new Date(a.paid_at));
   };
 
   const getNextMonthlyDue = () => {
@@ -345,19 +468,43 @@ function DashboardClient({ user }) {
       return d.getFullYear() === earliestYear && d.getMonth() === earliestMonth;
     });
 
-    const totalAmount = sameMonthUnpaid.reduce((sum, m) => sum + Number(m.amount), 0);
+    const totalUnpaidAmount = sameMonthUnpaid.reduce((sum, m) => sum + Number(m.unpaidAmount), 0);
+
+    const unpaidInstallmentsOnly = [];
+    sameMonthUnpaid.forEach(m => {
+      if (m.installments) {
+        m.installments.forEach(inst => {
+          if (!inst.paid) {
+            unpaidInstallmentsOnly.push(inst);
+          }
+        });
+      }
+    });
 
     return {
       year: earliestYear,
       month: earliestMonth,
       dueDate: unpaid[0].due_date,
-      amount: totalAmount,
-      installments: sameMonthUnpaid
+      amount: totalUnpaidAmount,
+      installments: unpaidInstallmentsOnly
     };
   };
 
   const getTotalRemaining = () => {
-    return getClientMaturities().filter(m => !m.paid).reduce((sum, m) => sum + Number(m.amount), 0);
+    return getClientMaturities().reduce((sum, m) => sum + Number(m.unpaidAmount || 0), 0);
+  };
+
+  const getUnpaidInstallmentsCount = () => {
+    let count = 0;
+    orders.forEach(order => {
+      const schedule = JSON.parse(JSON.stringify(order.payment_schedule || []));
+      schedule.forEach(inst => {
+        if (!inst.paid) {
+          count++;
+        }
+      });
+    });
+    return count;
   };
 
   if (loading) {
@@ -456,10 +603,10 @@ function DashboardClient({ user }) {
             {wallet && (
               <div className="space-y-4">
                 {/* Row 1 — Available (GREEN) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   {/* Champ_Dispo_Admin */}
                   <div className="p-4 rounded-xl bg-[#0f0f11] border border-emerald-900/40 space-y-3 relative overflow-hidden shadow-md">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-900/5 blur-[30px] rounded-full"></div>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-950/5 blur-[30px] rounded-full"></div>
                     <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
                       <Wallet2 size={12} className="text-emerald-500" /> Acompte Disponible
                     </p>
@@ -473,7 +620,7 @@ function DashboardClient({ user }) {
 
                   {/* Champ_Dispo_Credit */}
                   <div className="p-4 rounded-xl bg-[#0f0f11] border border-emerald-900/40 space-y-3 relative overflow-hidden shadow-md">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-900/5 blur-[30px] rounded-full"></div>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-950/5 blur-[30px] rounded-full"></div>
                     <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
                       <Wallet2 size={12} className="text-emerald-500" /> Crédit Disponible
                     </p>
@@ -487,10 +634,10 @@ function DashboardClient({ user }) {
                 </div>
 
                 {/* Row 2 — Consumed (RED) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   {/* Champ_Conso_Admin */}
                   <div className="p-4 rounded-xl bg-[#0f0f11] border border-red-900/40 space-y-3 relative overflow-hidden shadow-md">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-900/5 blur-[30px] rounded-full"></div>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-950/5 blur-[30px] rounded-full"></div>
                     <p className="text-[10px] font-semibold text-red-600 uppercase tracking-widest flex items-center gap-1.5">
                       <Wallet2 size={12} className="text-red-500" /> Acompte Consommé
                     </p>
@@ -671,20 +818,38 @@ function DashboardClient({ user }) {
               </button>
             )}
 
-            <button
-              onClick={() => {
-                localStorage.removeItem('gmd_user');
-                window.location.href = '/login';
-              }}
-              className="w-full py-3 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-red-950/50 transition-all"
+            <a
+              href={`${API_URL}/api/orders/company/${user.company.id}/purchase-bulletin`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full py-3 rounded-lg bg-blue-950/40 border border-blue-900/50 text-blue-400 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-905/50 transition-all text-center"
             >
-              <LogOut size={14} /> Déconnexion
-            </button>
+              📄 Télécharger mon Bulletin d'Achats & Situation B2B (PDF)
+            </a>
 
-            <div className="text-center pb-2">
-              <a href="#" className="text-xs text-blue-400 underline hover:text-blue-300 transition-colors">
-                Mot de passe oublié
-              </a>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setOldPasswordState('');
+                  setNewPasswordState('');
+                  setPasswordChangeError('');
+                  setPasswordChangeSuccess('');
+                  setShowPasswordModal(true);
+                }}
+                className="py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-zinc-700 transition-all"
+              >
+                <Key size={14} /> Modifier mon mot de passe
+              </button>
+
+              <button
+                onClick={() => {
+                  localStorage.removeItem('gmd_user');
+                  window.location.href = '/login';
+                }}
+                className="py-3 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-red-950/50 transition-all"
+              >
+                <LogOut size={14} /> Déconnexion
+              </button>
             </div>
 
             <div className="border-t border-border-custom pt-5 space-y-5">
@@ -706,111 +871,6 @@ function DashboardClient({ user }) {
                   </Link>
                 </div>
               )}
-
-              {/* Special Request */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <FileText size={16} className="text-zinc-400" />
-                  <h3 className="font-bold text-white text-sm">Demande Spéciale (Sur-mesure)</h3>
-                </div>
-
-                <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-2">
-                  <div className="flex justify-between text-[10px] font-semibold text-zinc-400">
-                    <span>Quota de Soumission (7j)</span>
-                    <span className="text-zinc-200">{weeklyQuota} / 30 articles</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-surface-custom rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${weeklyQuota >= 30 ? 'bg-red-500' : 'bg-primary-custom'}`}
-                      style={{ width: `${(weeklyQuota / 30) * 100}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-[9px] text-zinc-500">Limite de 30 articles/semaine. Devis sous 48h.</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-bg-deepest border border-border-custom space-y-3">
-                  {formError && (
-                    <div className="p-2.5 rounded bg-red-950/20 border border-red-900/40 text-red-400 text-[10px] flex gap-2">
-                      <AlertCircle size={12} className="shrink-0 mt-0.5" /> <p>{formError}</p>
-                    </div>
-                  )}
-                  {formSuccess && (
-                    <div className="p-2.5 rounded bg-emerald-950/20 border border-emerald-900/40 text-emerald-400 text-[10px] flex gap-2">
-                      <Check size={12} className="shrink-0 mt-0.5" /> <p>{formSuccess}</p>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmitSpecialRequest} className="space-y-3">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Description Technique</label>
-                      <textarea
-                        required
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Ex: Table de conférence ovale en noyer 4m x 1.5m..."
-                        rows="3"
-                        className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 placeholder-zinc-700 text-xs focus:outline-none focus:border-primary-custom resize-none"
-                      ></textarea>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Quantité</label>
-                      <input
-                        type="number" min="1" required
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-surface-custom/50 border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={formLoading || weeklyQuota >= 30}
-                      className="w-full py-2.5 rounded-lg bg-primary-custom hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-all"
-                    >
-                      <Send size={11} /> Soumettre la demande
-                    </button>
-                  </form>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-bold text-zinc-400 text-[10px] uppercase tracking-wider">Suivi des demandes</h4>
-                  <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5">
-                    {specialRequests.length === 0 ? (
-                      <p className="text-zinc-500 text-xs text-center py-5 border border-dashed border-border-custom rounded-lg">Aucune demande spéciale.</p>
-                    ) : (
-                      specialRequests.map((req) => (
-                        <div key={req.id} className="p-3.5 rounded-lg bg-bg-deepest border border-border-custom text-xs space-y-3">
-                          <div className="flex justify-between items-start gap-2">
-                            <p className="font-medium text-zinc-300 line-clamp-2 leading-relaxed">{req.description}</p>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ${
-                              req.status === 'SUBMITTED' ? 'bg-zinc-800 text-zinc-400' :
-                              req.status === 'QUOTED' ? 'bg-amber-950/40 text-amber-400 border border-amber-900/40' :
-                              req.status === 'APPROVED' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' : 'bg-red-950/40 text-red-400'
-                            }`}>
-                              {req.status === 'SUBMITTED' && 'EN ATTENTE'}
-                              {req.status === 'QUOTED' && 'DEVIS ÉMIS'}
-                              {req.status === 'APPROVED' && 'APPROUVÉ'}
-                              {req.status === 'REJECTED' && 'REJETÉ'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-[10px] text-zinc-500 font-semibold uppercase">
-                            <span>Qté: {req.quantity}</span>
-                            <span>{req.estimated_price ? `${Number(req.estimated_price).toLocaleString('fr-FR')} FCFA` : '—'}</span>
-                          </div>
-                          {req.status === 'QUOTED' && (
-                            <button
-                              onClick={() => handleApproveQuote(req.id)}
-                              disabled={paymentLoading}
-                              className="w-full py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-[11px] cursor-pointer transition-all"
-                            >
-                              Accepter le Devis
-                            </button>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -823,13 +883,23 @@ function DashboardClient({ user }) {
                 <Wallet2 size={16} className="text-zinc-400" />
                 <h3 className="font-bold text-white text-sm">Suivi des Créances et En-cours</h3>
               </div>
-              <button
-                onClick={fetchDashboardData}
-                className="p-1.5 rounded-lg bg-surface-custom border border-border-custom hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-all"
-                title="Rafraîchir les créances"
-              >
-                <RefreshCw size={13} />
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`${API_URL}/api/orders/company/${user.company.id}/purchase-bulletin`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-blue-950/30 border border-blue-900/50 text-blue-400 hover:bg-blue-900/50 text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 shrink-0"
+                >
+                  📄 Bulletin d'Achats PDF
+                </a>
+                <button
+                  onClick={fetchDashboardData}
+                  className="p-1.5 rounded-lg bg-surface-custom border border-border-custom hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-all"
+                  title="Rafraîchir les créances"
+                >
+                  <RefreshCw size={13} />
+                </button>
+              </div>
             </div>
             
             {wallet && (
@@ -858,44 +928,82 @@ function DashboardClient({ user }) {
             )}
 
             <div className="space-y-3">
-              <h4 className="font-bold text-zinc-400 text-xs uppercase tracking-wider">Mensualités restant à régler</h4>
-              <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
+              <h4 className="font-bold text-zinc-400 text-xs uppercase tracking-wider">Plan d'échéances globales (12 Mois)</h4>
+              <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-x-auto">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
-                      <th className="p-3">N° Cmd</th>
-                      <th className="p-3">Échéance</th>
-                      <th className="p-3">📅 Date (10/mois)</th>
-                      <th className="p-3">Montant</th>
-                      <th className="p-3 text-right">Action</th>
+                      <th className="p-3">Période</th>
+                      <th className="p-3">📅 Date limite (10/mois)</th>
+                      <th className="p-3">Montant cumulé</th>
+                      <th className="p-3 text-right">Statut / Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                    {getClientMaturities().filter(m => !m.paid).length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="p-6 text-center text-zinc-500 text-xs">
-                          Aucune échéance impayée. Votre compte est à jour !
+                    {getClientMaturities().map((mat, i) => (
+                      <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
+                        <td className="p-3 font-semibold text-white">Mois {mat.installment_number}</td>
+                        <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</td>
+                        <td className="p-3 font-mono text-[10px]">
+                          {showBalances ? (
+                            <div className="flex flex-col">
+                              <span className="font-bold text-white">
+                                {Number(mat.unpaidAmount).toLocaleString('fr-FR')} FCFA
+                              </span>
+                              {Number(mat.paidAmount) > 0 && (
+                                <span className="text-zinc-500 text-[9px] font-semibold mt-0.5">
+                                  Réglé : {Number(mat.paidAmount).toLocaleString('fr-FR')} / {Number(mat.amount).toLocaleString('fr-FR')}
+                                </span>
+                              )}
+                            </div>
+                          ) : '•••••• FCFA'}
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex flex-col items-end gap-1.5">
+                            {/* Reçus pour toutes les échéances déjà réglées */}
+                            {mat.installments && mat.installments.filter(inst => inst.paid).length > 0 && (
+                              <div className="flex flex-col items-end gap-1 mb-1">
+                                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 uppercase flex items-center gap-1 self-end">
+                                  <Check size={8} /> Réglé
+                                </span>
+                                {mat.installments.filter(inst => inst.paid).map((inst, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={`${API_URL}/api/orders/receipt/${inst.order_id}/${inst.installment_number}`}
+                                    download
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-400 hover:text-white cursor-pointer transition-all text-[8px] font-bold"
+                                    title={`Télécharger le reçu de l'échéance N°${inst.installment_number} (${inst.order_number})`}
+                                  >
+                                    <FileText size={8} /> Reçu {inst.order_number} (N°{inst.installment_number})
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Bouton de règlement pour les échéances restant à payer */}
+                            {Number(mat.unpaidAmount) > 0 ? (
+                              <button
+                                onClick={() => handleOpenMonthlyDuePayment({ 
+                                  amount: Number(mat.unpaidAmount), 
+                                  dueDate: mat.due_date, 
+                                  installments: mat.installments.filter(inst => !inst.paid) 
+                                })}
+                                disabled={paymentLoading}
+                                className="px-3 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-bold cursor-pointer disabled:opacity-60 transition-all shadow-md shadow-red-950/20"
+                              >
+                                Régler
+                              </button>
+                            ) : mat.amount === 0 ? (
+                              <span className="text-zinc-500 text-[10px] italic">Aucun achat</span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 uppercase flex items-center gap-1">
+                                <Check size={9} /> Totalement Réglé
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
-                    ) : (
-                      getClientMaturities().filter(m => !m.paid).map((mat, i) => (
-                        <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
-                          <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
-                          <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
-                          <td className="p-3 text-[10px]">{new Date(mat.due_date).toLocaleDateString('fr-FR')}</td>
-                          <td className="p-3 font-bold font-mono text-white text-[10px]">{showBalances ? `${Number(mat.amount).toLocaleString('fr-FR')} FCFA` : '•••••• FCFA'}</td>
-                          <td className="p-3 text-right">
-                            <button
-                              onClick={() => handleOpenMonthlyDuePayment({ amount: mat.amount, dueDate: mat.due_date, installments: [{ order_id: mat.order_id, installment_number: mat.installment_number }] })}
-                              disabled={paymentLoading}
-                              className="px-3 py-1 rounded bg-primary-custom hover:bg-primary-hover text-white text-[10px] font-semibold cursor-pointer disabled:opacity-60 transition-all"
-                            >
-                              Régler
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -915,19 +1023,19 @@ function DashboardClient({ user }) {
               <div>
                 <p className="text-[10px] font-semibold text-zinc-500 uppercase">Cumul des paiements effectués</p>
                 <h3 className="text-2xl font-black text-emerald-400 font-mono">
-                  {getClientMaturities().filter(m => m.paid).reduce((sum, m) => sum + Number(m.amount), 0).toLocaleString('fr-FR')} <span className="text-xs text-zinc-400">FCFA</span>
+                  {getPaidInstallments().reduce((sum, inst) => sum + Number(inst.amount), 0).toLocaleString('fr-FR')} <span className="text-xs text-zinc-400">FCFA</span>
                 </h3>
               </div>
               <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                getClientMaturities().filter(m => !m.paid).length === 0
+                getUnpaidInstallmentsCount() === 0
                   ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40'
                   : 'bg-amber-950/40 text-amber-400 border border-amber-900/40'
               }`}>
-                {getClientMaturities().filter(m => !m.paid).length === 0 ? 'À JOUR' : `${getClientMaturities().filter(m => !m.paid).length} EN ATTENTE`}
+                {getUnpaidInstallmentsCount() === 0 ? 'À JOUR' : `${getUnpaidInstallmentsCount()} EN ATTENTE`}
               </span>
             </div>
 
-            <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden">
+            <div className="rounded-xl bg-bg-deepest border border-border-custom overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
@@ -939,21 +1047,29 @@ function DashboardClient({ user }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                  {getClientMaturities().filter(m => m.paid).length === 0 ? (
+                  {getPaidInstallments().length === 0 ? (
                     <tr>
                       <td colSpan="5" className="p-6 text-center text-zinc-500 text-xs">
                         Aucun paiement effectué pour le moment.
                       </td>
                     </tr>
                   ) : (
-                    getClientMaturities().filter(m => m.paid).map((mat, i) => (
+                    getPaidInstallments().map((inst, i) => (
                       <tr key={i} className="hover:bg-surface-custom/20 transition-colors">
-                        <td className="p-3 font-mono text-zinc-400 text-[10px]">{mat.order_number}</td>
-                        <td className="p-3 text-[10px]">N°{mat.installment_number}</td>
-                        <td className="p-3 text-[10px]">{mat.paid_at ? new Date(mat.paid_at).toLocaleDateString('fr-FR') : '-'}</td>
-                        <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(mat.amount).toLocaleString('fr-FR')} FCFA</td>
-                        <td className="p-3 text-right">
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40">PAYÉ</span>
+                        <td className="p-3 font-mono text-zinc-400 text-[10px]">{inst.order_number}</td>
+                        <td className="p-3 text-[10px]">N°{inst.installment_number}</td>
+                        <td className="p-3 text-[10px]">{inst.paid_at ? new Date(inst.paid_at).toLocaleDateString('fr-FR') : '-'}</td>
+                        <td className="p-3 font-bold font-mono text-white text-[10px]">{Number(inst.amount).toLocaleString('fr-FR')} FCFA</td>
+                        <td className="p-3 text-right flex items-center justify-end gap-2">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 flex items-center gap-1"><Check size={9} /> PAYÉ</span>
+                          <a
+                            href={`${API_URL}/api/orders/receipt/${inst.order_id}/${inst.installment_number}`}
+                            download
+                            className="flex items-center gap-1 px-2 py-1 rounded bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-400 hover:text-white cursor-pointer transition-all text-[9px] font-bold"
+                            title="Télécharger mon reçu PDF"
+                          >
+                            <FileText size={9} /> Télécharger mon reçu
+                          </a>
                         </td>
                       </tr>
                     ))
@@ -978,36 +1094,58 @@ function DashboardClient({ user }) {
                   Aucune commande enregistrée.
                 </div>
               ) : (
-                orders.map(order => (
-                  <div key={order.id} className="p-5 rounded-xl bg-bg-deepest border border-border-custom space-y-4">
-                    <div className="flex justify-between items-center border-b border-border-custom/30 pb-3">
-                      <div>
-                        <p className="font-bold text-white text-sm font-mono">{order.order_number}</p>
-                        <p className="text-[10px] text-zinc-500">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                      </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40">
-                        LIVRAISON EN COURS
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {order.order_items && order.order_items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between text-xs text-zinc-400 items-center">
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded bg-surface-custom text-[10px] font-bold text-zinc-400 flex items-center justify-center">x{item.quantity}</span>
-                            <span>{item.product?.name || 'Article'}</span>
+                orders.map(order => {
+                  const isExpanded = !!expandedOrders[order.id];
+                  return (
+                    <div key={order.id} className="rounded-xl bg-bg-deepest border border-border-custom overflow-hidden transition-all shadow-md">
+                      {/* Collapsible Header */}
+                      <div
+                        onClick={() => toggleOrder(order.id)}
+                        className="flex justify-between items-center p-4 bg-surface-custom/30 hover:bg-surface-custom/50 cursor-pointer transition-colors border-b border-border-custom/20"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="text-zinc-500 hover:text-white transition-colors">
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </div>
-                          <span className="font-mono text-zinc-300">{Number(item.price * item.quantity).toLocaleString('fr-FR')} FCFA</span>
+                          <div>
+                            <p className="font-bold text-white text-xs font-mono">{order.order_number}</p>
+                            <p className="text-[9px] text-zinc-500">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[8px] font-bold bg-amber-950/40 text-amber-400 border border-amber-900/40">
+                            LIVRAISON EN COURS
+                          </span>
+                          <span className="text-[10px] font-bold text-zinc-300 font-mono">
+                            {Number(order.total_amount).toLocaleString('fr-FR')} FCFA
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Collapsible Content */}
+                      {isExpanded && (
+                        <div className="p-4 space-y-4 bg-zinc-950/20">
+                          <div className="space-y-2">
+                            {order.order_items && order.order_items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between text-xs text-zinc-400 items-center">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded bg-surface-custom text-[10px] font-bold text-zinc-400 flex items-center justify-center">x{item.quantity}</span>
+                                  <span>{item.product?.name || 'Article'}</span>
+                                </div>
+                                <span className="font-mono text-zinc-300">{Number(item.price * item.quantity).toLocaleString('fr-FR')} FCFA</span>
+                              </div>
+                            ))}
+                          </div>
 
-                    <div className="flex justify-between items-center pt-3 border-t border-border-custom/30 text-xs">
-                      <span className="text-zinc-500 font-semibold">Montant Total Facturé</span>
-                      <span className="font-bold text-white font-mono text-sm">{Number(order.total_amount).toLocaleString('fr-FR')} FCFA</span>
+                          <div className="flex justify-between items-center pt-3 border-t border-border-custom/30 text-xs">
+                            <span className="text-zinc-500 font-semibold">Montant Total Facturé</span>
+                            <span className="font-bold text-white font-mono text-sm">{Number(order.total_amount).toLocaleString('fr-FR')} FCFA</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -1441,6 +1579,102 @@ function DashboardClient({ user }) {
                 {profileUpdateLoading ? 'Envoi...' : <><Send size={13} /> Soumettre la demande</>}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CHANGE PASSWORD MODAL ── */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-zinc-950 border border-zinc-800 overflow-hidden flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+              <h3 className="font-bold text-white text-sm flex items-center gap-1.5">
+                <Key size={14} className="text-zinc-400" /> Modifier mon mot de passe
+              </h3>
+              <button 
+                onClick={() => setShowPasswordModal(false)}
+                className="text-zinc-500 hover:text-white transition-colors cursor-pointer text-sm font-bold bg-transparent border-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleChangePassword}>
+              <div className="p-5 space-y-4">
+                {passwordChangeError && (
+                  <div className="p-3 rounded-lg bg-red-950/30 border border-red-900/50 text-red-300 text-xs">
+                    {passwordChangeError}
+                  </div>
+                )}
+                {passwordChangeSuccess && (
+                  <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-900/50 text-emerald-300 text-xs">
+                    {passwordChangeSuccess}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Mot de passe actuel</label>
+                  <div className="relative">
+                    <input
+                      type={showOldPassword ? "text" : "password"}
+                      required
+                      value={oldPasswordState}
+                      onChange={e => setOldPasswordState(e.target.value)}
+                      placeholder="Saisissez votre mot de passe actuel"
+                      className="w-full pl-3 pr-10 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOldPassword(!showOldPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer bg-transparent border-none"
+                    >
+                      {showOldPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Nouveau mot de passe</label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      value={newPasswordState}
+                      onChange={e => setNewPasswordState(e.target.value)}
+                      placeholder="Saisissez le nouveau mot de passe"
+                      className="w-full pl-3 pr-10 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer bg-transparent border-none"
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 border-t border-zinc-800 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1 py-2.5 rounded-lg border border-zinc-800 text-zinc-400 text-xs font-semibold hover:bg-zinc-900 transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordChangeLoading || !oldPasswordState || !newPasswordState}
+                  className="flex-1 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {passwordChangeLoading ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

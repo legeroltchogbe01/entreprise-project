@@ -1,14 +1,14 @@
 const prisma = require('./prisma');
-const { sendPaymentReminderEmail } = require('./emailService');
+const { sendDebtReminderEmail } = require('./emailService');
 
 /**
- * Daily job that sends email reminders for:
- * - J-3: Upcoming installments due in 3 days
- * - J+1: Overdue installments (1 day late)
- * - J+7: Severely late installments (7 days late)
+ * Daily job that sends email reminders based on:
+ * - J-10, J-1, J: Texte C001
+ * - J+1, J+5: Texte C002 (with penalties details)
+ * - J+6 and every 5 days after: Texte C003 (with solde, penalty, total due details)
  */
 async function runPaymentReminderJob() {
-  console.log('[REMINDER JOB] Starting daily payment reminder check...');
+  console.log('[REMINDER JOB] Starting daily payment reminder check and penalty calculation...');
   try {
     const orders = await prisma.order.findMany({
       where: { status: 'APPROVED' },
@@ -17,7 +17,8 @@ async function runPaymentReminderJob() {
           select: {
             denomination_sociale: true,
             email: true,
-            manager_email: true
+            manager_email: true,
+            manager_name: true
           }
         }
       }
@@ -29,41 +30,83 @@ async function runPaymentReminderJob() {
     let sent = 0;
 
     for (const order of orders) {
-      const schedule = order.payment_schedule || [];
+      const schedule = JSON.parse(JSON.stringify(order.payment_schedule || []));
+      let orderModified = false;
+
       for (const installment of schedule) {
         if (installment.paid) continue;
 
         const dueDate = new Date(installment.due_date);
         dueDate.setHours(0, 0, 0, 0);
+        // diffDays is positive in the future, negative in the past
         const diffDays = Math.round((dueDate - today) / (1000 * 60 * 60 * 24));
 
         const co = order.company;
         const emailTo = [co.email, co.manager_email].filter(Boolean).join(', ');
-        if (!emailTo) continue;
 
-        const dueDateLabel = dueDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-
-        if (diffDays === 3) {
-          // J-3 : upcoming reminder
-          await sendPaymentReminderEmail({
-            to: emailTo,
-            denominationSociale: co.denomination_sociale,
-            amount: installment.amount,
-            dueDate: dueDateLabel,
-            isOverdue: false
-          }).catch(err => console.error('[REMINDER] Erreur J-3:', err.message));
-          sent++;
-        } else if (diffDays === -1 || diffDays === -7) {
-          // J+1 or J+7 : overdue reminder
-          await sendPaymentReminderEmail({
-            to: emailTo,
-            denominationSociale: co.denomination_sociale,
-            amount: installment.amount,
-            dueDate: dueDateLabel,
-            isOverdue: true
-          }).catch(err => console.error('[REMINDER] Erreur J+:', err.message));
-          sent++;
+        // Apply 5% penalty per day late (only if diffDays < 0)
+        let daysLate = 0;
+        if (diffDays < 0) {
+          daysLate = Math.abs(diffDays);
+          
+          if (!installment.original_amount) {
+            installment.original_amount = parseFloat(installment.amount);
+          }
+          
+          const original = parseFloat(installment.original_amount);
+          const penalty = original * 0.05 * daysLate;
+          
+          installment.penalty_amount = penalty;
+          installment.amount = original + penalty;
+          orderModified = true;
+          
+          console.log(`[PENALTY] Commande ${order.order_number} - Échéance N°${installment.installment_number} : ${daysLate} jour(s) de retard (+${penalty} FCFA). Nouveau total: ${installment.amount} FCFA.`);
         }
+
+        // Send reminders
+        if (emailTo) {
+          let emailType = null;
+          let penaltyAmount = installment.penalty_amount || 0;
+          let soldeDu = installment.original_amount || installment.amount;
+          let totalDue = installment.amount;
+
+          if (diffDays === 10 || diffDays === 1 || diffDays === 0) {
+            // Relance 1, 2, 3 -> C001
+            emailType = 'C001';
+          } else if (diffDays === -1 || diffDays === -5) {
+            // Relance 4, 5 -> C002
+            emailType = 'C002';
+          } else if (diffDays <= -6) {
+            // Relance 6 -> C003 (every 5 days: J+6, J+11, J+16...)
+            if ((daysLate - 6) % 5 === 0) {
+              emailType = 'C003';
+            }
+          }
+
+          if (emailType) {
+            await sendDebtReminderEmail({
+              to: emailTo,
+              managerName: co.manager_name || 'Gérant',
+              amount: installment.original_amount || installment.amount,
+              dueDate: installment.due_date,
+              type: emailType,
+              penaltyAmount,
+              totalDue,
+              soldeDu
+            }).catch(err => console.error(`[REMINDER] Erreur d'envoi email (${emailType}):`, err.message));
+            sent++;
+          }
+        }
+      }
+
+      // Save updated schedule with calculated penalty back to database
+      if (orderModified) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            payment_schedule: schedule
+          }
+        });
       }
     }
 

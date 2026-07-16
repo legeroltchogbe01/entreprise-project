@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon, Edit3, Tag, FileText, Video, Clock, Check } from 'lucide-react';
+import { ShieldCheck, FileCheck2, AlertTriangle, AlertCircle, RefreshCw, Send, DollarSign, Users, Award, Percent, X, PackageOpen, Plus, Trash2, Image as ImageIcon, Edit3, Tag, FileText, Video, Clock, Check, Package } from 'lucide-react';
 import { API_URL } from '../config';
 
 function DashboardAdmin() {
@@ -7,6 +7,13 @@ function DashboardAdmin() {
   const [specialRequests, setSpecialRequests] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [stats, setStats] = useState(null);
+  // Orders
+  const [allOrders, setAllOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  // Reports
+  const [reportData, setReportData] = useState(null);
+  const [reportType, setReportType] = useState('monthly');
+  const [reportLoading, setReportLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -34,6 +41,13 @@ function DashboardAdmin() {
   // Company Backup / Directory States
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companySearch, setCompanySearch] = useState('');
+  const [kycSearch, setKycSearch] = useState('');
+  const [devisSearch, setDevisSearch] = useState('');
+  const [contractsSearch, setContractsSearch] = useState('');
+  const [riskSearch, setRiskSearch] = useState('');
+  const [profileUpdatesSearch, setProfileUpdatesSearch] = useState('');
+  const [ordersSearch, setOrdersSearch] = useState('');
+  const [productsSearch, setProductsSearch] = useState('');
 
   // Products States
   const [products, setProducts] = useState([]);
@@ -45,6 +59,9 @@ function DashboardAdmin() {
   const [newProductImage, setNewProductImage] = useState(null);
   const [productLoading, setProductLoading] = useState(false);
   const [newProductCustomValues, setNewProductCustomValues] = useState({});
+  const [newProductMotifs, setNewProductMotifs] = useState([]); // [{ name, image_url }]
+  const [newMotifName, setNewMotifName] = useState('');
+  const [motifUploadLoading, setMotifUploadLoading] = useState(false);
 
   // Dynamic field creation states
   const [newFieldKey, setNewFieldKey] = useState('');
@@ -70,6 +87,8 @@ function DashboardAdmin() {
   const [editProductImage, setEditProductImage] = useState(null);
   const [editProductCustomValues, setEditProductCustomValues] = useState({});
   const [editProductLoading, setEditProductLoading] = useState(false);
+  const [editProductMotifs, setEditProductMotifs] = useState([]); // [{ name, image_url }]
+  const [editMotifName, setEditMotifName] = useState('');
 
   // Wallet Activation & System Settings States
   const [minActivationDeposit, setMinActivationDeposit] = useState(5000000);
@@ -93,31 +112,42 @@ function DashboardAdmin() {
     fetchAdminData();
   }, []);
 
+  // Auto-load orders when switching to orders tab
+  useEffect(() => {
+    if (activeTab === 'orders' && allOrders.length === 0) {
+      setOrdersLoading(true);
+      fetch(`${API_URL}/api/admin/orders?t=${Date.now()}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => setAllOrders(data))
+        .finally(() => setOrdersLoading(false));
+    }
+  }, [activeTab]);
+
   const fetchAdminData = async () => {
     try {
       setLoading(true);
       setError('');
 
       // Fetch Stats
-      const statsRes = await fetch(`${API_URL}/api/admin/stats`);
+      const statsRes = await fetch(`${API_URL}/api/admin/stats?t=${Date.now()}`);
       const statsData = await statsRes.json();
       if (!statsRes.ok) throw new Error(statsData.error);
       setStats(statsData);
 
       // Fetch Companies
-      const compRes = await fetch(`${API_URL}/api/admin/companies`);
+      const compRes = await fetch(`${API_URL}/api/admin/companies?t=${Date.now()}`);
       const compData = await compRes.json();
       if (!compRes.ok) throw new Error(compData.error);
       setCompanies(compData);
 
       // Fetch Special Requests
-      const specRes = await fetch(`${API_URL}/api/special-requests`);
+      const specRes = await fetch(`${API_URL}/api/special-requests?t=${Date.now()}`);
       const specData = await specRes.json();
       if (!specRes.ok) throw new Error(specData.error);
       setSpecialRequests(specData);
 
       // Fetch schedules
-      const schedRes = await fetch(`${API_URL}/api/admin/schedules`);
+      const schedRes = await fetch(`${API_URL}/api/admin/schedules?t=${Date.now()}`);
       const schedData = await schedRes.json();
       if (!schedRes.ok) throw new Error(schedData.error);
       setSchedules(schedData);
@@ -362,7 +392,6 @@ function DashboardAdmin() {
     }
   };
 
-  // Create Product
   const handleCreateProduct = async (e) => {
     e.preventDefault();
     if (!newProductName || !newProductPrice) {
@@ -376,10 +405,14 @@ function DashboardAdmin() {
       formData.append('description', newProductDesc);
       formData.append('price', newProductPrice);
       if (newProductCategory) formData.append('category', newProductCategory);
-      // custom dynamic fields
-      if (Object.keys(newProductCustomValues).length > 0) {
-        formData.append('custom_data', JSON.stringify(newProductCustomValues));
-      }
+      
+      // custom dynamic fields + motifs
+      const finalCustomData = {
+        ...newProductCustomValues,
+        motifs: newProductMotifs
+      };
+      formData.append('custom_data', JSON.stringify(finalCustomData));
+
       if (newProductImage) {
         formData.append('image', newProductImage);
       }
@@ -398,6 +431,8 @@ function DashboardAdmin() {
       setNewProductCategory('');
       setNewProductImage(null);
       setNewProductCustomValues({});
+      setNewProductMotifs([]);
+      setNewMotifName('');
       // Reset file input
       const fileInput = document.getElementById('productImageInput');
       if (fileInput) fileInput.value = '';
@@ -688,7 +723,14 @@ function DashboardAdmin() {
     setEditProductPrice(String(product.price));
     setEditProductCategory(product.category || '');
     setEditProductImage(null);
-    setEditProductCustomValues(product.custom_data || {});
+    
+    // Split motifs and other custom data
+    const cData = product.custom_data || {};
+    const cleanCustomValues = { ...cData };
+    delete cleanCustomValues.motifs;
+    setEditProductCustomValues(cleanCustomValues);
+    setEditProductMotifs(cData.motifs || []);
+    setEditMotifName('');
   };
 
   const handleUpdateProduct = async (e) => {
@@ -704,9 +746,14 @@ function DashboardAdmin() {
       formData.append('description', editProductDesc);
       formData.append('price', editProductPrice);
       formData.append('category', editProductCategory);
-      if (Object.keys(editProductCustomValues).length > 0) {
-        formData.append('custom_data', JSON.stringify(editProductCustomValues));
-      }
+      
+      // Merge motifs with other custom fields
+      const finalCustomData = {
+        ...editProductCustomValues,
+        motifs: editProductMotifs
+      };
+      formData.append('custom_data', JSON.stringify(finalCustomData));
+
       if (editProductImage) {
         formData.append('image', editProductImage);
       }
@@ -720,12 +767,66 @@ function DashboardAdmin() {
 
       alert(data.message);
       setEditingProduct(null);
+      setEditProductMotifs([]);
+      setEditMotifName('');
       await fetchAdminData();
     } catch (err) {
       console.error(err);
       alert(err.message);
     } finally {
       setEditProductLoading(false);
+    }
+  };
+
+  const handleUploadMotifFile = async (file, isEdit) => {
+    if (!file) return;
+    setMotifUploadLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch(`${API_URL}/api/products/upload-motif-image`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur upload motif');
+
+      const motifNameInput = isEdit ? editMotifName : newMotifName;
+      if (!motifNameInput.trim()) {
+        alert("Veuillez d'abord saisir le nom du motif avant de choisir sa photo.");
+        setMotifUploadLoading(false);
+        return;
+      }
+
+      const newMotifObj = {
+        id: 'motif-' + Date.now(),
+        name: motifNameInput.trim(),
+        image_url: data.image_url
+      };
+
+      if (isEdit) {
+        setEditProductMotifs(prev => [...prev, newMotifObj]);
+        setEditMotifName('');
+      } else {
+        setNewProductMotifs(prev => [...prev, newMotifObj]);
+        setNewMotifName('');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setMotifUploadLoading(false);
+      const fileInput = document.getElementById(isEdit ? 'editMotifFileInput' : 'newMotifFileInput');
+      if (fileInput) fileInput.value = '';
+    }
+  };
+
+  const handleRemoveMotif = (motifId, isEdit) => {
+    if (isEdit) {
+      setEditProductMotifs(prev => prev.filter(m => m.id !== motifId));
+    } else {
+      setNewProductMotifs(prev => prev.filter(m => m.id !== motifId));
     }
   };
 
@@ -835,6 +936,8 @@ function DashboardAdmin() {
           { id: 'contracts', label: '📜 Édition Contrats', badge: pendingContractsCount },
           { id: 'risk', label: '📊 Risque & Créances', badge: unpaidSchedulesCount },
           { id: 'profile_updates', label: '✏️ Modifications Profil', badge: profileUpdateRequests.filter(r => r.status === 'PENDING').length },
+          { id: 'orders', label: '🛒 Commandes' },
+          { id: 'reports', label: '📈 Rapports' },
           { id: 'products', label: '📦 Catalogue Produits' },
           { id: 'settings', label: '⚙️ Paramètres' }
         ].map(tab => (
@@ -877,7 +980,7 @@ function DashboardAdmin() {
               />
             </div>
 
-            <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
+            <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden max-h-[550px] overflow-y-auto pr-1">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
@@ -951,18 +1054,37 @@ function DashboardAdmin() {
         {/* KYC AUDIT PANEL */}
         {activeTab === 'kyc' && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={18} className="text-zinc-400" />
-            <h3 className="font-bold text-white text-lg">Vérification des Dossiers KYC</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={18} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-lg">Vérification des Dossiers KYC</h3>
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher un dossier (Nom entreprise, gérant...)"
+              value={kycSearch}
+              onChange={(e) => setKycSearch(e.target.value)}
+              className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+            />
           </div>
 
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-            {companies.filter(c => c.kyc_status === 'PENDING').length === 0 ? (
+            {companies.filter(c => 
+              c.kyc_status === 'PENDING' && (
+                c.denomination_sociale.toLowerCase().includes(kycSearch.toLowerCase()) ||
+                c.manager_name.toLowerCase().includes(kycSearch.toLowerCase())
+              )
+            ).length === 0 ? (
               <p className="text-zinc-500 text-xs text-center py-10 border border-dashed border-border-custom rounded-lg bg-bg-deepest">
-                Aucun dossier de conformité KYC en attente d'audit.
+                Aucun dossier de conformité KYC correspondant trouvé.
               </p>
             ) : (
-              companies.filter(c => c.kyc_status === 'PENDING').map((company) => (
+              companies.filter(c => 
+                c.kyc_status === 'PENDING' && (
+                  c.denomination_sociale.toLowerCase().includes(kycSearch.toLowerCase()) ||
+                  c.manager_name.toLowerCase().includes(kycSearch.toLowerCase())
+                )
+              ).map((company) => (
                 <div key={company.id} className="p-5 rounded-lg bg-bg-deepest border border-border-custom space-y-4">
                   <div className="flex justify-between items-start">
                     <div>
@@ -1064,18 +1186,33 @@ function DashboardAdmin() {
         {/* CUSTOM ESTIMATES QUOTER PANEL */}
         {activeTab === 'devis' && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <FileCheck2 size={18} className="text-zinc-400" />
-            <h3 className="font-bold text-white text-lg">Chiffrage des Commandes Spéciales</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <FileCheck2 size={18} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-lg">Chiffrage des Commandes Spéciales</h3>
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher un devis (Nom entreprise...)"
+              value={devisSearch}
+              onChange={(e) => setDevisSearch(e.target.value)}
+              className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+            />
           </div>
 
           <div className="space-y-4 max-h-[700px] overflow-y-auto pr-1">
-            {specialRequests.filter(r => r.status === 'SUBMITTED').length === 0 ? (
+            {specialRequests.filter(r => 
+              r.status === 'SUBMITTED' && 
+              r.company?.denomination_sociale.toLowerCase().includes(devisSearch.toLowerCase())
+            ).length === 0 ? (
               <p className="text-zinc-500 text-xs text-center py-10 border border-dashed border-border-custom rounded-lg bg-bg-deepest">
-                Aucune commande sur-mesure en attente de tarification.
+                Aucune commande sur-mesure correspondante en attente de tarification.
               </p>
             ) : (
-              specialRequests.filter(r => r.status === 'SUBMITTED').map((req) => (
+              specialRequests.filter(r => 
+                r.status === 'SUBMITTED' && 
+                r.company?.denomination_sociale.toLowerCase().includes(devisSearch.toLowerCase())
+              ).map((req) => (
                 <div key={req.id} className="p-5 rounded-lg bg-bg-deepest border border-border-custom space-y-4">
                   <div className="flex justify-between items-start gap-2">
                     <div>
@@ -1226,18 +1363,33 @@ function DashboardAdmin() {
         {/* CONTRACT CUSTOMIZER PANEL */}
         {activeTab === 'contracts' && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Award size={18} className="text-zinc-400" />
-            <h3 className="font-bold text-white text-lg">Édition & Personnalisation des Contrats</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Award size={18} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-lg">Édition & Personnalisation des Contrats</h3>
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher un contrat (Nom entreprise...)"
+              value={contractsSearch}
+              onChange={(e) => setContractsSearch(e.target.value)}
+              className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+            />
           </div>
 
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-            {specialRequests.filter(r => r.status === 'QUOTED' || r.status === 'APPROVED').length === 0 ? (
+            {specialRequests.filter(r => 
+              (r.status === 'QUOTED' || r.status === 'APPROVED') &&
+              r.company?.denomination_sociale.toLowerCase().includes(contractsSearch.toLowerCase())
+            ).length === 0 ? (
               <p className="text-zinc-500 text-xs text-center py-10 border border-dashed border-border-custom rounded-lg bg-bg-deepest">
-                Aucun contrat disponible pour personnalisation (les devis doivent d'abord être émis).
+                Aucun contrat correspondant trouvé.
               </p>
             ) : (
-              specialRequests.filter(r => r.status === 'QUOTED' || r.status === 'APPROVED').map((req) => (
+              specialRequests.filter(r => 
+                (r.status === 'QUOTED' || r.status === 'APPROVED') &&
+                r.company?.denomination_sociale.toLowerCase().includes(contractsSearch.toLowerCase())
+              ).map((req) => (
                 <div key={req.id} className="p-5 rounded-lg bg-bg-deepest border border-border-custom space-y-4">
                   <div className="flex justify-between items-start gap-2">
                     <div>
@@ -1293,34 +1445,49 @@ function DashboardAdmin() {
         {/* MATRICIAL VIEW OF PAYMENTS & WHATSAPP RELANCES */}
         {activeTab === 'risk' && (
         <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={18} className="text-zinc-400" />
-          <h3 className="font-bold text-white text-lg">Pivot des Créances & Gestion du Risque de Recouvrement</h3>
-        </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-lg">Pivot des Créances & Gestion du Risque de Recouvrement</h3>
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher une créance (Nom entreprise, N° Cmd...)"
+              value={riskSearch}
+              onChange={(e) => setRiskSearch(e.target.value)}
+              className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+            />
+          </div>
 
-        <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead>
-                <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
-                  <th className="p-4">Client B2B</th>
-                  <th className="p-4">N° Commande</th>
-                  <th className="p-4">Mensualité N°</th>
-                  <th className="p-4">Maturité</th>
-                  <th className="p-4">Montant Requis</th>
-                  <th className="p-4">Statut</th>
-                  <th className="p-4 text-center">Simuler Relance WhatsApp (Reminders)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                {schedules.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="p-8 text-center text-zinc-500">
-                      Aucune créance enregistrée.
-                    </td>
+          <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden max-h-[580px] overflow-y-auto pr-1">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-surface-custom/50 border-b border-border-custom text-zinc-400 font-semibold uppercase tracking-wider">
+                    <th className="p-4">Client B2B</th>
+                    <th className="p-4">N° Commande</th>
+                    <th className="p-4">Mensualité N°</th>
+                    <th className="p-4">Maturité</th>
+                    <th className="p-4">Montant Requis</th>
+                    <th className="p-4">Statut</th>
+                    <th className="p-4 text-center">Simuler Relance WhatsApp (Reminders)</th>
                   </tr>
-                ) : (
-                  schedules.map((item, idx) => (
+                </thead>
+                <tbody className="divide-y divide-border-custom/50 text-zinc-300">
+                  {schedules.filter(s => 
+                    s.company_name.toLowerCase().includes(riskSearch.toLowerCase()) ||
+                    s.order_number.toLowerCase().includes(riskSearch.toLowerCase())
+                  ).length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="p-8 text-center text-zinc-500">
+                        Aucune créance correspondante trouvée.
+                      </td>
+                    </tr>
+                  ) : (
+                    schedules.filter(s => 
+                      s.company_name.toLowerCase().includes(riskSearch.toLowerCase()) ||
+                      s.order_number.toLowerCase().includes(riskSearch.toLowerCase())
+                    ).map((item, idx) => (
                     <tr key={idx} className="hover:bg-surface-custom/20 transition-colors">
                       <td className="p-4 font-semibold text-white">{item.company_name}</td>
                       <td className="p-4 font-mono text-zinc-400">{item.order_number}</td>
@@ -1635,6 +1802,59 @@ function DashboardAdmin() {
                   </div>
                 </div>
               )}
+              {/* Motifs / Finitions */}
+              <div className="border border-border-custom bg-surface-custom/30 rounded-lg p-3 space-y-3">
+                <span className="block text-xs font-bold text-zinc-300">🎨 Motifs / Finitions (Optionnel)</span>
+                
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[10px] text-zinc-500">Nom du motif</label>
+                    <input
+                      type="text"
+                      value={newMotifName}
+                      onChange={(e) => setNewMotifName(e.target.value)}
+                      placeholder="Ex: Tissu Velours Vert"
+                      className="w-full px-3 py-1.5 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs"
+                    />
+                  </div>
+                  <div className="w-24">
+                    <label className="text-[10px] text-zinc-500 block truncate">Photo motif</label>
+                    <div className="relative">
+                      <input
+                        id="newMotifFileInput"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUploadMotifFile(e.target.files[0], false)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={motifUploadLoading || !newMotifName.trim()}
+                      />
+                      <div className="w-full py-1.5 rounded bg-zinc-800 text-zinc-400 text-center text-xs font-semibold border border-zinc-700 hover:bg-zinc-700">
+                        {motifUploadLoading ? '...' : 'Choisir'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Liste des motifs saisis */}
+                {newProductMotifs.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto pr-1">
+                    {newProductMotifs.map((motif, index) => (
+                      <div key={index} className="flex items-center gap-1.5 p-1.5 rounded bg-bg-deepest border border-border-custom relative group">
+                        <img src={motif.image_url} alt={motif.name} className="w-8 h-8 rounded object-cover" />
+                        <span className="text-[10px] text-zinc-300 truncate w-20" title={motif.name}>{motif.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMotif(motif.id, false)}
+                          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-800 text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1">Image du produit</label>
                 <div className="flex items-center gap-2">
@@ -1660,10 +1880,17 @@ function DashboardAdmin() {
 
           {/* Liste des produits */}
           <div className="lg:col-span-2">
-            <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden">
-              <div className="px-4 py-3 border-b border-border-custom/50 flex items-center justify-between">
-                <span className="font-bold text-xs text-white">Liste des produits</span>
-                <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 text-[10px] font-semibold">
+            <div className="rounded-lg bg-bg-deepest border border-border-custom overflow-hidden max-h-[580px] overflow-y-auto pr-1">
+              <div className="px-4 py-3 border-b border-border-custom/50 flex items-center justify-between gap-3">
+                <span className="font-bold text-xs text-white shrink-0">Liste des produits</span>
+                <input
+                  type="text"
+                  placeholder="Rechercher un produit (Nom, catégorie...)"
+                  value={productsSearch}
+                  onChange={(e) => setProductsSearch(e.target.value)}
+                  className="px-2.5 py-1 rounded bg-bg-deepest border border-border-custom text-zinc-100 text-[11px] focus:outline-none focus:border-primary-custom w-full max-w-[200px]"
+                />
+                <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 text-[10px] font-semibold shrink-0">
                   {products.length} produit(s)
                 </span>
               </div>
@@ -1706,14 +1933,20 @@ function DashboardAdmin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-custom/50 text-zinc-300">
-                    {products.length === 0 ? (
+                    {products.filter(p => 
+                      p.name?.toLowerCase().includes(productsSearch.toLowerCase()) ||
+                      (p.category || '').toLowerCase().includes(productsSearch.toLowerCase())
+                    ).length === 0 ? (
                       <tr>
                         <td colSpan="6" className="p-8 text-center text-zinc-500">
-                          Aucun produit dans le catalogue.
+                          Aucun produit correspondant trouvé.
                         </td>
                       </tr>
                     ) : (
-                      products.map((product) => (
+                      products.filter(p => 
+                        p.name?.toLowerCase().includes(productsSearch.toLowerCase()) ||
+                        (p.category || '').toLowerCase().includes(productsSearch.toLowerCase())
+                      ).map((product) => (
                         <tr
                           key={product.id}
                           className={`hover:bg-surface-custom/20 transition-colors ${selectedProducts.has(product.id) ? 'bg-red-950/10 border-l-2 border-l-red-700' : ''}`}
@@ -1786,18 +2019,31 @@ function DashboardAdmin() {
       {/* PROFILE UPDATES PANEL */}
       {activeTab === 'profile_updates' && (
         <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <Edit3 size={18} className="text-zinc-400" />
-            <h3 className="font-bold text-white text-lg">Demandes de Modification de Profil</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Edit3 size={18} className="text-zinc-400" />
+              <h3 className="font-bold text-white text-lg">Demandes de Modification de Profil</h3>
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher une demande (Nom entreprise...)"
+              value={profileUpdatesSearch}
+              onChange={(e) => setProfileUpdatesSearch(e.target.value)}
+              className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+            />
           </div>
 
-          {profileUpdateRequests.length === 0 ? (
+          {profileUpdateRequests.filter(req => 
+            req.company?.denomination_sociale?.toLowerCase().includes(profileUpdatesSearch.toLowerCase())
+          ).length === 0 ? (
             <div className="p-8 rounded-lg bg-bg-deepest border border-border-custom text-center text-zinc-500 text-sm">
-              Aucune demande de modification pour le moment.
+              Aucune demande de modification correspondante trouvée.
             </div>
           ) : (
-            <div className="space-y-4">
-              {profileUpdateRequests.map(req => (
+            <div className="space-y-4 max-h-[580px] overflow-y-auto pr-1">
+              {profileUpdateRequests.filter(req => 
+                req.company?.denomination_sociale?.toLowerCase().includes(profileUpdatesSearch.toLowerCase())
+              ).map(req => (
                 <div key={req.id} className={`p-5 rounded-xl border space-y-4 ${
                   req.status === 'PENDING' ? 'bg-amber-950/10 border-amber-900/40' :
                   req.status === 'APPROVED' ? 'bg-emerald-950/10 border-emerald-900/40' :
@@ -1870,6 +2116,286 @@ function DashboardAdmin() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ORDERS PANEL */}
+      {activeTab === 'orders' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Package size={18} className="text-amber-400" />
+              <h3 className="font-bold text-white text-lg">Commandes Passées</h3>
+              <span className="text-xs text-zinc-500 bg-zinc-900 border border-zinc-800 rounded-full px-2 py-0.5">{allOrders.length} commandes</span>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Rechercher une commande (N° Cmd, client...)"
+                value={ordersSearch}
+                onChange={(e) => setOrdersSearch(e.target.value)}
+                className="px-3 py-1.5 rounded bg-bg-deepest border border-border-custom text-zinc-100 text-xs focus:outline-none focus:border-primary-custom w-full sm:w-64"
+              />
+              <button
+                onClick={async () => {
+                  setOrdersLoading(true);
+                  const r = await fetch(`${API_URL}/api/admin/orders?t=${Date.now()}`);
+                  if (r.ok) setAllOrders(await r.json());
+                  setOrdersLoading(false);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white text-xs cursor-pointer transition-colors shrink-0"
+              >
+                <RefreshCw size={13} />
+                {ordersLoading ? 'Chargement...' : 'Actualiser'}
+              </button>
+            </div>
+          </div>
+
+          {allOrders.filter(o => 
+            o.order_number?.toLowerCase().includes(ordersSearch.toLowerCase()) ||
+            o.company?.denomination_sociale?.toLowerCase().includes(ordersSearch.toLowerCase())
+          ).length === 0 ? (
+            <div className="text-center py-16 text-zinc-600">
+              <Package size={40} className="mx-auto mb-3 opacity-30" />
+              <p>Aucune commande correspondante trouvée</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[580px] overflow-y-auto pr-1">
+              {allOrders.filter(o => 
+                o.order_number?.toLowerCase().includes(ordersSearch.toLowerCase()) ||
+                o.company?.denomination_sociale?.toLowerCase().includes(ordersSearch.toLowerCase())
+              ).map(order => {
+                const schedule = order.payment_schedule || [];
+                const paidCount = schedule.filter(i => i.paid).length;
+                const totalCount = schedule.length;
+                const acompte = Number(order.total_amount) / 3;
+                const credit = (Number(order.total_amount) * 2) / 3;
+                return (
+                  <div key={order.id} className="p-5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-4">
+                    {/* Header */}
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-white text-sm">{order.order_number}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-amber-400 text-sm">{Number(order.total_amount).toLocaleString('fr-FR')} FCFA</p>
+                        <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          paidCount === totalCount ? 'bg-green-950/50 text-green-400 border border-green-800/50' :
+                          paidCount > 0 ? 'bg-yellow-950/50 text-yellow-400 border border-yellow-800/50' :
+                          'bg-red-950/50 text-red-400 border border-red-800/50'
+                        }`}>{paidCount}/{totalCount} échéances</span>
+                      </div>
+                    </div>
+                    {/* Client info */}
+                    {order.company && (
+                      <div className="text-xs text-zinc-400 bg-zinc-900 rounded-lg p-3 flex flex-wrap gap-4">
+                        <span><span className="text-zinc-600">Client : </span><strong className="text-white">{order.company.denomination_sociale}</strong></span>
+                        <span><span className="text-zinc-600">Resp. : </span>{order.company.manager_name || '—'}</span>
+                        <span><span className="text-zinc-600">Tél : </span>{order.company.manager_phone || '—'}</span>
+                      </div>
+                    )}
+                    {/* Articles with photos & motifs */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Articles</p>
+                      {(order.order_items || []).map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-900 rounded-lg">
+                          {item.product?.image_url ? (
+                            <img src={item.product.image_url} alt={item.product?.name} className="w-12 h-12 rounded-lg object-cover border border-zinc-700 shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0">
+                              <Package size={16} className="text-zinc-600" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{item.product?.name || 'Produit'}</p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950/50 text-purple-400 border border-purple-800/40">🎨 Motif : {item.motif || 'Standard'}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">Qté : {item.quantity}</span>
+                            </div>
+                          </div>
+                          <p className="text-xs font-bold text-amber-400 shrink-0">{Number(item.price * item.quantity).toLocaleString('fr-FR')} FCFA</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Financial recap */}
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800">
+                      <div className="text-center">
+                        <p className="text-[10px] text-zinc-600 mb-0.5">Total</p>
+                        <p className="text-xs font-bold text-amber-400">{Number(order.total_amount).toLocaleString('fr-FR')}</p>
+                      </div>
+                      <div className="text-center border-l border-r border-zinc-800">
+                        <p className="text-[10px] text-zinc-600 mb-0.5">Acompte 1/3</p>
+                        <p className="text-xs font-bold text-green-400">{acompte.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[10px] text-zinc-600 mb-0.5">Crédit 2/3</p>
+                        <p className="text-xs font-bold text-purple-400">{credit.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* REPORTS PANEL */}
+      {activeTab === 'reports' && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <FileText size={18} className="text-blue-400" />
+            <h3 className="font-bold text-white text-lg">Rapports & Statistiques</h3>
+          </div>
+
+          {/* Period selector */}
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'daily', label: "Aujourd'hui" },
+              { id: 'weekly', label: 'Cette semaine' },
+              { id: 'monthly', label: 'Ce mois' },
+              { id: 'annual', label: 'Cette année' }
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => setReportType(p.id)}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors border ${
+                  reportType === p.id
+                    ? 'bg-blue-950/40 border-blue-700 text-blue-400'
+                    : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white'
+                }`}
+              >{p.label}</button>
+            ))}
+            <button
+              onClick={async () => {
+                setReportLoading(true);
+                const r = await fetch(`${API_URL}/api/admin/reports?type=${reportType}&t=${Date.now()}`);
+                if (r.ok) setReportData(await r.json());
+                setReportLoading(false);
+              }}
+              className="ml-auto px-4 py-2 rounded-lg text-xs font-bold cursor-pointer bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center gap-1.5"
+            >
+              <RefreshCw size={13} />
+              {reportLoading ? 'Génération...' : 'Générer le rapport'}
+            </button>
+          </div>
+
+          {!reportData ? (
+            <div className="text-center py-16 text-zinc-600">
+              <FileText size={40} className="mx-auto mb-3 opacity-30" />
+              <p>Sélectionnez une période et cliquez sur "Générer le rapport"</p>
+            </div>
+          ) : (
+            <>
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total Encaissé', value: Number(reportData.summary.totalEncaisse).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' FCFA', color: 'text-green-400', bg: 'bg-green-950/20 border-green-900/50', icon: '💰' },
+                  { label: 'Commandes', value: reportData.summary.totalOrders, color: 'text-amber-400', bg: 'bg-amber-950/20 border-amber-900/50', icon: '🛒' },
+                  { label: 'Nouvelles Activations', value: reportData.summary.newActivations, color: 'text-blue-400', bg: 'bg-blue-950/20 border-blue-900/50', icon: '👥' },
+                  { label: 'Échéances Réglées', value: reportData.summary.installmentsPaidCount, color: 'text-purple-400', bg: 'bg-purple-950/20 border-purple-900/50', icon: '✅' },
+                  { label: 'Acomptes Perçus (1/3)', value: Number(reportData.summary.totalAcomptePercu).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' FCFA', color: 'text-emerald-400', bg: 'bg-emerald-950/20 border-emerald-900/50', icon: '📥' },
+                  { label: 'Crédit Accordé (2/3)', value: Number(reportData.summary.totalCreditAccorde).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' FCFA', color: 'text-violet-400', bg: 'bg-violet-950/20 border-violet-900/50', icon: '🏦' },
+                  { label: 'Mensualités Perçues', value: Number(reportData.summary.totalInstallmentsPaid).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' FCFA', color: 'text-cyan-400', bg: 'bg-cyan-950/20 border-cyan-900/50', icon: '🔄' },
+                  { label: 'Échéances en Attente', value: reportData.summary.installmentsPendingCount, color: 'text-red-400', bg: 'bg-red-950/20 border-red-900/50', icon: '⏳' },
+                ].map((kpi, i) => (
+                  <div key={i} className={`p-4 rounded-xl border ${kpi.bg} space-y-1`}>
+                    <p className="text-lg">{kpi.icon}</p>
+                    <p className={`text-lg font-black ${kpi.color}`}>{kpi.value}</p>
+                    <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">{kpi.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Period info & Export */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-zinc-950 border border-zinc-800">
+                <div className="text-xs text-zinc-500">
+                  <span>Période : </span>
+                  <strong className="text-white">{new Date(reportData.startDate).toLocaleDateString('fr-FR')} → {new Date(reportData.endDate).toLocaleDateString('fr-FR')}</strong>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const rows = [
+                        ['Référence', 'Client', 'Date', 'Montant Total', 'Acompte 1/3', 'Crédit 2/3', 'Articles', 'Motifs'],
+                        ...(reportData.orders || []).map(o => [
+                          o.order_number,
+                          o.company?.denomination_sociale || '',
+                          new Date(o.created_at).toLocaleDateString('fr-FR'),
+                          Number(o.total_amount).toFixed(0),
+                          (Number(o.total_amount) / 3).toFixed(0),
+                          ((Number(o.total_amount) * 2) / 3).toFixed(0),
+                          (o.order_items || []).map(i => i.product?.name).join(' | '),
+                          (o.order_items || []).map(i => i.motif || 'Standard').join(' | ')
+                        ])
+                      ];
+                      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `rapport_gmd_${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    ⬇️ Exporter en CSV
+                  </button>
+                  <a
+                    href={`${API_URL}/api/admin/reports/pdf?type=${reportType}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-950/30 border border-red-900/50 text-red-400 hover:bg-red-900/50 text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    ⬇️ Télécharger en PDF
+                  </a>
+                </div>
+              </div>
+
+              {/* Orders table */}
+              {(reportData.orders || []).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Commandes de la période</p>
+                  <div className="overflow-x-auto rounded-xl border border-zinc-800 max-h-[350px] overflow-y-auto pr-1">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-zinc-900 text-zinc-500 uppercase tracking-wider">
+                        <tr>
+                          <th className="px-4 py-3">Référence</th>
+                          <th className="px-4 py-3">Client</th>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Articles / Motifs</th>
+                          <th className="px-4 py-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-900">
+                        {(reportData.orders || []).map(order => (
+                          <tr key={order.id} className="hover:bg-zinc-900/50 transition-colors">
+                            <td className="px-4 py-3 font-mono text-amber-400 font-bold">{order.order_number}</td>
+                            <td className="px-4 py-3 text-white">{order.company?.denomination_sociale}</td>
+                            <td className="px-4 py-3 text-zinc-400">{new Date(order.created_at).toLocaleDateString('fr-FR')}</td>
+                            <td className="px-4 py-3">
+                              <div className="space-y-1">
+                                {(order.order_items || []).map((item, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    {item.product?.image_url && <img src={item.product.image_url} alt="" className="w-7 h-7 rounded object-cover border border-zinc-700 shrink-0" />}
+                                    <span className="text-zinc-300">{item.product?.name || 'Produit'}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-950/50 text-purple-400 border border-purple-800/40">{item.motif || 'Standard'}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-amber-400">{Number(order.total_amount).toLocaleString('fr-FR')} FCFA</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -2084,6 +2610,59 @@ function DashboardAdmin() {
                   </div>
                 </div>
               )}
+              {/* Motifs / Finitions */}
+              <div className="border border-border-custom bg-surface-custom/30 rounded-lg p-3 space-y-3">
+                <span className="block text-xs font-bold text-zinc-300">🎨 Motifs / Finitions (Optionnel)</span>
+                
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[10px] text-zinc-500">Nom du motif</label>
+                    <input
+                      type="text"
+                      value={editMotifName}
+                      onChange={(e) => setEditMotifName(e.target.value)}
+                      placeholder="Ex: Tissu Velours Bleu"
+                      className="w-full px-3 py-1.5 rounded bg-surface-custom border border-border-custom text-zinc-100 text-xs"
+                    />
+                  </div>
+                  <div className="w-24">
+                    <label className="text-[10px] text-zinc-500 block truncate">Photo motif</label>
+                    <div className="relative">
+                      <input
+                        id="editMotifFileInput"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleUploadMotifFile(e.target.files[0], true)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={motifUploadLoading || !editMotifName.trim()}
+                      />
+                      <div className="w-full py-1.5 rounded bg-zinc-800 text-zinc-400 text-center text-xs font-semibold border border-zinc-700 hover:bg-zinc-700">
+                        {motifUploadLoading ? '...' : 'Choisir'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Liste des motifs existants/modifiés */}
+                {editProductMotifs.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto pr-1">
+                    {editProductMotifs.map((motif, index) => (
+                      <div key={index} className="flex items-center gap-1.5 p-1.5 rounded bg-bg-deepest border border-border-custom relative group">
+                        <img src={motif.image_url} alt={motif.name} className="w-8 h-8 rounded object-cover" />
+                        <span className="text-[10px] text-zinc-300 truncate w-20" title={motif.name}>{motif.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMotif(motif.id, true)}
+                          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-800 text-white text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-zinc-400 mb-1">Remplacer l'image</label>
                 <input

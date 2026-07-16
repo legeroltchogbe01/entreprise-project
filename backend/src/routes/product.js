@@ -177,4 +177,17 @@ router.put('/:id', upload.single('image'), async (req, res) => {
   }
 });
 
+// Upload motif image
+router.post('/upload-motif-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier image fourni.' });
+    }
+    res.json({ image_url: req.file.path });
+  } catch (error) {
+    console.error('Upload motif image error:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'upload de l\'image du motif.' });
+  }
+});
+
 module.exports = router;
